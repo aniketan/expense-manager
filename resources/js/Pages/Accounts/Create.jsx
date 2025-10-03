@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import Layout from '../../Layouts/Layout';
+import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
 export default function Create({ accountTypes }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -32,7 +32,7 @@ export default function Create({ accountTypes }) {
     const isCash = data.type === 'cash';
 
     return (
-        <Layout>
+        <BootstrapLayout>
             <Head title="Create Account" />
             
             <div className="max-w-2xl mx-auto">
@@ -234,6 +234,6 @@ export default function Create({ accountTypes }) {
                     </div>
                 </form>
             </div>
-        </Layout>
+        </BootstrapLayout>
     );
 }

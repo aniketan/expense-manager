@@ -2,7 +2,8 @@ import './bootstrap';
 import React from 'react';
 import { createInertiaApp } from '@inertiajs/react'
 import { createRoot } from 'react-dom/client'
-import 'font-awesome/css/font-awesome.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import '../css/app.css';
 
 createInertiaApp({
   resolve: name => {

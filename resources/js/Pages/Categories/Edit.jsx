@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
-export default function Create({ categoryTypes, parentCategories }) {
-    const { data, setData, post, processing, errors } = useForm({
-        name: '',
-        code: '',
-        parent_id: '',
-        description: '',
-        icon: '',
-        color: '#3B82F6',
-        is_active: true,
+export default function Edit({ category, categoryTypes, parentCategories }) {
+    const { data, setData, put, processing, errors } = useForm({
+        name: category.name || '',
+        code: category.code || '',
+        parent_id: category.parent_id || '',
+        description: category.description || '',
+        icon: category.icon || '',
+        color: category.color || '#3B82F6',
+        is_active: category.is_active ?? true,
     });
 
     const [showColorPicker, setShowColorPicker] = useState(false);
@@ -23,7 +23,7 @@ export default function Create({ categoryTypes, parentCategories }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        post('/categories');
+        put(`/categories/${category.id}`);
     };
 
     const generateCode = () => {
@@ -35,15 +35,15 @@ export default function Create({ categoryTypes, parentCategories }) {
 
     return (
         <BootstrapLayout>
-            <Head title="Create Category" />
+            <Head title={`Edit Category - ${category.name}`} />
             
             <div className="row">
                 <div className="col-12">
                     <div className="d-flex justify-content-between align-items-center mb-4">
                         <div>
                             <h1 className="h2 mb-1">
-                                <i className="fas fa-plus text-success me-3"></i>
-                                Create New Category
+                                <i className="fas fa-edit text-warning me-3"></i>
+                                Edit Category
                             </h1>
                             <nav aria-label="breadcrumb">
                                 <ol className="breadcrumb">
@@ -53,14 +53,19 @@ export default function Create({ categoryTypes, parentCategories }) {
                                         </Link>
                                     </li>
                                     <li className="breadcrumb-item active" aria-current="page">
-                                        Create
+                                        Edit {category.name}
                                     </li>
                                 </ol>
                             </nav>
                         </div>
-                        <Link href="/categories" className="btn btn-outline-secondary">
-                            <i className="fas fa-arrow-left me-2"></i>Back to Categories
-                        </Link>
+                        <div>
+                            <Link href={`/categories/${category.id}`} className="btn btn-outline-info me-2">
+                                <i className="fas fa-eye me-2"></i>View Category
+                            </Link>
+                            <Link href="/categories" className="btn btn-outline-secondary">
+                                <i className="fas fa-arrow-left me-2"></i>Back to Categories
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -244,9 +249,9 @@ export default function Create({ categoryTypes, parentCategories }) {
                                                 onClick={() => window.history.back()}>
                                             <i className="fas fa-times me-2"></i>Cancel
                                         </button>
-                                        <button type="submit" className="btn btn-success" disabled={processing}>
-                                            <i className="fas fa-plus me-2"></i>
-                                            {processing ? 'Creating...' : 'Create Category'}
+                                        <button type="submit" className="btn btn-warning" disabled={processing}>
+                                            <i className="fas fa-save me-2"></i>
+                                            {processing ? 'Updating...' : 'Update Category'}
                                         </button>
                                     </div>
                                 </div>
@@ -292,40 +297,6 @@ export default function Create({ categoryTypes, parentCategories }) {
                                     )}
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="row mt-4">
-                <div className="col-lg-8 offset-lg-2">
-                    <div className="card bg-light">
-                        <div className="card-body">
-                            <h6 className="mb-3">
-                                <i className="fas fa-lightbulb me-2"></i>Tips & Quick Actions
-                            </h6>
-                            <div className="row">
-                                <div className="col-md-4">
-                                    <button type="button" className="btn btn-outline-primary btn-sm w-100 mb-2">
-                                        <i className="fas fa-copy me-1"></i>Copy from Existing
-                                    </button>
-                                </div>
-                                <div className="col-md-4">
-                                    <button type="button" className="btn btn-outline-info btn-sm w-100 mb-2">
-                                        <i className="fas fa-list me-1"></i>Import Categories
-                                    </button>
-                                </div>
-                                <div className="col-md-4">
-                                    <button type="button" className="btn btn-outline-warning btn-sm w-100 mb-2">
-                                        <i className="fas fa-eraser me-1"></i>Clear Form
-                                    </button>
-                                </div>
-                            </div>
-                            <small className="text-muted">
-                                <i className="fas fa-info-circle me-1"></i>
-                                <strong>Tip:</strong> Use descriptive names and codes for better organization. Parent categories help group related subcategories.
-                            </small>
                         </div>
                     </div>
                 </div>

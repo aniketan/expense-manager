@@ -12,15 +12,92 @@ class CategoryController extends Controller
     /**
      * Display a listing of the categories.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $categories = Category::with('parent', 'children')
-            ->orderBy('parent_id')
+        $perPage = $request->get('per_page', 5); // Changed to 5 parent categories per page
+        $page = $request->get('page', 1);
+        
+        // Validate per_page parameter
+        if (!in_array($perPage, [5, 10, 15, 20])) {
+            $perPage = 5;
+        }
+
+        // Get all categories to properly group them
+        $allCategories = Category::with(['parent', 'children'])
             ->orderBy('name')
             ->get();
 
+        // Load transaction counts separately for efficiency
+        $categoriesWithTransactionTotals = $allCategories->map(function($category) {
+            // Calculate totals
+            if ($category->isParent()) {
+                // For parent categories, get sum of all children + parent
+                $childrenIds = $category->children->pluck('id')->toArray();
+                $allIds = array_merge($childrenIds, [$category->id]);
+                
+                // Set the main total properties (sum of all subcategories)
+                $totalAmount = \App\Models\Transaction::whereIn('category_id', $allIds)->sum('amount');
+                $transactionCount = \App\Models\Transaction::whereIn('category_id', $allIds)->count();
+                
+                $category->total_amount = $totalAmount;
+                $category->transactions_count = $transactionCount;
+                
+                // Also set the _with_children properties for API compatibility
+                $category->total_amount_with_children = $totalAmount;
+                $category->transaction_count_with_children = $transactionCount;
+            } else {
+                // For children, just get their individual totals
+                $totalAmount = \App\Models\Transaction::where('category_id', $category->id)->sum('amount');
+                $transactionCount = \App\Models\Transaction::where('category_id', $category->id)->count();
+                
+                $category->total_amount = $totalAmount;
+                $category->transactions_count = $transactionCount;
+            }
+            
+            return $category;
+        });
+
+        // Group into parent categories with their children
+        $parentCategories = $categoriesWithTransactionTotals->filter(function($category) {
+            return $category->parent_id === null;
+        });
+
+        // Add children to each parent
+        $groupedCategories = $parentCategories->map(function($parent) use ($categoriesWithTransactionTotals) {
+            $parent->children = $categoriesWithTransactionTotals->filter(function($category) use ($parent) {
+                return $category->parent_id === $parent->id;
+            })->values();
+            return $parent;
+        });
+
+        // Manual pagination for grouped categories
+        $total = $groupedCategories->count();
+        $offset = ($page - 1) * $perPage;
+        $paginatedGroups = $groupedCategories->slice($offset, $perPage)->values();
+
+        // Flatten the groups for frontend display
+        $flattenedCategories = collect();
+        foreach ($paginatedGroups as $parent) {
+            $flattenedCategories->push($parent);
+            foreach ($parent->children as $child) {
+                $flattenedCategories->push($child);
+            }
+        }
+
+        // Create pagination info manually
+        $paginationData = [
+            'data' => $flattenedCategories,
+            'current_page' => (int) $page,
+            'last_page' => (int) ceil($total / $perPage),
+            'per_page' => (int) $perPage,
+            'total' => $categoriesWithTransactionTotals->count(), // Total individual categories
+            'from' => $offset + 1,
+            'to' => min($offset + $flattenedCategories->count(), $categoriesWithTransactionTotals->count()),
+            'parent_total' => $total, // Total parent categories
+        ];
+
         return Inertia::render('Categories/Index', [
-            'categories' => $categories,
+            'categories' => $paginationData,
             'success' => session('success'),
             'error' => session('error'),
         ]);
@@ -184,6 +261,52 @@ class CategoryController extends Controller
     {
         return response()->json([
             'categories' => $category->activeChildren()->orderBy('name')->get()
+        ]);
+    }
+
+    /**
+     * Get categories with transaction totals for dashboard/reports
+     */
+    public function getCategoriesWithTotals()
+    {
+        $categories = Category::with(['children'])
+            ->whereNull('parent_id') // Only parent categories
+            ->orderBy('name')
+            ->get();
+
+        $categoriesWithTotals = $categories->map(function ($category) {
+            // Calculate totals for parent category
+            $childrenIds = $category->children->pluck('id')->toArray();
+            $allIds = array_merge($childrenIds, [$category->id]);
+            
+            $totalAmount = \App\Models\Transaction::whereIn('category_id', $allIds)->sum('amount');
+            $transactionCount = \App\Models\Transaction::whereIn('category_id', $allIds)->count();
+            
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'code' => $category->code,
+                'color' => $category->color,
+                'icon' => $category->icon,
+                'total_amount' => $totalAmount,
+                'transaction_count' => $transactionCount,
+                'children' => $category->children->map(function ($child) {
+                    $childAmount = \App\Models\Transaction::where('category_id', $child->id)->sum('amount');
+                    $childCount = \App\Models\Transaction::where('category_id', $child->id)->count();
+                    
+                    return [
+                        'id' => $child->id,
+                        'name' => $child->name,
+                        'code' => $child->code,
+                        'total_amount' => $childAmount,
+                        'transaction_count' => $childCount,
+                    ];
+                })
+            ];
+        });
+
+        return response()->json([
+            'categories' => $categoriesWithTotals
         ]);
     }
 }

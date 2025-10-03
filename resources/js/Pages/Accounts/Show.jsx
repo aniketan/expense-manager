@@ -1,6 +1,6 @@
 import React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import Layout from '../../Layouts/Layout';
+import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
 export default function Show({ account }) {
     const handleDelete = () => {
@@ -43,7 +43,7 @@ export default function Show({ account }) {
     };
 
     return (
-        <Layout>
+        <BootstrapLayout>
             <Head title={account.name} />
             
             <div className="max-w-4xl mx-auto">
@@ -230,6 +230,6 @@ export default function Show({ account }) {
                     </div>
                 </div>
             </div>
-        </Layout>
+        </BootstrapLayout>
     );
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import Layout from '../../Layouts/Layout';
+import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
 export default function Edit({ account, accountTypes }) {
     const { data, setData, put, processing, errors } = useForm({
@@ -25,7 +25,7 @@ export default function Edit({ account, accountTypes }) {
     const isCash = data.type === 'cash';
 
     return (
-        <Layout>
+        <BootstrapLayout>
             <Head title={`Edit ${account.name}`} />
             
             <div className="max-w-2xl mx-auto">
@@ -227,6 +227,6 @@ export default function Edit({ account, accountTypes }) {
                     </div>
                 </form>
             </div>
-        </Layout>
+        </BootstrapLayout>
     );
 }
