@@ -22,3 +22,19 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+database/database.sqlite
+database/expense_manager.db
+*.db:Zone.Identifier
+
+# Backup files
+*.backup
+*.bak
+database/*.backup*
