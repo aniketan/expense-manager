@@ -4,7 +4,7 @@ import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
 export default function Show({ account }) {
     const handleDelete = () => {
-        if (window.confirm(`Are you sure you want to delete ${account.name}?`)) {
+        if (window.confirm(`Are you sure you want to delete ${account.account_name}?`)) {
             router.delete(`/accounts/${account.id}`);
         }
     };
@@ -22,13 +22,13 @@ export default function Show({ account }) {
 
     const getAccountTypeColor = (type) => {
         const colors = {
-            savings: 'bg-green-100 text-green-800',
-            current: 'bg-blue-100 text-blue-800',
-            credit_card: 'bg-purple-100 text-purple-800',
-            cash: 'bg-yellow-100 text-yellow-800',
-            investment: 'bg-indigo-100 text-indigo-800'
+            savings: 'bg-success',
+            current: 'bg-info',
+            credit_card: 'bg-purple',
+            cash: 'bg-warning',
+            investment: 'bg-primary'
         };
-        return colors[type] || 'bg-gray-100 text-gray-800';
+        return colors[type] || 'bg-secondary';
     };
 
     const getAccountTypeLabel = (type) => {
@@ -44,157 +44,180 @@ export default function Show({ account }) {
 
     return (
         <BootstrapLayout>
-            <Head title={account.name} />
+            <Head title={account.account_name} />
             
-            <div className="max-w-4xl mx-auto">
+            <div className="container-fluid">
                 {/* Header */}
-                <div className="mb-6">
-                    <div className="flex items-center space-x-3 mb-2">
-                        <Link 
-                            href="/accounts" 
-                            className="text-gray-500 hover:text-gray-700"
-                        >
-                            ← Back to Accounts
-                        </Link>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <h1 className="text-2xl font-bold text-gray-900">{account.name}</h1>
-                            <span className={`px-3 py-1 text-sm font-medium rounded-full ${getAccountTypeColor(account.type)}`}>
-                                {getAccountTypeLabel(account.type)}
-                            </span>
-                            <div className={`w-3 h-3 rounded-full ${account.is_active ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                        </div>
-                        <div className="flex space-x-2">
-                            <Link
-                                href={`/accounts/${account.id}/edit`}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium"
-                            >
-                                Edit Account
-                            </Link>
-                            <button
-                                onClick={handleToggleStatus}
-                                className={`px-4 py-2 rounded-md font-medium ${
-                                    account.is_active
-                                        ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                                        : 'bg-green-600 hover:bg-green-700 text-white'
-                                }`}
-                            >
-                                {account.is_active ? 'Disable' : 'Enable'}
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium"
-                            >
-                                Delete
-                            </button>
+                <div className="row mb-4">
+                    <div className="col-12">
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <Link 
+                                    href="/accounts" 
+                                    className="btn btn-outline-secondary btn-sm mb-2"
+                                >
+                                    <i className="fas fa-arrow-left me-2"></i>Back to Accounts
+                                </Link>
+                                <div className="d-flex align-items-center">
+                                    <h1 className="h2 mb-0 me-3">{account.account_name}</h1>
+                                    <span className={`badge ${getAccountTypeColor(account.account_type)} me-2`}>
+                                        {getAccountTypeLabel(account.account_type)}
+                                    </span>
+                                    <span className={`badge ${account.is_active ? 'bg-success' : 'bg-danger'}`}>
+                                        {account.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="btn-group">
+                                <Link
+                                    href={`/accounts/${account.id}/edit`}
+                                    className="btn btn-primary"
+                                >
+                                    <i className="fas fa-edit me-2"></i>Edit Account
+                                </Link>
+                                <button
+                                    onClick={handleToggleStatus}
+                                    className={`btn ${account.is_active ? 'btn-warning' : 'btn-success'}`}
+                                >
+                                    <i className={`fas ${account.is_active ? 'fa-pause' : 'fa-play'} me-2`}></i>
+                                    {account.is_active ? 'Disable' : 'Enable'}
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    className="btn btn-danger"
+                                >
+                                    <i className="fas fa-trash me-2"></i>Delete
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="row">
                     {/* Account Details */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="col-lg-8">
                         {/* Basic Information */}
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h2>
-                            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <dt className="text-sm font-medium text-gray-500">Account Code</dt>
-                                    <dd className="mt-1 text-sm text-gray-900 font-mono">{account.code}</dd>
+                        <div className="card mb-4">
+                            <div className="card-header">
+                                <h5 className="card-title mb-0">
+                                    <i className="fas fa-info-circle me-2"></i>Account Information
+                                </h5>
+                            </div>
+                            <div className="card-body">
+                                <div className="row">
+                                    <div className="col-md-6 mb-3">
+                                        <label className="form-label text-muted">Account Code</label>
+                                        <div className="fw-bold font-monospace">{account.account_code || 'N/A'}</div>
+                                    </div>
+                                    <div className="col-md-6 mb-3">
+                                        <label className="form-label text-muted">Account Type</label>
+                                        <div className="fw-bold">{getAccountTypeLabel(account.account_type)}</div>
+                                    </div>
+                                    <div className="col-md-6 mb-3">
+                                        <label className="form-label text-muted">Status</label>
+                                        <div>
+                                            <span className={`badge ${account.is_active ? 'bg-success' : 'bg-danger'}`}>
+                                                {account.is_active ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6 mb-3">
+                                        <label className="form-label text-muted">Created</label>
+                                        <div className="fw-bold">
+                                            {new Date(account.created_at).toLocaleDateString('en-IN', {
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric'
+                                            })}
+                                        </div>
+                                    </div>
+                                    {account.description && (
+                                        <div className="col-12">
+                                            <label className="form-label text-muted">Description</label>
+                                            <div className="fw-bold">{account.description}</div>
+                                        </div>
+                                    )}
                                 </div>
-                                <div>
-                                    <dt className="text-sm font-medium text-gray-500">Account Type</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">{getAccountTypeLabel(account.type)}</dd>
-                                </div>
-                                <div>
-                                    <dt className="text-sm font-medium text-gray-500">Status</dt>
-                                    <dd className="mt-1">
-                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                            account.is_active 
-                                                ? 'bg-green-100 text-green-800' 
-                                                : 'bg-red-100 text-red-800'
-                                        }`}>
-                                            {account.is_active ? 'Active' : 'Inactive'}
-                                        </span>
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt className="text-sm font-medium text-gray-500">Created</dt>
-                                    <dd className="mt-1 text-sm text-gray-900">
-                                        {new Date(account.created_at).toLocaleDateString('en-IN', {
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric'
-                                        })}
-                                    </dd>
-                                </div>
-                            </dl>
+                            </div>
                         </div>
 
                         {/* Bank Details */}
-                        {account.type !== 'cash' && (account.bank_name || account.account_number || account.ifsc_code) && (
-                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                                <h2 className="text-lg font-semibold text-gray-900 mb-4">Bank Details</h2>
-                                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    {account.bank_name && (
-                                        <div>
-                                            <dt className="text-sm font-medium text-gray-500">Bank Name</dt>
-                                            <dd className="mt-1 text-sm text-gray-900">{account.bank_name}</dd>
-                                        </div>
-                                    )}
-                                    {account.account_number && (
-                                        <div>
-                                            <dt className="text-sm font-medium text-gray-500">Account Number</dt>
-                                            <dd className="mt-1 text-sm text-gray-900 font-mono">{account.account_number}</dd>
-                                        </div>
-                                    )}
-                                    {account.ifsc_code && (
-                                        <div>
-                                            <dt className="text-sm font-medium text-gray-500">IFSC Code</dt>
-                                            <dd className="mt-1 text-sm text-gray-900 font-mono">{account.ifsc_code}</dd>
-                                        </div>
-                                    )}
-                                </dl>
+                        {account.account_type !== 'cash' && (account.bank_name || account.account_number || account.ifsc_code) && (
+                            <div className="card mb-4">
+                                <div className="card-header">
+                                    <h5 className="card-title mb-0">
+                                        <i className="fas fa-university me-2"></i>Bank Details
+                                    </h5>
+                                </div>
+                                <div className="card-body">
+                                    <div className="row">
+                                        {account.bank_name && (
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label text-muted">Bank Name</label>
+                                                <div className="fw-bold">{account.bank_name}</div>
+                                            </div>
+                                        )}
+                                        {account.account_number && (
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label text-muted">Account Number</label>
+                                                <div className="fw-bold font-monospace">{account.account_number}</div>
+                                            </div>
+                                        )}
+                                        {account.ifsc_code && (
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label text-muted">IFSC Code</label>
+                                                <div className="fw-bold font-monospace">{account.ifsc_code}</div>
+                                            </div>
+                                        )}
+                                        {account.branch_name && (
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label text-muted">Branch</label>
+                                                <div className="fw-bold">{account.branch_name}</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
 
                     {/* Balance Information */}
-                    <div className="space-y-6">
+                    <div className="col-lg-4">
                         {/* Current Balance */}
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4">Balance Overview</h2>
-                            <div className="space-y-4">
-                                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                                    <p className="text-sm text-gray-600 mb-1">Current Balance</p>
-                                    <p className={`text-2xl font-bold ${
-                                        account.current_balance >= 0 ? 'text-green-600' : 'text-red-600'
-                                    }`}>
-                                        {formatCurrency(account.current_balance)}
-                                    </p>
+                        <div className="card mb-4">
+                            <div className="card-header">
+                                <h5 className="card-title mb-0">
+                                    <i className="fas fa-balance-scale me-2"></i>Balance Overview
+                                </h5>
+                            </div>
+                            <div className="card-body text-center">
+                                <div className="mb-4 p-3 bg-light rounded">
+                                    <small className="text-muted d-block mb-1">Current Balance</small>
+                                    <h3 className={`mb-0 ${account.current_balance >= 0 ? 'text-success' : 'text-danger'}`}>
+                                        {formatCurrency(account.current_balance || 0)}
+                                    </h3>
                                 </div>
                                 
-                                <div className="border-t pt-4">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">Opening Balance:</span>
-                                        <span className="text-gray-900 font-medium">
-                                            {formatCurrency(account.opening_balance)}
+                                <div className="border-top pt-3">
+                                    <div className="d-flex justify-content-between align-items-center mb-2">
+                                        <span className="text-muted">Opening Balance:</span>
+                                        <span className="fw-bold">
+                                            {formatCurrency(account.opening_balance || 0)}
                                         </span>
                                     </div>
                                     
-                                    {account.type === 'credit_card' && account.credit_limit > 0 && (
+                                    {account.account_type === 'credit_card' && account.credit_limit > 0 && (
                                         <>
-                                            <div className="flex justify-between text-sm mt-2">
-                                                <span className="text-gray-600">Credit Limit:</span>
-                                                <span className="text-gray-900 font-medium">
+                                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                                <span className="text-muted">Credit Limit:</span>
+                                                <span className="fw-bold">
                                                     {formatCurrency(account.credit_limit)}
                                                 </span>
                                             </div>
-                                            <div className="flex justify-between text-sm mt-2">
-                                                <span className="text-gray-600">Available Credit:</span>
-                                                <span className="text-green-600 font-medium">
-                                                    {formatCurrency(account.credit_limit + account.current_balance)}
+                                            <div className="d-flex justify-content-between align-items-center">
+                                                <span className="text-muted">Available Credit:</span>
+                                                <span className="fw-bold text-success">
+                                                    {formatCurrency(account.credit_limit + (account.current_balance || 0))}
                                                 </span>
                                             </div>
                                         </>
@@ -204,27 +227,33 @@ export default function Show({ account }) {
                         </div>
 
                         {/* Quick Actions */}
-                        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-                            <div className="space-y-2">
-                                <Link
-                                    href={`/expenses/create?account=${account.id}`}
-                                    className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-3 rounded-md font-medium text-center block"
-                                >
-                                    Add Expense
-                                </Link>
-                                <Link
-                                    href={`/expenses?account=${account.id}`}
-                                    className="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 px-4 py-3 rounded-md font-medium text-center block"
-                                >
-                                    View Transactions
-                                </Link>
-                                <Link
-                                    href={`/accounts/${account.id}/edit`}
-                                    className="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-3 rounded-md font-medium text-center block"
-                                >
-                                    Edit Account
-                                </Link>
+                        <div className="card">
+                            <div className="card-header">
+                                <h5 className="card-title mb-0">
+                                    <i className="fas fa-bolt me-2"></i>Quick Actions
+                                </h5>
+                            </div>
+                            <div className="card-body">
+                                <div className="d-grid gap-2">
+                                    <Link
+                                        href={`/transactions/create?account=${account.id}`}
+                                        className="btn btn-outline-primary"
+                                    >
+                                        <i className="fas fa-plus me-2"></i>Add Transaction
+                                    </Link>
+                                    <Link
+                                        href={`/transactions?account=${account.id}`}
+                                        className="btn btn-outline-secondary"
+                                    >
+                                        <i className="fas fa-list me-2"></i>View Transactions
+                                    </Link>
+                                    <Link
+                                        href={`/accounts/${account.id}/edit`}
+                                        className="btn btn-outline-warning"
+                                    >
+                                        <i className="fas fa-edit me-2"></i>Edit Account
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     </div>

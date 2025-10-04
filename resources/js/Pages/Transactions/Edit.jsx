@@ -7,13 +7,12 @@ export default function Edit({ transaction, categories, accounts }) {
     const [subcategories, setSubcategories] = useState([]);
 
     const { data, setData, put, processing, errors } = useForm({
-        expensed_date: transaction.expensed_date || transaction.transaction_date || '',
+        expensed_date: transaction.transaction_date || '',
         transaction_time: transaction.transaction_time || '',
         amount: transaction.amount || '',
         account_id: transaction.account_id || '',
         payment_method: transaction.payment_method || '',
         description: transaction.description || '',
-        category: transaction.category || '',
         category_id: transaction.category_id || '',
         payee_payer: transaction.payee_payer || '',
         reference_number: transaction.reference_number || '',
@@ -42,25 +41,38 @@ export default function Edit({ transaction, categories, accounts }) {
 
     // Initialize category and subcategories on component mount
     useEffect(() => {
-        if (data.category_id) {
-            const parentCategory = findParentCategoryBySubcategoryId(data.category_id);
+        if (transaction.category_id && categories.length > 0) {
+            const categoryId = parseInt(transaction.category_id);
+            const parentCategory = findParentCategoryBySubcategoryId(categoryId);
+            
             if (parentCategory) {
                 setSelectedCategory(parentCategory.id);
-                setSubcategories(getSubcategories(parentCategory.id));
+                const subs = getSubcategories(parentCategory.id);
+                setSubcategories(subs);
+            } else {
+                // If no parent found, the category_id might be a parent category itself
+                const category = categories.find(cat => cat.id === categoryId);
+                if (category && category.parent_id === null) {
+                    setSelectedCategory(category.id);
+                    setSubcategories(getSubcategories(category.id));
+                }
             }
         }
-    }, [categories]);
-
-    const updateSubcategories = (parentCategoryId) => {
-        const subs = getSubcategories(parentCategoryId);
-        setSubcategories(subs);
-    };
+    }, [transaction.category_id, categories]);
 
     const handleCategoryChange = (e) => {
         const parentCategoryId = parseInt(e.target.value);
         setSelectedCategory(parentCategoryId);
-        updateSubcategories(parentCategoryId);
-        setData('category_id', ''); // Reset subcategory when category changes
+        
+        if (parentCategoryId) {
+            const subs = getSubcategories(parentCategoryId);
+            setSubcategories(subs);
+        } else {
+            setSubcategories([]);
+        }
+        
+        // Reset subcategory when parent category changes
+        setData('category_id', '');
     };
 
     const handleSubmit = (e) => {

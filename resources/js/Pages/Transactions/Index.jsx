@@ -3,10 +3,35 @@ import { Head, Link, router } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 import Pagination from '../../Components/Pagination';
 
-export default function Index({ transactions = {}, categories = [], accounts = [], success, filters = {} }) {
+export default function Index({ transactions = {}, categories = [], accounts = [], success, filters = {}, totals = {} }) {
     const [filtersCollapsed, setFiltersCollapsed] = useState(false);
     const [selectedTransactions, setSelectedTransactions] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
+    
+    // Function to get color class based on amount value
+    const getAmountColorClass = (amount, transactionType) => {
+        const value = parseFloat(amount || 0);
+        
+        // Base color for income vs expense
+        const baseColor = transactionType === 'income' ? 'text-success' : 'text-danger';
+        
+        // Amount-based color coding (based on absolute value)
+        const absValue = Math.abs(value);
+        
+        if (absValue < 100) {
+            return 'text-info'; // ₹1-99 - Blue
+        } else if (absValue < 500) {
+            return 'text-warning'; // ₹100-499 - Yellow
+        } else if (absValue < 1000) {
+            return 'text-orange'; // ₹500-999 - Orange (need custom CSS)
+        } else if (absValue < 2000) {
+            return 'text-danger'; // ₹1K-1.9K - Red
+        } else if (absValue < 5000) {
+            return 'text-dark'; // ₹2K-4.9K - Dark
+        } else {
+            return 'text-secondary'; // ₹5K+ - Gray
+        }
+    };
     
     // Extract data from paginated response
     const transactionData = transactions.data || [];
@@ -37,6 +62,30 @@ export default function Index({ transactions = {}, categories = [], accounts = [
         } else {
             setSelectedTransactions([...selectedTransactions, id]);
         }
+    };
+
+    const handleFilterSubmit = (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const filterParams = {};
+        
+        for (let [key, value] of formData.entries()) {
+            if (value && value.trim() !== '') {
+                filterParams[key] = value;
+            }
+        }
+        
+        router.get('/transactions', filterParams, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    const clearFilters = () => {
+        router.get('/transactions', {}, {
+            preserveState: true,
+            preserveScroll: true,
+        });
     };
 
     const deleteSelected = () => {
@@ -107,7 +156,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                         </div>
                         <div className={`collapse ${!filtersCollapsed ? 'show' : ''}`}>
                             <div className="card-body">
-                                <form method="GET" action="/transactions">
+                                <form onSubmit={handleFilterSubmit}>
                                     <div className="row">
                                         <div className="col-md-3">
                                             <label htmlFor="search" className="form-label">Search Description/Notes/Payee</label>
@@ -224,9 +273,13 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                             </button>
                                         </div>
                                         <div className="col-md-1 d-flex align-items-end">
-                                            <Link href="/transactions" className="btn btn-outline-secondary w-100">
+                                            <button 
+                                                type="button" 
+                                                onClick={clearFilters}
+                                                className="btn btn-outline-secondary w-100"
+                                            >
                                                 <i className="fas fa-times"></i>
-                                            </Link>
+                                            </button>
                                         </div>
                                     </div>
                                 </form>
@@ -257,7 +310,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                             <div className="d-flex justify-content-between">
                                 <div>
                                     <h6>Total Income</h6>
-                                    <h3>₹{transactionData.filter(t => t.transaction_type === 'income').reduce((sum, t) => sum + parseFloat(t.amount || 0), 0).toFixed(2)}</h3>
+                                    <h3>₹{parseFloat(totals.total_income || 0).toFixed(2)}</h3>
                                 </div>
                                 <i className="fas fa-arrow-up fa-2x opacity-75"></i>
                             </div>
@@ -270,7 +323,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                             <div className="d-flex justify-content-between">
                                 <div>
                                     <h6>Total Expenses</h6>
-                                    <h3>₹{transactionData.filter(t => t.transaction_type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount || 0), 0).toFixed(2)}</h3>
+                                    <h3>₹{parseFloat(totals.total_expenses || 0).toFixed(2)}</h3>
                                 </div>
                                 <i className="fas fa-arrow-down fa-2x opacity-75"></i>
                             </div>
@@ -284,10 +337,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                 <div>
                                     <h6>Net Balance</h6>
                                     <h3 className="text-light">
-                                        ₹{(
-                                            transactionData.filter(t => t.transaction_type === 'income').reduce((sum, t) => sum + parseFloat(t.amount || 0), 0) -
-                                            transactionData.filter(t => t.transaction_type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
-                                        ).toFixed(2)}
+                                        ₹{parseFloat(totals.net_balance || 0).toFixed(2)}
                                     </h3>
                                 </div>
                                 <i className="fas fa-balance-scale fa-2x opacity-75"></i>
@@ -370,7 +420,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                     </td>
                                                     <td>{transaction.account?.account_name || 'N/A'}</td>
                                                     <td>
-                                                        <span className={`fw-bold ${transaction.transaction_type === 'income' ? 'text-success' : 'text-danger'}`}>
+                                                        <span className={`fw-bold ${getAmountColorClass(transaction.amount, transaction.transaction_type)}`}>
                                                             {transaction.transaction_type === 'income' ? '+' : '-'}₹{parseFloat(transaction.amount || 0).toFixed(2)}
                                                         </span>
                                                     </td>
@@ -381,13 +431,13 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                     </td>
                                                     <td>
                                                         <div className="btn-group btn-group-sm">
-                                                            <button 
-                                                                type="button" 
+                                                            <Link 
+                                                                href={`/transactions/${transaction.id}`}
                                                                 className="btn btn-outline-primary btn-sm"
                                                                 title="View Details"
                                                             >
                                                                 <i className="fas fa-eye"></i>
-                                                            </button>
+                                                            </Link>
                                                             <Link 
                                                                 href={`/transactions/${transaction.id}/edit`} 
                                                                 className="btn btn-outline-warning btn-sm"
@@ -420,7 +470,10 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                             <Pagination 
                                 paginationData={paginationInfo}
                                 onPerPageChange={(e) => {
-                                    router.get('/transactions', { per_page: e.target.value }, { 
+                                    router.get('/transactions', { 
+                                        ...filters, 
+                                        per_page: e.target.value 
+                                    }, { 
                                         preserveState: true, 
                                         preserveScroll: true 
                                     });
