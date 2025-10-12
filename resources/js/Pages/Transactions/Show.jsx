@@ -3,8 +3,6 @@ import { Head, Link, router } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
 export default function Show({ transaction }) {
-    // Debug: Check transaction data
-    console.log('Transaction data:', transaction);
     
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-IN', {

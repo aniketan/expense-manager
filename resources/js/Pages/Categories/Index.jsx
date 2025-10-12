@@ -243,7 +243,7 @@ export default function Index({ categories = {}, success, error }) {
                                                         </td>
                                                         <td>
                                                             <span className="fw-bold text-success">
-                                                                {formatCurrency(parentCategory.total_amount || 0)}
+                                                                {formatCurrency(parentCategory.total_amount_with_children || 0)}
                                                             </span>
                                                         </td>
                                                         <td>

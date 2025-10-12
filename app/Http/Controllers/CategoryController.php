@@ -149,8 +149,55 @@ class CategoryController extends Controller
      */
     public function show(Category $category)
     {
+        // Load relationships
+        $category->load(['parent', 'children']);
+        
+        // Get transactions for this category
+        $transactions = $category->transactions()
+            ->with(['account'])
+            ->orderBy('transaction_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+        
+        // Calculate statistics
+        if ($category->parent_id === null) {
+            // For parent categories, include children's transactions
+            $childrenIds = $category->children->pluck('id')->toArray();
+            $allIds = array_merge($childrenIds, [$category->id]);
+            
+            $totalAmount = \App\Models\Transaction::whereIn('category_id', $allIds)->sum('amount');
+            $transactionCount = \App\Models\Transaction::whereIn('category_id', $allIds)->count();
+            
+            // Get breakdown by child
+            $childrenStats = $category->children->map(function($child) {
+                $childAmount = \App\Models\Transaction::where('category_id', $child->id)->sum('amount');
+                $childCount = \App\Models\Transaction::where('category_id', $child->id)->count();
+                
+                return [
+                    'id' => $child->id,
+                    'name' => $child->name,
+                    'icon' => $child->icon,
+                    'color' => $child->color,
+                    'total_amount' => $childAmount,
+                    'transaction_count' => $childCount,
+                ];
+            });
+        } else {
+            // For child categories
+            $totalAmount = \App\Models\Transaction::where('category_id', $category->id)->sum('amount');
+            $transactionCount = \App\Models\Transaction::where('category_id', $category->id)->count();
+            $childrenStats = collect([]);
+        }
+        
         return Inertia::render('Categories/Show', [
-            'category' => $category->load(['parent', 'children']),
+            'category' => $category,
+            'transactions' => $transactions,
+            'stats' => [
+                'total_amount' => $totalAmount,
+                'transaction_count' => $transactionCount,
+                'children_stats' => $childrenStats,
+            ],
         ]);
     }
 

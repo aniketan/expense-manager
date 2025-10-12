@@ -38,9 +38,9 @@ class AccountController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:accounts',
-            'name' => 'required|string|max:100',
-            'type' => 'required|string|max:20|in:' . implode(',', array_keys(Account::getTypes())),
+            'account_code' => 'required|string|max:20|unique:accounts,account_code',
+            'account_name' => 'required|string|max:100',
+            'account_type' => 'required|string|max:20|in:' . implode(',', array_keys(Account::getTypes())),
             'bank_name' => 'nullable|string|max:100',
             'account_number' => 'nullable|string|max:50',
             'ifsc_code' => 'nullable|string|max:20',
@@ -89,9 +89,9 @@ class AccountController extends Controller
     public function update(Request $request, Account $account)
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:accounts,code,' . $account->id,
-            'name' => 'required|string|max:100',
-            'type' => 'required|string|max:20|in:' . implode(',', array_keys(Account::getTypes())),
+            'account_code' => 'required|string|max:20|unique:accounts,account_code,' . $account->id,
+            'account_name' => 'required|string|max:100',
+            'account_type' => 'required|string|max:20|in:' . implode(',', array_keys(Account::getTypes())),
             'bank_name' => 'nullable|string|max:100',
             'account_number' => 'nullable|string|max:50',
             'ifsc_code' => 'nullable|string|max:20',

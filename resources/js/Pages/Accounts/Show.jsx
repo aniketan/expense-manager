@@ -3,6 +3,9 @@ import { Head, Link, router } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
 export default function Show({ account }) {
+    // Debug: Check account data
+    console.log('Account data:', account);
+    
     const handleDelete = () => {
         if (window.confirm(`Are you sure you want to delete ${account.account_name}?`)) {
             router.delete(`/accounts/${account.id}`);

@@ -4,9 +4,9 @@ import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
 export default function Edit({ account, accountTypes }) {
     const { data, setData, put, processing, errors } = useForm({
-        code: account.code || '',
-        name: account.name || '',
-        type: account.type || 'savings',
+        account_code: account.account_code || '',
+        account_name: account.account_name || '',
+        account_type: account.account_type || 'savings',
         bank_name: account.bank_name || '',
         account_number: account.account_number || '',
         ifsc_code: account.ifsc_code || '',
@@ -21,211 +21,234 @@ export default function Edit({ account, accountTypes }) {
         put(`/accounts/${account.id}`);
     };
 
-    const isCreditCard = data.type === 'credit_card';
-    const isCash = data.type === 'cash';
+    const isCreditCard = data.account_type === 'credit_card';
+    const isCash = data.account_type === 'cash';
 
     return (
         <BootstrapLayout>
-            <Head title={`Edit ${account.name}`} />
+            <Head title={`Edit ${account.account_name}`} />
             
-            <div className="max-w-2xl mx-auto">
+            <div className="container-fluid">
                 {/* Header */}
-                <div className="mb-6">
-                    <div className="flex items-center space-x-3 mb-2">
-                        <Link 
-                            href="/accounts" 
-                            className="text-gray-500 hover:text-gray-700"
-                        >
-                            ← Back to Accounts
-                        </Link>
+                <div className="row mb-4">
+                    <div className="col-12">
+                        <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h2 className="mb-1">
+                                    <i className="fas fa-edit me-2"></i>
+                                    Edit Account
+                                </h2>
+                                <p className="text-muted mb-0">Update account information</p>
+                            </div>
+                            <Link 
+                                href="/accounts" 
+                                className="btn btn-outline-secondary"
+                            >
+                                <i className="fas fa-arrow-left me-2"></i>Back to Accounts
+                            </Link>
+                        </div>
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900">Edit Account</h1>
-                    <p className="text-gray-600">Update account information</p>
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
-                    {/* Basic Information */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Account Code *
-                            </label>
-                            <input
-                                type="text"
-                                value={data.code}
-                                onChange={e => setData('code', e.target.value.toUpperCase())}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="e.g., SBI01, CASH"
-                                required
-                            />
-                            {errors.code && <p className="text-red-600 text-sm mt-1">{errors.code}</p>}
-                        </div>
+                <div className="row">
+                    <div className="col-lg-8 mx-auto">
+                        <form onSubmit={handleSubmit}>
+                            <div className="card">
+                                <div className="card-header">
+                                    <h5 className="mb-0">
+                                        <i className="fas fa-info-circle me-2"></i>Account Information
+                                    </h5>
+                                </div>
+                                <div className="card-body">
+                                    {/* Basic Information */}
+                                    <div className="row mb-3">
+                                        <div className="col-md-6">
+                                            <label className="form-label">
+                                                Account Code <span className="text-danger">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={data.account_code}
+                                                onChange={e => setData('account_code', e.target.value.toUpperCase())}
+                                                className={`form-control ${errors.account_code ? 'is-invalid' : ''}`}
+                                                placeholder="e.g., SBI01, CASH"
+                                                required
+                                            />
+                                            {errors.account_code && <div className="invalid-feedback">{errors.account_code}</div>}
+                                        </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Account Type *
-                            </label>
-                            <select
-                                value={data.type}
-                                onChange={e => setData('type', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                required
-                            >
-                                {Object.entries(accountTypes).map(([value, label]) => (
-                                    <option key={value} value={value}>{label}</option>
-                                ))}
-                            </select>
-                            {errors.type && <p className="text-red-600 text-sm mt-1">{errors.type}</p>}
-                        </div>
-                    </div>
+                                        <div className="col-md-6">
+                                            <label className="form-label">
+                                                Account Type <span className="text-danger">*</span>
+                                            </label>
+                                            <select
+                                                value={data.account_type}
+                                                onChange={e => setData('account_type', e.target.value)}
+                                                className={`form-select ${errors.account_type ? 'is-invalid' : ''}`}
+                                                required
+                                            >
+                                                {Object.entries(accountTypes).map(([value, label]) => (
+                                                    <option key={value} value={value}>{label}</option>
+                                                ))}
+                                            </select>
+                                            {errors.account_type && <div className="invalid-feedback">{errors.account_type}</div>}
+                                        </div>
+                                    </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Account Name *
-                        </label>
-                        <input
-                            type="text"
-                            value={data.name}
-                            onChange={e => setData('name', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            placeholder="e.g., SBI Savings Account, Cash Wallet"
-                            required
-                        />
-                        {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name}</p>}
-                    </div>
+                                    <div className="mb-3">
+                                        <label className="form-label">
+                                            Account Name <span className="text-danger">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={data.account_name}
+                                            onChange={e => setData('account_name', e.target.value)}
+                                            className={`form-control ${errors.account_name ? 'is-invalid' : ''}`}
+                                            placeholder="e.g., SBI Savings Account, Cash Wallet"
+                                            required
+                                        />
+                                        {errors.account_name && <div className="invalid-feedback">{errors.account_name}</div>}
+                                    </div>
 
-                    {/* Bank Details - Hide for cash accounts */}
-                    {!isCash && (
-                        <>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Bank Name
-                                </label>
-                                <input
-                                    type="text"
-                                    value={data.bank_name}
-                                    onChange={e => setData('bank_name', e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                    placeholder="e.g., State Bank of India"
-                                />
-                                {errors.bank_name && <p className="text-red-600 text-sm mt-1">{errors.bank_name}</p>}
-                            </div>
+                                    {/* Bank Details - Hide for cash accounts */}
+                                    {!isCash && (
+                                        <>
+                                            <div className="mb-3">
+                                                <label className="form-label">Bank Name</label>
+                                                <input
+                                                    type="text"
+                                                    value={data.bank_name}
+                                                    onChange={e => setData('bank_name', e.target.value)}
+                                                    className={`form-control ${errors.bank_name ? 'is-invalid' : ''}`}
+                                                    placeholder="e.g., State Bank of India"
+                                                />
+                                                {errors.bank_name && <div className="invalid-feedback">{errors.bank_name}</div>}
+                                            </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Account Number
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={data.account_number}
-                                        onChange={e => setData('account_number', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                        placeholder={isCreditCard ? "****-****-****-1234" : "Account number"}
-                                    />
-                                    {errors.account_number && <p className="text-red-600 text-sm mt-1">{errors.account_number}</p>}
+                                            <div className="row mb-3">
+                                                <div className="col-md-6">
+                                                    <label className="form-label">Account Number</label>
+                                                    <input
+                                                        type="text"
+                                                        value={data.account_number}
+                                                        onChange={e => setData('account_number', e.target.value)}
+                                                        className={`form-control ${errors.account_number ? 'is-invalid' : ''}`}
+                                                        placeholder={isCreditCard ? "****-****-****-1234" : "Account number"}
+                                                    />
+                                                    {errors.account_number && <div className="invalid-feedback">{errors.account_number}</div>}
+                                                </div>
+
+                                                <div className="col-md-6">
+                                                    <label className="form-label">IFSC Code</label>
+                                                    <input
+                                                        type="text"
+                                                        value={data.ifsc_code}
+                                                        onChange={e => setData('ifsc_code', e.target.value.toUpperCase())}
+                                                        className={`form-control ${errors.ifsc_code ? 'is-invalid' : ''}`}
+                                                        placeholder="e.g., SBIN0001234"
+                                                    />
+                                                    {errors.ifsc_code && <div className="invalid-feedback">{errors.ifsc_code}</div>}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* Balance Information */}
+                                    <div className="row mb-3">
+                                        <div className="col-md-6">
+                                            <label className="form-label">Opening Balance</label>
+                                            <div className="input-group">
+                                                <span className="input-group-text">₹</span>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={data.opening_balance}
+                                                    onChange={e => setData('opening_balance', e.target.value)}
+                                                    className={`form-control ${errors.opening_balance ? 'is-invalid' : ''}`}
+                                                    placeholder="0.00"
+                                                />
+                                                {errors.opening_balance && <div className="invalid-feedback">{errors.opening_balance}</div>}
+                                            </div>
+                                        </div>
+
+                                        <div className="col-md-6">
+                                            <label className="form-label">Current Balance</label>
+                                            <div className="input-group">
+                                                <span className="input-group-text">₹</span>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={data.current_balance}
+                                                    onChange={e => setData('current_balance', e.target.value)}
+                                                    className={`form-control ${errors.current_balance ? 'is-invalid' : ''}`}
+                                                    placeholder="0.00"
+                                                />
+                                                {errors.current_balance && <div className="invalid-feedback">{errors.current_balance}</div>}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Credit Limit - Only for credit cards */}
+                                    {isCreditCard && (
+                                        <div className="mb-3">
+                                            <label className="form-label">Credit Limit</label>
+                                            <div className="input-group">
+                                                <span className="input-group-text">₹</span>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={data.credit_limit}
+                                                    onChange={e => setData('credit_limit', e.target.value)}
+                                                    className={`form-control ${errors.credit_limit ? 'is-invalid' : ''}`}
+                                                    placeholder="0.00"
+                                                />
+                                                {errors.credit_limit && <div className="invalid-feedback">{errors.credit_limit}</div>}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Status */}
+                                    <div className="mb-3">
+                                        <div className="form-check">
+                                            <input
+                                                type="checkbox"
+                                                id="is_active"
+                                                checked={data.is_active}
+                                                onChange={e => setData('is_active', e.target.checked)}
+                                                className="form-check-input"
+                                            />
+                                            <label htmlFor="is_active" className="form-check-label">
+                                                Account is active
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        IFSC Code
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={data.ifsc_code}
-                                        onChange={e => setData('ifsc_code', e.target.value.toUpperCase())}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                        placeholder="e.g., SBIN0001234"
-                                    />
-                                    {errors.ifsc_code && <p className="text-red-600 text-sm mt-1">{errors.ifsc_code}</p>}
+                                {/* Submit Buttons */}
+                                <div className="card-footer">
+                                    <div className="d-flex gap-2">
+                                        <button
+                                            type="submit"
+                                            disabled={processing}
+                                            className="btn btn-primary"
+                                        >
+                                            <i className="fas fa-save me-2"></i>
+                                            {processing ? 'Updating...' : 'Update Account'}
+                                        </button>
+                                        <Link
+                                            href="/accounts"
+                                            className="btn btn-secondary"
+                                        >
+                                            <i className="fas fa-times me-2"></i>
+                                            Cancel
+                                        </Link>
+                                    </div>
                                 </div>
                             </div>
-                        </>
-                    )}
-
-                    {/* Balance Information */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Opening Balance
-                            </label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={data.opening_balance}
-                                onChange={e => setData('opening_balance', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="0.00"
-                            />
-                            {errors.opening_balance && <p className="text-red-600 text-sm mt-1">{errors.opening_balance}</p>}
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Current Balance
-                            </label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={data.current_balance}
-                                onChange={e => setData('current_balance', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="0.00"
-                            />
-                            {errors.current_balance && <p className="text-red-600 text-sm mt-1">{errors.current_balance}</p>}
-                        </div>
+                        </form>
                     </div>
-
-                    {/* Credit Limit - Only for credit cards */}
-                    {isCreditCard && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Credit Limit
-                            </label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                value={data.credit_limit}
-                                onChange={e => setData('credit_limit', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="0.00"
-                            />
-                            {errors.credit_limit && <p className="text-red-600 text-sm mt-1">{errors.credit_limit}</p>}
-                        </div>
-                    )}
-
-                    {/* Status */}
-                    <div className="flex items-center">
-                        <input
-                            type="checkbox"
-                            id="is_active"
-                            checked={data.is_active}
-                            onChange={e => setData('is_active', e.target.checked)}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                        />
-                        <label htmlFor="is_active" className="ml-2 block text-sm text-gray-700">
-                            Account is active
-                        </label>
-                    </div>
-
-                    {/* Submit Buttons */}
-                    <div className="flex space-x-3 pt-4">
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white px-4 py-2 rounded-md font-medium"
-                        >
-                            {processing ? 'Updating...' : 'Update Account'}
-                        </button>
-                        <Link
-                            href="/accounts"
-                            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md font-medium"
-                        >
-                            Cancel
-                        </Link>
-                    </div>
-                </form>
+                </div>
             </div>
         </BootstrapLayout>
     );
