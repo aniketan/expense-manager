@@ -186,9 +186,12 @@ export default function Welcome({ stats, recentTransactions }) {
                                     <li><i className="fas fa-check text-success me-2"></i>Multi-account Tracking</li>
                                 </ul>
                                 <div className="d-grid gap-2">
-                                    <Link href="/budgets" className="btn btn-warning text-dark">
+                                    <button 
+                                        className="btn btn-warning text-dark"
+                                        onClick={() => showComingSoon('Budget Management')}
+                                    >
                                         <i className="fas fa-wallet me-2"></i>Manage Budgets
-                                    </Link>
+                                    </button>
                                     <button 
                                         className="btn btn-outline-warning"
                                         onClick={() => showComingSoon('Budget Analytics')}
@@ -215,9 +218,12 @@ export default function Welcome({ stats, recentTransactions }) {
                                     <li><i className="fas fa-check text-success me-2"></i>Auto Transaction Creation</li>
                                 </ul>
                                 <div className="d-grid gap-2">
-                                    <Link href="/recurring/dashboard" className="btn btn-success">
+                                    <button 
+                                        className="btn btn-success"
+                                        onClick={() => showComingSoon('Recurring Dashboard')}
+                                    >
                                         <i className="fas fa-sync me-2"></i>Recurring Dashboard
-                                    </Link>
+                                    </button>
                                     <button 
                                         className="btn btn-outline-success"
                                         onClick={() => showComingSoon('Create New Rule')}
@@ -277,7 +283,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                 </ul>
                                 <div className="d-grid gap-2">
                                     <button 
-                                        className="btn btn-danger"
+                                        className="btn btn-outline-danger"
                                         onClick={() => showComingSoon('View Reports')}
                                     >
                                         <i className="fas fa-chart-line me-2"></i>View Reports

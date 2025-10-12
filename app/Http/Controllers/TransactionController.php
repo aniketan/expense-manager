@@ -18,7 +18,7 @@ class TransactionController extends Controller
         }
         
         // Start building the query
-        $query = Transaction::with(['category', 'account']);
+        $query = Transaction::with(['category.parent', 'account']);
         
         // Apply filters
         $filters = [];
@@ -36,11 +36,26 @@ class TransactionController extends Controller
             });
         }
         
-        // Category filter
-        if ($request->filled('category')) {
+        // Category and Subcategory filtering
+        if ($request->filled('subcategory')) {
+            // If subcategory is specified, filter by specific subcategory
+            $subcategoryId = $request->get('subcategory');
+            $filters['subcategory'] = $subcategoryId;
+            $query->where('category_id', $subcategoryId);
+        } elseif ($request->filled('category')) {
+            // If only parent category is specified, filter by all subcategories under this parent
             $categoryId = $request->get('category');
             $filters['category'] = $categoryId;
-            $query->where('category_id', $categoryId);
+            
+            // Get all subcategory IDs for this parent category
+            $subcategoryIds = \App\Models\Category::where('parent_id', $categoryId)->pluck('id')->toArray();
+            
+            if (!empty($subcategoryIds)) {
+                $query->whereIn('category_id', $subcategoryIds);
+            } else {
+                // If no subcategories exist, filter by the parent category itself
+                $query->where('category_id', $categoryId);
+            }
         }
         
         // Account filter
@@ -124,7 +139,7 @@ class TransactionController extends Controller
         
         $transactions = $query->paginate($perPage)->appends($request->query());
         
-        $categories = \App\Models\Category::where('parent_id', null)->get();
+        $categories = \App\Models\Category::all();
         $accounts = \App\Models\Account::all();
 
         return Inertia::render('Transactions/Index', [
@@ -181,7 +196,7 @@ class TransactionController extends Controller
     public function show(Transaction $transaction)
     {
         return Inertia::render('Transactions/Show', [
-            'transaction' => $transaction->load(['category', 'account']),
+            'transaction' => $transaction->load(['category.parent', 'account']),
         ]);
     }
 
@@ -191,7 +206,7 @@ class TransactionController extends Controller
     public function edit(Transaction $transaction)
     {
         // Load the transaction with its relationships
-        $transaction->load(['category', 'account']);
+        $transaction->load(['category.parent', 'account']);
         
         $categories = \App\Models\Category::all();
         $accounts = \App\Models\Account::all();
@@ -285,7 +300,7 @@ class TransactionController extends Controller
      */
     public function getRecentTransactions($limit = 10)
     {
-        return Transaction::with(['category', 'account'])
+        return Transaction::with(['category.parent', 'account'])
             ->orderBy('transaction_date', 'desc')
             ->orderBy('created_at', 'desc')
             ->limit($limit)

@@ -3,6 +3,9 @@ import { Head, Link, router } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
 export default function Show({ transaction }) {
+    // Debug: Check transaction data
+    console.log('Transaction data:', transaction);
+    
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
@@ -105,7 +108,7 @@ export default function Show({ transaction }) {
                                             <label className="form-label text-muted">Account</label>
                                             <div>
                                                 <i className="fas fa-university me-2"></i>
-                                                {transaction.account?.name || 'Unknown Account'}
+                                                {transaction.account?.account_name || 'Unknown Account'}
                                             </div>
                                         </div>
                                     </div>
@@ -113,6 +116,17 @@ export default function Show({ transaction }) {
                                     <div className="col-md-6">
                                         <div className="mb-3">
                                             <label className="form-label text-muted">Category</label>
+                                            <div>
+                                                <span className="badge bg-light text-dark fs-6">
+                                                    <i className="fas fa-tag me-1"></i>
+                                                    {transaction.category.parent?.name || 'Uncategorized'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                      
+                                        <div className="mb-3">
+                                            <label className="form-label text-muted">Sub Category</label>
                                             <div>
                                                 <span className="badge bg-light text-dark fs-6">
                                                     <i className="fas fa-tag me-1"></i>

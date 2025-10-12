@@ -8,6 +8,14 @@ class Transaction extends Model
 {
     protected $table = 'transactions';
     use HasFactory;
+    
+    /**
+     * The relationships that should always be loaded.
+     * 
+     * @var array
+     */
+    protected $with = ['category.parent', 'account'];
+    
     protected $fillable = [
         'account_id',
         'category_id',
@@ -30,4 +38,5 @@ class Transaction extends Model
     {
         return $this->belongsTo(Category::class);
     }
+
 }

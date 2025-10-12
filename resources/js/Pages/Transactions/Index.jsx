@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 import Pagination from '../../Components/Pagination';
@@ -7,6 +7,8 @@ export default function Index({ transactions = {}, categories = [], accounts = [
     const [filtersCollapsed, setFiltersCollapsed] = useState(false);
     const [selectedTransactions, setSelectedTransactions] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState(filters.category || '');
+    const [subcategories, setSubcategories] = useState([]);
     
     // Function to get color class based on amount value
     const getAmountColorClass = (amount, transactionType) => {
@@ -32,6 +34,50 @@ export default function Index({ transactions = {}, categories = [], accounts = [
             return 'text-secondary'; // ₹5K+ - Gray
         }
     };
+    
+    // Get parent categories (where parent_id is null)
+    const parentCategories = categories.filter(cat => cat.parent_id === null);
+    
+    // Function to get subcategories for a parent category
+    const getSubcategories = (parentCategoryId) => {
+        return categories.filter(cat => cat.parent_id === parseInt(parentCategoryId));
+    };
+    
+    // Handle category change and update subcategories
+    const handleCategoryChange = (e) => {
+        const categoryId = e.target.value;
+        setSelectedCategory(categoryId);
+       
+        if (categoryId) {
+            const subs = getSubcategories(categoryId);
+            setSubcategories(subs);
+        } else {
+            setSubcategories([]);
+        }
+        
+        // Reset subcategory selection when category changes
+        const subcategorySelect = document.getElementById('subcategory');
+        if (subcategorySelect) {
+            subcategorySelect.value = '';
+        }
+    };
+    
+    // Initialize subcategories on component mount if category is already selected
+    useEffect(() => {
+        if (selectedCategory && categories.length > 0) {
+            const subs = getSubcategories(selectedCategory);
+            setSubcategories(subs);
+        }
+    }, [selectedCategory, categories]);
+    
+    // Initialize category and subcategories from filters on mount
+    useEffect(() => {
+        if (filters.category && categories.length > 0) {
+            setSelectedCategory(filters.category);
+            const subs = getSubcategories(filters.category);
+            setSubcategories(subs);
+        }
+    }, [filters.category, categories]);
     
     // Extract data from paginated response
     const transactionData = transactions.data || [];
@@ -171,10 +217,16 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                         </div>
                                         <div className="col-md-2">
                                             <label htmlFor="category" className="form-label">Category</label>
-                                            <select className="form-select" id="category" name="category">
+                                            <select 
+                                                className="form-select" 
+                                                id="category" 
+                                                name="category"
+                                                value={selectedCategory}
+                                                onChange={handleCategoryChange}
+                                            >
                                                 <option value="">All Categories</option>
-                                                {categories.map(cat => (
-                                                    <option key={cat.id} value={cat.id} selected={filters.category === cat.id}>
+                                                {parentCategories.map(cat => (
+                                                    <option key={cat.id} value={cat.id}>
                                                         {cat.name}
                                                     </option>
                                                 ))}
@@ -182,8 +234,18 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                         </div>
                                         <div className="col-md-2">
                                             <label htmlFor="subcategory" className="form-label">Subcategory</label>
-                                            <select className="form-select" id="subcategory" name="subcategory">
+                                            <select 
+                                                className="form-select" 
+                                                id="subcategory" 
+                                                name="subcategory"
+                                                defaultValue={filters.subcategory || ''}
+                                            >
                                                 <option value="">All Subcategories</option>
+                                                {subcategories.map(subcat => (
+                                                    <option key={subcat.id} value={subcat.id}>
+                                                        {subcat.name}
+                                                    </option>
+                                                ))}
                                             </select>
                                         </div>
                                         <div className="col-md-2">
