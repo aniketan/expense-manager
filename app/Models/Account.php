@@ -10,9 +10,9 @@ class Account extends Model
     use HasFactory;
 
     protected $fillable = [
-        'account_code',
-        'account_name',
-        'account_type',
+        'code',
+        'name',
+        'type',
         'bank_name',
         'account_number',
         'ifsc_code',
@@ -28,14 +28,14 @@ class Account extends Model
         'credit_limit' => 'decimal:2',
         'is_active' => 'boolean',
     ];
-    
+
     // Account types as constants
     public const TYPE_SAVINGS = 'savings';
     public const TYPE_CURRENT = 'current';
     public const TYPE_CREDIT_CARD = 'credit_card';
     public const TYPE_CASH = 'cash';
     public const TYPE_INVESTMENT = 'investment';
-    
+
     // Get all available account types
     public static function getTypes(): array
     {
