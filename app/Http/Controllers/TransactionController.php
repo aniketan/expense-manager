@@ -103,7 +103,7 @@ class TransactionController extends Controller
         $filteredQuery = clone $query;
 
         $totalIncome = $filteredQuery->where('transaction_type', 'income')->sum('amount');
-        $totalExpenses = (clone $query)->where('transaction_type', 'expense')->sum('amount');
+        $totalExpenses = (clone $query)->where('transaction_type', '!=', 'income')->sum('amount');
         $netBalance = $totalIncome - $totalExpenses;
 
         $totals = [
@@ -279,14 +279,12 @@ class TransactionController extends Controller
      */
     public function getDashboardStats()
     {
-        // Get total income (where transaction_type is 'income' or amount is positive)
+        // Get total income (where transaction_type is 'income')
         $totalIncome = Transaction::where('transaction_type', 'income')
-            ->orWhere('amount', '>', 0)
             ->sum('amount');
 
-        // Get total expenses (where transaction_type is 'expense' or amount is negative)
-        $totalExpenses = Transaction::where('transaction_type', 'expense')
-            ->orWhere('amount', '<', 0)
+        // Get total expenses (where transaction_type is not 'income')
+        $totalExpenses = Transaction::where('transaction_type', '!=', 'income')
             ->sum('amount');
 
         // Convert negative expenses to positive for display

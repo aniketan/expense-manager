@@ -44,7 +44,7 @@ class RecalculateAccountBalances extends Command
             $this->info("Old Balance: ₹" . number_format($oldBalance, 2));
             $this->info("New Balance: ₹" . number_format($newBalance, 2));
             $this->info("Difference: ₹" . number_format($newBalance - $oldBalance, 2));
-            $this->success("Balance recalculated successfully!");
+            $this->info("✅ Balance recalculated successfully!");
         } else {
             // Recalculate all accounts
             $accounts = Account::all();
@@ -55,7 +55,7 @@ class RecalculateAccountBalances extends Command
             });
 
             $this->newLine(2);
-            $this->success("All account balances recalculated successfully!");
+            $this->info("✅ All account balances recalculated successfully!");
         }
 
         return 0;
