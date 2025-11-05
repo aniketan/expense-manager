@@ -16,13 +16,13 @@ class TransactionController extends Controller
         if (!in_array($perPage, [15, 25, 50, 100])) {
             $perPage = 15;
         }
-        
+
         // Start building the query
         $query = Transaction::with(['category.parent', 'account']);
-        
+
         // Apply filters
         $filters = [];
-        
+
         // Search filter
         if ($request->filled('search')) {
             $search = $request->get('search');
@@ -35,7 +35,7 @@ class TransactionController extends Controller
                   });
             });
         }
-        
+
         // Category and Subcategory filtering
         if ($request->filled('subcategory')) {
             // If subcategory is specified, filter by specific subcategory
@@ -46,10 +46,10 @@ class TransactionController extends Controller
             // If only parent category is specified, filter by all subcategories under this parent
             $categoryId = $request->get('category');
             $filters['category'] = $categoryId;
-            
+
             // Get all subcategory IDs for this parent category
             $subcategoryIds = \App\Models\Category::where('parent_id', $categoryId)->pluck('id')->toArray();
-            
+
             if (!empty($subcategoryIds)) {
                 $query->whereIn('category_id', $subcategoryIds);
             } else {
@@ -57,65 +57,65 @@ class TransactionController extends Controller
                 $query->where('category_id', $categoryId);
             }
         }
-        
+
         // Account filter
         if ($request->filled('account')) {
             $accountId = $request->get('account');
             $filters['account'] = $accountId;
             $query->where('account_id', $accountId);
         }
-        
+
         // Date range filters
         if ($request->filled('date_from')) {
             $dateFrom = $request->get('date_from');
             $filters['date_from'] = $dateFrom;
             $query->where('transaction_date', '>=', $dateFrom);
         }
-        
+
         if ($request->filled('date_to')) {
             $dateTo = $request->get('date_to');
             $filters['date_to'] = $dateTo;
             $query->where('transaction_date', '<=', $dateTo);
         }
-        
+
         // Payment method filter
         if ($request->filled('payment_method')) {
             $paymentMethod = $request->get('payment_method');
             $filters['payment_method'] = $paymentMethod;
             $query->where('payment_method', $paymentMethod);
         }
-        
+
         // Status filter
         if ($request->filled('status')) {
             $status = $request->get('status');
             $filters['status'] = $status;
             $query->where('status', $status);
         }
-        
+
         // Transaction type filter
         if ($request->filled('transaction_type')) {
             $transactionType = $request->get('transaction_type');
             $filters['transaction_type'] = $transactionType;
             $query->where('transaction_type', $transactionType);
         }
-        
+
         // Calculate totals based on filtered data (before pagination)
         $filteredQuery = clone $query;
-        
+
         $totalIncome = $filteredQuery->where('transaction_type', 'income')->sum('amount');
         $totalExpenses = (clone $query)->where('transaction_type', 'expense')->sum('amount');
         $netBalance = $totalIncome - $totalExpenses;
-        
+
         $totals = [
             'total_income' => $totalIncome,
             'total_expenses' => $totalExpenses,
             'net_balance' => $netBalance
         ];
-        
+
         // Apply sorting
         $sortBy = $request->get('sort_by', 'date_desc');
         $filters['sort_by'] = $sortBy;
-        
+
         switch ($sortBy) {
             case 'date_asc':
                 $query->orderBy('transaction_date', 'asc');
@@ -136,9 +136,9 @@ class TransactionController extends Controller
                 $query->orderBy('transaction_date', 'desc');
                 break;
         }
-        
+
         $transactions = $query->paginate($perPage)->appends($request->query());
-        
+
         $categories = \App\Models\Category::all();
         $accounts = \App\Models\Account::all();
 
@@ -168,6 +168,10 @@ class TransactionController extends Controller
 
     /**
      * Store a newly created transaction in storage.
+     *
+     * Note: Account balance is automatically updated via Transaction model events
+     * - Income transactions: Add to account balance
+     * - Expense transactions: Subtract from account balance
      */
     public function store(Request $request)
     {
@@ -207,7 +211,7 @@ class TransactionController extends Controller
     {
         // Load the transaction with its relationships
         $transaction->load(['category.parent', 'account']);
-        
+
         $categories = \App\Models\Category::all();
         $accounts = \App\Models\Account::all();
 
@@ -220,6 +224,10 @@ class TransactionController extends Controller
 
     /**
      * Update the specified transaction in storage.
+     *
+     * Note: Account balance is automatically adjusted via Transaction model events
+     * - If account changes: Old account is reverted, new account is updated
+     * - If amount/type changes: Balance is recalculated accordingly
      */
     public function update(Request $request, Transaction $transaction)
     {
@@ -254,6 +262,9 @@ class TransactionController extends Controller
 
     /**
      * Remove the specified transaction from storage.
+     *
+     * Note: Account balance is automatically reverted via Transaction model events
+     * - The transaction's impact on the account balance is reversed
      */
     public function destroy(Transaction $transaction)
     {

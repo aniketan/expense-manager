@@ -3,7 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
 export default function Show({ transaction }) {
-    
+
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
@@ -22,7 +22,7 @@ export default function Show({ transaction }) {
     return (
         <BootstrapLayout>
             <Head title={`Transaction #${transaction.id}`} />
-            
+
             <div className="container-fluid">
                 {/* Header */}
                 <div className="row mb-4">
@@ -36,14 +36,14 @@ export default function Show({ transaction }) {
                                 <p className="text-muted mb-0">Transaction ID: #{transaction.id}</p>
                             </div>
                             <div>
-                                <Link 
-                                    href="/transactions" 
+                                <Link
+                                    href="/transactions"
                                     className="btn btn-outline-secondary me-2"
                                 >
                                     <i className="fas fa-arrow-left me-2"></i>Back to Transactions
                                 </Link>
-                                <Link 
-                                    href={`/transactions/${transaction.id}/edit`} 
+                                <Link
+                                    href={`/transactions/${transaction.id}/edit`}
                                     className="btn btn-primary"
                                 >
                                     <i className="fas fa-edit me-2"></i>Edit Transaction
@@ -85,8 +85,8 @@ export default function Show({ transaction }) {
                                             <label className="form-label text-muted">Amount</label>
                                             <div>
                                                 <h4 className={`mb-0 ${
-                                                    transaction.transaction_type === 'expense' || transaction.amount < 0 
-                                                        ? 'text-danger' 
+                                                    transaction.transaction_type === 'expense' || transaction.amount < 0
+                                                        ? 'text-danger'
                                                         : 'text-success'
                                                 }`}>
                                                     {formatCurrency(Math.abs(transaction.amount))}
@@ -106,7 +106,7 @@ export default function Show({ transaction }) {
                                             <label className="form-label text-muted">Account</label>
                                             <div>
                                                 <i className="fas fa-university me-2"></i>
-                                                {transaction.account?.account_name || 'Unknown Account'}
+                                                {transaction.account?.name || 'Unknown Account'}
                                             </div>
                                         </div>
                                     </div>
@@ -122,7 +122,7 @@ export default function Show({ transaction }) {
                                             </div>
                                         </div>
 
-                                      
+
                                         <div className="mb-3">
                                             <label className="form-label text-muted">Sub Category</label>
                                             <div>
@@ -202,14 +202,14 @@ export default function Show({ transaction }) {
                             </div>
                             <div className="card-body">
                                 <div className="d-grid gap-2">
-                                    <Link 
-                                        href={`/transactions/${transaction.id}/edit`} 
+                                    <Link
+                                        href={`/transactions/${transaction.id}/edit`}
                                         className="btn btn-primary"
                                     >
                                         <i className="fas fa-edit me-2"></i>Edit Transaction
                                     </Link>
-                                    
-                                    <button 
+
+                                    <button
                                         className="btn btn-outline-danger"
                                         onClick={() => {
                                             if (confirm('Are you sure you want to delete this transaction?')) {
@@ -222,9 +222,9 @@ export default function Show({ transaction }) {
                                     </button>
 
                                     <hr />
-                                    
-                                    <Link 
-                                        href="/transactions/create" 
+
+                                    <Link
+                                        href="/transactions/create"
                                         className="btn btn-success"
                                     >
                                         <i className="fas fa-plus me-2"></i>Add New Transaction

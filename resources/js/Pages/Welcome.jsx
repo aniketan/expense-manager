@@ -22,7 +22,7 @@ export default function Welcome({ stats, recentTransactions }) {
     return (
         <BootstrapLayout>
             <Head title="Welcome to Expense Manager" />
-            
+
             <div className="container-fluid">
                 {/* Welcome Section */}
                 <div className="row mb-4">
@@ -56,7 +56,7 @@ export default function Welcome({ stats, recentTransactions }) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="col-md-3 col-sm-6 mb-3">
                         <div className="card bg-danger text-white">
                             <div className="card-body">
@@ -72,7 +72,7 @@ export default function Welcome({ stats, recentTransactions }) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="col-md-3 col-sm-6 mb-3">
                         <div className="card bg-info text-white">
                             <div className="card-body">
@@ -90,7 +90,7 @@ export default function Welcome({ stats, recentTransactions }) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="col-md-3 col-sm-6 mb-3">
                         <div className="card bg-warning text-white">
                             <div className="card-body">
@@ -115,7 +115,7 @@ export default function Welcome({ stats, recentTransactions }) {
                             <i className="fas fa-star me-2"></i>Core Features
                         </h3>
                     </div>
-                    
+
                     {/* Transaction Management */}
                     <div className="col-md-4 col-sm-6 mb-3">
                         <div className="card h-100 feature-card">
@@ -141,7 +141,7 @@ export default function Welcome({ stats, recentTransactions }) {
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Category Management */}
                     <div className="col-md-4 col-sm-6 mb-3">
                         <div className="card h-100 feature-card">
@@ -160,7 +160,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                     <Link href="/categories" className="btn btn-info">
                                         <i className="fas fa-tags me-2"></i>Manage Categories
                                     </Link>
-                                    <button 
+                                    <button
                                         className="btn btn-outline-info"
                                         onClick={() => showComingSoon('Category Analytics')}
                                     >
@@ -170,7 +170,7 @@ export default function Welcome({ stats, recentTransactions }) {
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Budget Management */}
                     <div className="col-md-4 col-sm-6 mb-3">
                         <div className="card h-100 feature-card">
@@ -186,13 +186,13 @@ export default function Welcome({ stats, recentTransactions }) {
                                     <li><i className="fas fa-check text-success me-2"></i>Multi-account Tracking</li>
                                 </ul>
                                 <div className="d-grid gap-2">
-                                    <button 
+                                    <button
                                         className="btn btn-warning text-dark"
                                         onClick={() => showComingSoon('Budget Management')}
                                     >
                                         <i className="fas fa-wallet me-2"></i>Manage Budgets
                                     </button>
-                                    <button 
+                                    <button
                                         className="btn btn-outline-warning"
                                         onClick={() => showComingSoon('Budget Analytics')}
                                     >
@@ -202,7 +202,7 @@ export default function Welcome({ stats, recentTransactions }) {
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Recurring Expenses */}
                     <div className="col-md-4 col-sm-6 mb-3">
                         <div className="card h-100 feature-card">
@@ -218,13 +218,13 @@ export default function Welcome({ stats, recentTransactions }) {
                                     <li><i className="fas fa-check text-success me-2"></i>Auto Transaction Creation</li>
                                 </ul>
                                 <div className="d-grid gap-2">
-                                    <button 
+                                    <button
                                         className="btn btn-success"
                                         onClick={() => showComingSoon('Recurring Dashboard')}
                                     >
                                         <i className="fas fa-sync me-2"></i>Recurring Dashboard
                                     </button>
-                                    <button 
+                                    <button
                                         className="btn btn-outline-success"
                                         onClick={() => showComingSoon('Create New Rule')}
                                     >
@@ -234,7 +234,7 @@ export default function Welcome({ stats, recentTransactions }) {
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Payee Management */}
                     <div className="col-md-4 col-sm-6 mb-3">
                         <div className="card h-100 feature-card">
@@ -250,13 +250,13 @@ export default function Welcome({ stats, recentTransactions }) {
                                     <li><i className="fas fa-check text-success me-2"></i>Frequent Payee Access</li>
                                 </ul>
                                 <div className="d-grid gap-2">
-                                    <button 
+                                    <button
                                         className="btn btn-success"
                                         onClick={() => showComingSoon('Payee Management')}
                                     >
                                         <i className="fas fa-address-book me-2"></i>Manage Payees
                                     </button>
-                                    <button 
+                                    <button
                                         className="btn btn-outline-success"
                                         onClick={() => showComingSoon('Payee History')}
                                     >
@@ -266,7 +266,7 @@ export default function Welcome({ stats, recentTransactions }) {
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Reports & Analytics */}
                     <div className="col-md-4 col-sm-6 mb-3">
                         <div className="card h-100 feature-card">
@@ -282,13 +282,13 @@ export default function Welcome({ stats, recentTransactions }) {
                                     <li><i className="fas fa-chart-area text-info me-2"></i>Budget Performance</li>
                                 </ul>
                                 <div className="d-grid gap-2">
-                                    <button 
+                                    <button
                                         className="btn btn-outline-danger"
                                         onClick={() => showComingSoon('View Reports')}
                                     >
                                         <i className="fas fa-chart-line me-2"></i>View Reports
                                     </button>
-                                    <button 
+                                    <button
                                         className="btn btn-outline-danger"
                                         onClick={() => showComingSoon('Visualizations')}
                                     >
@@ -307,7 +307,7 @@ export default function Welcome({ stats, recentTransactions }) {
                             <i className="fas fa-rocket me-2"></i>Advanced Features
                         </h3>
                     </div>
-                    
+
                     <div className="col-md-3 col-sm-6 mb-3">
                         <div className="card">
                             <div className="card-body text-center">
@@ -320,14 +320,14 @@ export default function Welcome({ stats, recentTransactions }) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="col-md-3 col-sm-6 mb-3">
                         <div className="card">
                             <div className="card-body text-center">
                                 <i className="fas fa-file-import fa-3x text-success mb-3"></i>
                                 <h6 className="card-title">Import/Export</h6>
                                 <p className="card-text small">CSV import, bank statement processing</p>
-                                <button 
+                                <button
                                     className="btn btn-sm btn-outline-success"
                                     onClick={() => showComingSoon('Import/Export')}
                                 >
@@ -336,14 +336,14 @@ export default function Welcome({ stats, recentTransactions }) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="col-md-3 col-sm-6 mb-3">
                         <div className="card">
                             <div className="card-body text-center">
                                 <i className="fas fa-robot fa-3x text-warning mb-3"></i>
                                 <h6 className="card-title">AI Integration</h6>
                                 <p className="card-text small">Smart categorization & insights</p>
-                                <button 
+                                <button
                                     className="btn btn-sm btn-outline-warning"
                                     onClick={() => showComingSoon('AI Features')}
                                 >
@@ -352,14 +352,14 @@ export default function Welcome({ stats, recentTransactions }) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="col-md-3 col-sm-6 mb-3">
                         <div className="card">
                             <div className="card-body text-center">
                                 <i className="fas fa-mobile-alt fa-3x text-info mb-3"></i>
                                 <h6 className="card-title">Mobile App</h6>
                                 <p className="card-text small">Responsive mobile experience</p>
-                                <button 
+                                <button
                                     className="btn btn-sm btn-outline-info"
                                     onClick={() => showComingSoon('Mobile App')}
                                 >
@@ -414,13 +414,13 @@ export default function Welcome({ stats, recentTransactions }) {
                                                         </td>
                                                         <td>
                                                             <span className="text-muted">
-                                                                {transaction.account?.account_name || 'Unknown Account'}
+                                                                {transaction.account?.name || 'Unknown Account'}
                                                             </span>
                                                         </td>
                                                         <td>
                                                             <span className={`fw-bold ${
-                                                                transaction.transaction_type === 'expense' || transaction.amount < 0 
-                                                                    ? 'text-danger' 
+                                                                transaction.transaction_type === 'expense' || transaction.amount < 0
+                                                                    ? 'text-danger'
                                                                     : 'text-success'
                                                             }`}>
                                                                 {transaction.transaction_type === 'expense' || transaction.amount < 0 ? '-' : '+'}
@@ -471,7 +471,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                     </div>
                                     <div className="col-md-2 col-sm-4 col-6 mb-2">
                                         <div className="d-grid">
-                                            <button 
+                                            <button
                                                 className="btn btn-info"
                                                 onClick={() => showComingSoon('Monthly Report')}
                                             >
@@ -481,7 +481,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                     </div>
                                     <div className="col-md-2 col-sm-4 col-6 mb-2">
                                         <div className="d-grid">
-                                            <button 
+                                            <button
                                                 className="btn btn-warning"
                                                 onClick={() => showComingSoon('Budget Setup')}
                                             >
@@ -491,7 +491,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                     </div>
                                     <div className="col-md-2 col-sm-4 col-6 mb-2">
                                         <div className="d-grid">
-                                            <button 
+                                            <button
                                                 className="btn btn-secondary"
                                                 onClick={() => showComingSoon('Import Data')}
                                             >
@@ -501,7 +501,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                     </div>
                                     <div className="col-md-2 col-sm-4 col-6 mb-2">
                                         <div className="d-grid">
-                                            <button 
+                                            <button
                                                 className="btn btn-danger"
                                                 onClick={() => showComingSoon('Export Data')}
                                             >
@@ -525,9 +525,9 @@ export default function Welcome({ stats, recentTransactions }) {
                                 <h5 className="modal-title">
                                     <i className="fas fa-rocket me-2"></i>Coming Soon
                                 </h5>
-                                <button 
-                                    type="button" 
-                                    className="btn-close" 
+                                <button
+                                    type="button"
+                                    className="btn-close"
                                     onClick={() => setShowModal(false)}
                                 ></button>
                             </div>
@@ -540,9 +540,9 @@ export default function Welcome({ stats, recentTransactions }) {
                                 </div>
                             </div>
                             <div className="modal-footer">
-                                <button 
-                                    type="button" 
-                                    className="btn btn-secondary" 
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
                                     onClick={() => setShowModal(false)}
                                 >
                                     Close
