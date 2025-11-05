@@ -4,9 +4,9 @@ import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
 export default function Create({ accountTypes }) {
     const { data, setData, post, processing, errors } = useForm({
-        account_code: '',
-        account_name: '',
-        account_type: 'savings',
+        code: '',
+        name: '',
+        type: 'savings',
         bank_name: '',
         account_number: '',
         ifsc_code: '',
@@ -18,23 +18,23 @@ export default function Create({ accountTypes }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        
+
         // Set current_balance to opening_balance if not provided
         const submitData = {
             ...data,
             current_balance: data.current_balance || data.opening_balance
         };
-        
+
         post('/accounts', submitData);
     };
 
-    const isCreditCard = data.account_type === 'credit_card';
-    const isCash = data.account_type === 'cash';
+    const isCreditCard = data.type === 'credit_card';
+    const isCash = data.type === 'cash';
 
     return (
         <BootstrapLayout>
             <Head title="Create Account" />
-            
+
             <div className="container-fluid">
                 {/* Header */}
                 <div className="row mb-4">
@@ -47,8 +47,8 @@ export default function Create({ accountTypes }) {
                                 </h2>
                                 <p className="text-muted mb-0">Add a new account to track your finances</p>
                             </div>
-                            <Link 
-                                href="/accounts" 
+                            <Link
+                                href="/accounts"
                                 className="btn btn-outline-secondary"
                             >
                                 <i className="fas fa-arrow-left me-2"></i>Back to Accounts
@@ -76,13 +76,13 @@ export default function Create({ accountTypes }) {
                                             </label>
                                             <input
                                                 type="text"
-                                                value={data.account_code}
-                                                onChange={e => setData('account_code', e.target.value.toUpperCase())}
-                                                className={`form-control ${errors.account_code ? 'is-invalid' : ''}`}
+                                                value={data.code}
+                                                onChange={e => setData('code', e.target.value.toUpperCase())}
+                                                className={`form-control ${errors.code ? 'is-invalid' : ''}`}
                                                 placeholder="e.g., SBI01, CASH"
                                                 required
                                             />
-                                            {errors.account_code && <div className="invalid-feedback">{errors.account_code}</div>}
+                                            {errors.code && <div className="invalid-feedback">{errors.code}</div>}
                                         </div>
 
                                         <div className="col-md-6">
@@ -90,16 +90,16 @@ export default function Create({ accountTypes }) {
                                                 Account Type <span className="text-danger">*</span>
                                             </label>
                                             <select
-                                                value={data.account_type}
-                                                onChange={e => setData('account_type', e.target.value)}
-                                                className={`form-select ${errors.account_type ? 'is-invalid' : ''}`}
+                                                value={data.type}
+                                                onChange={e => setData('type', e.target.value)}
+                                                className={`form-select ${errors.type ? 'is-invalid' : ''}`}
                                                 required
                                             >
                                                 {Object.entries(accountTypes).map(([value, label]) => (
                                                     <option key={value} value={value}>{label}</option>
                                                 ))}
                                             </select>
-                                            {errors.account_type && <div className="invalid-feedback">{errors.account_type}</div>}
+                                            {errors.type && <div className="invalid-feedback">{errors.type}</div>}
                                         </div>
                                     </div>
 
@@ -109,13 +109,13 @@ export default function Create({ accountTypes }) {
                                         </label>
                                         <input
                                             type="text"
-                                            value={data.account_name}
-                                            onChange={e => setData('account_name', e.target.value)}
-                                            className={`form-control ${errors.account_name ? 'is-invalid' : ''}`}
+                                            value={data.name}
+                                            onChange={e => setData('name', e.target.value)}
+                                            className={`form-control ${errors.name ? 'is-invalid' : ''}`}
                                             placeholder="e.g., SBI Savings Account, Cash Wallet"
                                             required
                                         />
-                                        {errors.account_name && <div className="invalid-feedback">{errors.account_name}</div>}
+                                        {errors.name && <div className="invalid-feedback">{errors.name}</div>}
                                     </div>
 
                                     {/* Bank Details - Hide for cash accounts */}

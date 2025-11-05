@@ -5,6 +5,7 @@ import BootstrapLayout from '../../Layouts/BootstrapLayout';
 export default function Edit({ transaction, categories, accounts }) {
     const [selectedCategory, setSelectedCategory] = useState('');
     const [subcategories, setSubcategories] = useState([]);
+    const [transactionType, setTransactionType] = useState(transaction.transaction_type || 'expense');
 
     const { data, setData, put, processing, errors } = useForm({
         expensed_date: transaction.transaction_date || '',
@@ -19,12 +20,24 @@ export default function Edit({ transaction, categories, accounts }) {
         tax: transaction.tax || '0',
         status: transaction.status || 'Pending',
         tags: transaction.tags || '',
-        notes: transaction.notes || ''
+        notes: transaction.notes || '',
+        transaction_type: transaction.transaction_type || 'expense'
     });
 
     // Get parent categories (where parent_id is null)
     const parentCategories = categories.filter(cat => cat.parent_id === null);
-    
+
+    // Get income category
+    const incomeCategory = parentCategories.find(cat => cat.code === 'INCOME');
+
+    // Get account transfer category
+    const accountTransferCategory = parentCategories.find(cat => cat.code === 'ACCOUNTTR');
+
+    // Get expense categories (excluding income and account transfer)
+    const expenseCategories = parentCategories.filter(cat =>
+        cat.code !== 'INCOME' && cat.code !== 'ACCOUNTTR'
+    );
+
     // Function to get subcategories for a parent category
     const getSubcategories = (parentCategoryId) => {
         return categories.filter(cat => cat.parent_id === parentCategoryId);
@@ -44,7 +57,7 @@ export default function Edit({ transaction, categories, accounts }) {
         if (transaction.category_id && categories.length > 0) {
             const categoryId = parseInt(transaction.category_id);
             const parentCategory = findParentCategoryBySubcategoryId(categoryId);
-            
+
             if (parentCategory) {
                 setSelectedCategory(parentCategory.id);
                 const subs = getSubcategories(parentCategory.id);
@@ -63,16 +76,31 @@ export default function Edit({ transaction, categories, accounts }) {
     const handleCategoryChange = (e) => {
         const parentCategoryId = parseInt(e.target.value);
         setSelectedCategory(parentCategoryId);
-        
+
         if (parentCategoryId) {
             const subs = getSubcategories(parentCategoryId);
             setSubcategories(subs);
         } else {
             setSubcategories([]);
         }
-        
+
         // Reset subcategory when parent category changes
         setData('category_id', '');
+    };
+
+    const handleTransactionTypeChange = (type) => {
+        setTransactionType(type);
+        setData('transaction_type', type);
+        setSelectedCategory('');
+        setSubcategories([]);
+        setData('category_id', '');
+
+        // Auto-select category for income
+        if (type === 'income' && incomeCategory) {
+            setSelectedCategory(incomeCategory.id);
+            const subs = getSubcategories(incomeCategory.id);
+            setSubcategories(subs);
+        }
     };
 
     const handleSubmit = (e) => {
@@ -83,7 +111,7 @@ export default function Edit({ transaction, categories, accounts }) {
     return (
         <BootstrapLayout>
             <Head title={`Edit Transaction #${transaction.id}`} />
-            
+
             <div className="row">
                 <div className="col-12">
                     <div className="d-flex justify-content-between align-items-center mb-4">
@@ -121,28 +149,28 @@ export default function Edit({ transaction, categories, accounts }) {
                                         <hr />
                                     </div>
                                 </div>
-                                
+
                                 <div className="row mb-3">
                                     <div className="col-md-4">
                                         <label htmlFor="expensed_date" className="form-label">
                                             Date <span className="text-danger">*</span>
                                         </label>
-                                        <input 
-                                            type="date" 
+                                        <input
+                                            type="date"
                                             className={`form-control ${errors.expensed_date ? 'is-invalid' : ''}`}
-                                            id="expensed_date" 
+                                            id="expensed_date"
                                             value={data.expensed_date}
                                             onChange={e => setData('expensed_date', e.target.value)}
-                                            required 
+                                            required
                                         />
                                         {errors.expensed_date && <div className="invalid-feedback">{errors.expensed_date}</div>}
                                     </div>
                                     <div className="col-md-4">
                                         <label htmlFor="transaction_time" className="form-label">Time</label>
-                                        <input 
-                                            type="time" 
+                                        <input
+                                            type="time"
                                             className={`form-control ${errors.transaction_time ? 'is-invalid' : ''}`}
-                                            id="transaction_time" 
+                                            id="transaction_time"
                                             value={data.transaction_time}
                                             onChange={e => setData('transaction_time', e.target.value)}
                                         />
@@ -152,28 +180,28 @@ export default function Edit({ transaction, categories, accounts }) {
                                         <label htmlFor="amount" className="form-label">
                                             Amount (₹) <span className="text-danger">*</span>
                                         </label>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             className={`form-control ${errors.amount ? 'is-invalid' : ''}`}
-                                            id="amount" 
+                                            id="amount"
                                             value={data.amount}
                                             onChange={e => setData('amount', e.target.value)}
-                                            step="0.01" 
-                                            min="0" 
-                                            required 
+                                            step="0.01"
+                                            min="0"
+                                            required
                                         />
                                         {errors.amount && <div className="invalid-feedback">{errors.amount}</div>}
                                     </div>
                                 </div>
-                                
+
                                 <div className="row mb-3">
                                     <div className="col-md-6">
                                         <label htmlFor="account" className="form-label">
                                             Account <span className="text-danger">*</span>
                                         </label>
-                                        <select 
+                                        <select
                                             className={`form-select ${errors.account_id ? 'is-invalid' : ''}`}
-                                            id="account" 
+                                            id="account"
                                             value={data.account_id}
                                             onChange={e => setData('account_id', e.target.value)}
                                             required
@@ -181,7 +209,7 @@ export default function Edit({ transaction, categories, accounts }) {
                                             <option value="">Select Account</option>
                                             {accounts.map(account => (
                                                 <option key={account.id} value={account.id}>
-                                                    {account.account_name}
+                                                    {account.name}
                                                 </option>
                                             ))}
                                         </select>
@@ -189,7 +217,7 @@ export default function Edit({ transaction, categories, accounts }) {
                                     </div>
                                     <div className="col-md-6">
                                         <label htmlFor="payment_method" className="form-label">Payment Method</label>
-                                        <select 
+                                        <select
                                             className={`form-select ${errors.payment_method ? 'is-invalid' : ''}`}
                                             id="payment_method"
                                             value={data.payment_method}
@@ -206,87 +234,170 @@ export default function Edit({ transaction, categories, accounts }) {
                                         {errors.payment_method && <div className="invalid-feedback">{errors.payment_method}</div>}
                                     </div>
                                 </div>
-                                
+
                                 <div className="mb-3">
                                     <label htmlFor="description" className="form-label">
-                                        Description <span className="text-danger">*</span>
+                                        Description
                                     </label>
-                                    <textarea 
+                                    <textarea
                                         className={`form-control ${errors.description ? 'is-invalid' : ''}`}
-                                        id="description" 
-                                        rows="3" 
+                                        id="description"
+                                        rows="3"
                                         value={data.description}
                                         onChange={e => setData('description', e.target.value)}
-                                        required
+                                        placeholder="Optional: Add transaction details"
                                     />
                                     {errors.description && <div className="invalid-feedback">{errors.description}</div>}
                                 </div>
-                                
+
                                 <div className="row mb-4">
                                     <div className="col-12">
                                         <h6 className="text-primary">
-                                            <i className="fas fa-tags me-2"></i>Categorization
+                                            <i className="fas fa-exchange-alt me-2"></i>Transaction Type
                                         </h6>
                                         <hr />
                                     </div>
                                 </div>
-                                
-                                <div className="row mb-3">
-                                    <div className="col-md-6">
-                                        <label htmlFor="category" className="form-label">
-                                            Category <span className="text-danger">*</span>
+
+                                <div className="mb-4">
+                                    <div className="btn-group w-100" role="group">
+                                        <input
+                                            type="radio"
+                                            className="btn-check"
+                                            name="transaction_type"
+                                            id="type_income"
+                                            value="income"
+                                            checked={transactionType === 'income'}
+                                            onChange={() => handleTransactionTypeChange('income')}
+                                        />
+                                        <label className="btn btn-outline-success" htmlFor="type_income">
+                                            <i className="fas fa-arrow-down me-2"></i>Income
                                         </label>
-                                        <select 
-                                            className={`form-select ${errors.category ? 'is-invalid' : ''}`}
-                                            id="category" 
-                                            value={selectedCategory}
-                                            onChange={handleCategoryChange}
-                                            required
-                                        >
-                                            <option value="">Select Category</option>
-                                            {parentCategories.map(cat => (
-                                                <option key={cat.id} value={cat.id}>
-                                                    {cat.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {errors.category && <div className="invalid-feedback">{errors.category}</div>}
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label htmlFor="subcategory" className="form-label">
-                                            Subcategory <span className="text-danger">*</span>
+
+                                        <input
+                                            type="radio"
+                                            className="btn-check"
+                                            name="transaction_type"
+                                            id="type_expense"
+                                            value="expense"
+                                            checked={transactionType === 'expense'}
+                                            onChange={() => handleTransactionTypeChange('expense')}
+                                        />
+                                        <label className="btn btn-outline-danger" htmlFor="type_expense">
+                                            <i className="fas fa-arrow-up me-2"></i>Expense
                                         </label>
-                                        <select 
-                                            className={`form-select ${errors.category_id ? 'is-invalid' : ''}`}
-                                            id="subcategory" 
-                                            value={data.category_id}
-                                            onChange={e => setData('category_id', e.target.value)}
-                                            required
-                                        >
-                                            <option value="">Select Subcategory</option>
-                                            {subcategories.map(subcat => (
-                                                <option key={subcat.id} value={subcat.id}>
-                                                    {subcat.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {errors.category_id && <div className="invalid-feedback">{errors.category_id}</div>}
+
+                                        <input
+                                            type="radio"
+                                            className="btn-check"
+                                            name="transaction_type"
+                                            id="type_transfer"
+                                            value="transfer"
+                                            checked={transactionType === 'transfer'}
+                                            onChange={() => handleTransactionTypeChange('transfer')}
+                                        />
+                                        <label className="btn btn-outline-primary" htmlFor="type_transfer">
+                                            <i className="fas fa-exchange-alt me-2"></i>Account Transfer
+                                        </label>
                                     </div>
                                 </div>
-                                
+
+                                {/* Category Section - Conditional based on transaction type */}
+                                {transactionType !== 'transfer' && (
+                                    <>
+                                        <div className="row mb-4">
+                                            <div className="col-12">
+                                                <h6 className="text-primary">
+                                                    <i className="fas fa-tags me-2"></i>Categorization
+                                                </h6>
+                                                <hr />
+                                            </div>
+                                        </div>
+
+                                        {transactionType === 'income' ? (
+                                            /* Income: Show only subcategory dropdown */
+                                            <div className="mb-3">
+                                                <label htmlFor="subcategory" className="form-label">
+                                                    Income Category <span className="text-danger">*</span>
+                                                </label>
+                                                <select
+                                                    className={`form-select ${errors.category_id ? 'is-invalid' : ''}`}
+                                                    id="subcategory"
+                                                    value={data.category_id}
+                                                    onChange={e => setData('category_id', e.target.value)}
+                                                    required
+                                                >
+                                                    <option value="">Select Income Category</option>
+                                                    {subcategories.map(subcat => (
+                                                        <option key={subcat.id} value={subcat.id}>
+                                                            {subcat.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {errors.category_id && <div className="invalid-feedback">{errors.category_id}</div>}
+                                            </div>
+                                        ) : (
+                                            /* Expense: Show both category and subcategory */
+                                            <div className="row mb-3">
+                                                <div className="col-md-6">
+                                                    <label htmlFor="category" className="form-label">
+                                                        Category <span className="text-danger">*</span>
+                                                    </label>
+                                                    <select
+                                                        className={`form-select ${errors.category ? 'is-invalid' : ''}`}
+                                                        id="category"
+                                                        value={selectedCategory}
+                                                        onChange={handleCategoryChange}
+                                                        required
+                                                    >
+                                                        <option value="">Select Category</option>
+                                                        {expenseCategories.map(cat => (
+                                                            <option key={cat.id} value={cat.id}>
+                                                                {cat.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    {errors.category && <div className="invalid-feedback">{errors.category}</div>}
+                                                </div>
+                                                <div className="col-md-6">
+                                                    <label htmlFor="subcategory" className="form-label">
+                                                        Subcategory <span className="text-danger">*</span>
+                                                    </label>
+                                                    <select
+                                                        className={`form-select ${errors.category_id ? 'is-invalid' : ''}`}
+                                                        id="subcategory"
+                                                        value={data.category_id}
+                                                        onChange={e => setData('category_id', e.target.value)}
+                                                        required
+                                                        disabled={!selectedCategory}
+                                                    >
+                                                        <option value="">Select Subcategory</option>
+                                                        {subcategories.map(subcat => (
+                                                            <option key={subcat.id} value={subcat.id}>
+                                                                {subcat.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    {errors.category_id && <div className="invalid-feedback">{errors.category_id}</div>}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+
                                 <div className="mb-3">
                                     <label htmlFor="payee_payer" className="form-label">Payee/Payer</label>
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         className={`form-control ${errors.payee_payer ? 'is-invalid' : ''}`}
-                                        id="payee_payer" 
+                                        id="payee_payer"
                                         value={data.payee_payer}
                                         onChange={e => setData('payee_payer', e.target.value)}
-                                        placeholder="Who did you pay or who paid you?" 
+                                        placeholder="Who did you pay or who paid you?"
                                     />
                                     {errors.payee_payer && <div className="invalid-feedback">{errors.payee_payer}</div>}
                                 </div>
-                                
+
                                 <div className="row mb-4">
                                     <div className="col-12">
                                         <h6 className="text-primary">
@@ -295,39 +406,39 @@ export default function Edit({ transaction, categories, accounts }) {
                                         <hr />
                                     </div>
                                 </div>
-                                
+
                                 <div className="row mb-3">
                                     <div className="col-md-6">
                                         <label htmlFor="reference_number" className="form-label">Reference Number</label>
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             className={`form-control ${errors.reference_number ? 'is-invalid' : ''}`}
-                                            id="reference_number" 
+                                            id="reference_number"
                                             value={data.reference_number}
                                             onChange={e => setData('reference_number', e.target.value)}
-                                            placeholder="Receipt number, transaction ID, etc." 
+                                            placeholder="Receipt number, transaction ID, etc."
                                         />
                                         {errors.reference_number && <div className="invalid-feedback">{errors.reference_number}</div>}
                                     </div>
                                     <div className="col-md-6">
                                         <label htmlFor="tax" className="form-label">Tax Amount (₹)</label>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             className={`form-control ${errors.tax ? 'is-invalid' : ''}`}
-                                            id="tax" 
+                                            id="tax"
                                             value={data.tax}
                                             onChange={e => setData('tax', e.target.value)}
-                                            step="0.01" 
-                                            min="0" 
+                                            step="0.01"
+                                            min="0"
                                         />
                                         {errors.tax && <div className="invalid-feedback">{errors.tax}</div>}
                                     </div>
                                 </div>
-                                
+
                                 <div className="row mb-3">
                                     <div className="col-md-6">
                                         <label htmlFor="status" className="form-label">Status</label>
-                                        <select 
+                                        <select
                                             className={`form-select ${errors.status ? 'is-invalid' : ''}`}
                                             id="status"
                                             value={data.status}
@@ -341,35 +452,35 @@ export default function Edit({ transaction, categories, accounts }) {
                                     </div>
                                     <div className="col-md-6">
                                         <label htmlFor="tags" className="form-label">Tags</label>
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             className={`form-control ${errors.tags ? 'is-invalid' : ''}`}
-                                            id="tags" 
+                                            id="tags"
                                             value={data.tags}
                                             onChange={e => setData('tags', e.target.value)}
-                                            placeholder="comma, separated, tags" 
+                                            placeholder="comma, separated, tags"
                                         />
                                         <div className="form-text">Use commas to separate multiple tags</div>
                                         {errors.tags && <div className="invalid-feedback">{errors.tags}</div>}
                                     </div>
                                 </div>
-                                
+
                                 <div className="mb-3">
                                     <label htmlFor="notes" className="form-label">Notes</label>
-                                    <textarea 
+                                    <textarea
                                         className={`form-control ${errors.notes ? 'is-invalid' : ''}`}
-                                        id="notes" 
-                                        rows="3" 
+                                        id="notes"
+                                        rows="3"
                                         value={data.notes}
                                         onChange={e => setData('notes', e.target.value)}
                                         placeholder="Additional notes about this transaction"
                                     />
                                     {errors.notes && <div className="invalid-feedback">{errors.notes}</div>}
                                 </div>
-                                
+
                                 <div className="row mt-4">
                                     <div className="col-12 text-end">
-                                        <button type="button" className="btn btn-outline-secondary me-2" 
+                                        <button type="button" className="btn btn-outline-secondary me-2"
                                                 onClick={() => window.history.back()}>
                                             <i className="fas fa-times me-2"></i>Cancel
                                         </button>

@@ -37,7 +37,7 @@ export default function Show({ category, transactions, stats }) {
     return (
         <BootstrapLayout>
             <Head title={`Category: ${category.name}`} />
-            
+
             <div className="container-fluid">
                 {/* Header */}
                 <div className="row mb-4">
@@ -60,14 +60,14 @@ export default function Show({ category, transactions, stats }) {
                                 </p>
                             </div>
                             <div>
-                                <Link 
-                                    href="/categories" 
+                                <Link
+                                    href="/categories"
                                     className="btn btn-outline-secondary me-2"
                                 >
                                     <i className="fas fa-arrow-left me-2"></i>Back to Categories
                                 </Link>
-                                <Link 
-                                    href={`/categories/${category.id}/edit`} 
+                                <Link
+                                    href={`/categories/${category.id}/edit`}
                                     className="btn btn-primary"
                                 >
                                     <i className="fas fa-edit me-2"></i>Edit Category
@@ -146,7 +146,7 @@ export default function Show({ category, transactions, stats }) {
                                             <div className="mb-3">
                                                 <label className="form-label text-muted">Parent Category</label>
                                                 <div>
-                                                    <Link 
+                                                    <Link
                                                         href={`/categories/${category.parent.id}`}
                                                         className="text-decoration-none"
                                                     >
@@ -162,8 +162,8 @@ export default function Show({ category, transactions, stats }) {
                                         <div className="mb-3">
                                             <label className="form-label text-muted">Icon & Color</label>
                                             <div>
-                                                <span 
-                                                    className="badge fs-5 text-white" 
+                                                <span
+                                                    className="badge fs-5 text-white"
                                                     style={{ backgroundColor: category.color }}
                                                 >
                                                     <i className={`${category.icon || 'fas fa-folder'} me-2`}></i>
@@ -220,7 +220,7 @@ export default function Show({ category, transactions, stats }) {
                                     <div className="row">
                                         {stats.children_stats && stats.children_stats.map((child) => (
                                             <div key={child.id} className="col-md-6 mb-3">
-                                                <Link 
+                                                <Link
                                                     href={`/categories/${child.id}`}
                                                     className="text-decoration-none"
                                                 >
@@ -256,7 +256,7 @@ export default function Show({ category, transactions, stats }) {
                                 <h5 className="mb-0">
                                     <i className="fas fa-history me-2"></i>Recent Transactions
                                 </h5>
-                                <Link 
+                                <Link
                                     href={`/transactions?category=${category.id}`}
                                     className="btn btn-sm btn-outline-primary"
                                 >
@@ -295,7 +295,7 @@ export default function Show({ category, transactions, stats }) {
                                                         <td>
                                                             <small>
                                                                 <i className="fas fa-university me-1"></i>
-                                                                {transaction.account?.account_name || 'Unknown'}
+                                                                {transaction.account?.name || 'Unknown'}
                                                             </small>
                                                         </td>
                                                         <td className="text-end">
@@ -304,7 +304,7 @@ export default function Show({ category, transactions, stats }) {
                                                             </strong>
                                                         </td>
                                                         <td className="text-end">
-                                                            <Link 
+                                                            <Link
                                                                 href={`/transactions/${transaction.id}`}
                                                                 className="btn btn-sm btn-outline-secondary"
                                                             >
@@ -320,7 +320,7 @@ export default function Show({ category, transactions, stats }) {
                                     <div className="text-center text-muted py-4">
                                         <i className="fas fa-inbox fa-3x mb-3 d-block"></i>
                                         <p>No transactions found for this category</p>
-                                        <Link 
+                                        <Link
                                             href="/transactions/create"
                                             className="btn btn-primary mt-2"
                                         >
@@ -343,21 +343,21 @@ export default function Show({ category, transactions, stats }) {
                             </div>
                             <div className="card-body">
                                 <div className="d-grid gap-2">
-                                    <Link 
-                                        href={`/categories/${category.id}/edit`} 
+                                    <Link
+                                        href={`/categories/${category.id}/edit`}
                                         className="btn btn-primary"
                                     >
                                         <i className="fas fa-edit me-2"></i>Edit Category
                                     </Link>
-                                    
-                                    <Link 
+
+                                    <Link
                                         href={`/transactions?category=${category.id}`}
                                         className="btn btn-outline-primary"
                                     >
                                         <i className="fas fa-list me-2"></i>View All Transactions
                                     </Link>
 
-                                    <button 
+                                    <button
                                         className="btn btn-outline-danger"
                                         onClick={handleDelete}
                                         disabled={stats.transaction_count > 0}
@@ -372,9 +372,9 @@ export default function Show({ category, transactions, stats }) {
                                     )}
 
                                     <hr />
-                                    
-                                    <Link 
-                                        href="/categories/create" 
+
+                                    <Link
+                                        href="/categories/create"
                                         className="btn btn-success"
                                     >
                                         <i className="fas fa-plus me-2"></i>Add New Category

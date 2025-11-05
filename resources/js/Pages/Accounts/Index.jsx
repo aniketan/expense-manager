@@ -4,7 +4,7 @@ import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
 export default function Index({ accounts, success }) {
     const handleDelete = (account) => {
-        if (window.confirm(`Are you sure you want to delete ${account.account_name || account.name}?`)) {
+        if (window.confirm(`Are you sure you want to delete ${account.name}?`)) {
             router.delete(`/accounts/${account.id}`);
         }
     };
@@ -25,16 +25,16 @@ export default function Index({ accounts, success }) {
     };
 
     const formatCurrency = (amount) => {
-        return `₹${parseFloat(amount).toLocaleString('en-IN', { 
-            minimumFractionDigits: 2, 
-            maximumFractionDigits: 2 
+        return `₹${parseFloat(amount).toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         })}`;
     };
 
     return (
         <BootstrapLayout>
             <Head title="Account Management" />
-            
+
             {/* Header */}
             <div className="row">
                 <div className="col-12">
@@ -115,7 +115,7 @@ export default function Index({ accounts, success }) {
                             <div className="d-flex justify-content-between">
                                 <div>
                                     <h6>Credit Cards</h6>
-                                    <h3>{accounts.filter(a => a.account_type === 'credit_card').length}</h3>
+                                    <h3>{accounts.filter(a => a.type === 'credit_card').length}</h3>
                                 </div>
                                 <i className="fas fa-credit-card fa-2x opacity-75"></i>
                             </div>
@@ -146,30 +146,30 @@ export default function Index({ accounts, success }) {
                                         <div className="card-header d-flex justify-content-between align-items-center">
                                             <div className="d-flex align-items-center">
                                                 <h5 className="card-title mb-0 me-2">
-                                                    {account.account_name || account.name}
+                                                    {account.name}
                                                 </h5>
-                                                <span className={`badge ${getAccountTypeColor(account.account_type || account.type)} text-white`}>
-                                                    {account.type_label || account.account_type || account.type}
+                                                <span className={`badge ${getAccountTypeColor(account.type)} text-white`}>
+                                                    {account.type}
                                                 </span>
                                             </div>
                                             <span className={`badge ${account.is_active ? 'bg-success' : 'bg-danger'}`}>
                                                 {account.is_active ? 'Active' : 'Inactive'}
                                             </span>
                                         </div>
-                                        
+
                                         <div className="card-body">
                                             <div className="mb-3">
                                                 <small className="text-muted d-block">Account Code</small>
-                                                <code className="text-primary">{account.account_code || account.code}</code>
+                                                <code className="text-primary">{account.code}</code>
                                             </div>
-                                            
+
                                             {account.bank_name && (
                                                 <div className="mb-3">
                                                     <small className="text-muted d-block">Bank Name</small>
                                                     <span>{account.bank_name}</span>
                                                 </div>
                                             )}
-                                            
+
                                             {account.account_number && (
                                                 <div className="mb-3">
                                                     <small className="text-muted d-block">Account Number</small>
@@ -187,8 +187,8 @@ export default function Index({ accounts, success }) {
                                                         {formatCurrency(account.current_balance || 0)}
                                                     </span>
                                                 </div>
-                                                
-                                                {(account.account_type === 'credit_card' || account.type === 'credit_card') && account.credit_limit > 0 && (
+
+                                                {account.type === 'credit_card' && account.credit_limit > 0 && (
                                                     <div className="d-flex justify-content-between align-items-center">
                                                         <small className="text-muted">Credit Limit:</small>
                                                         <span className="text-muted">

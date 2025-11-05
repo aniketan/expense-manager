@@ -9,17 +9,17 @@ export default function Index({ transactions = {}, categories = [], accounts = [
     const [selectAll, setSelectAll] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState(filters.category || '');
     const [subcategories, setSubcategories] = useState([]);
-    
+
     // Function to get color class based on amount value
     const getAmountColorClass = (amount, transactionType) => {
         const value = parseFloat(amount || 0);
-        
+
         // Base color for income vs expense
         const baseColor = transactionType === 'income' ? 'text-success' : 'text-danger';
-        
+
         // Amount-based color coding (based on absolute value)
         const absValue = Math.abs(value);
-        
+
         if (absValue < 100) {
             return 'text-info'; // ₹1-99 - Blue
         } else if (absValue < 500) {
@@ -34,34 +34,34 @@ export default function Index({ transactions = {}, categories = [], accounts = [
             return 'text-secondary'; // ₹5K+ - Gray
         }
     };
-    
+
     // Get parent categories (where parent_id is null)
     const parentCategories = categories.filter(cat => cat.parent_id === null);
-    
+
     // Function to get subcategories for a parent category
     const getSubcategories = (parentCategoryId) => {
         return categories.filter(cat => cat.parent_id === parseInt(parentCategoryId));
     };
-    
+
     // Handle category change and update subcategories
     const handleCategoryChange = (e) => {
         const categoryId = e.target.value;
         setSelectedCategory(categoryId);
-       
+
         if (categoryId) {
             const subs = getSubcategories(categoryId);
             setSubcategories(subs);
         } else {
             setSubcategories([]);
         }
-        
+
         // Reset subcategory selection when category changes
         const subcategorySelect = document.getElementById('subcategory');
         if (subcategorySelect) {
             subcategorySelect.value = '';
         }
     };
-    
+
     // Initialize subcategories on component mount if category is already selected
     useEffect(() => {
         if (selectedCategory && categories.length > 0) {
@@ -69,7 +69,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
             setSubcategories(subs);
         }
     }, [selectedCategory, categories]);
-    
+
     // Initialize category and subcategories from filters on mount
     useEffect(() => {
         if (filters.category && categories.length > 0) {
@@ -78,7 +78,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
             setSubcategories(subs);
         }
     }, [filters.category, categories]);
-    
+
     // Extract data from paginated response
     const transactionData = transactions.data || [];
     const paginationInfo = {
@@ -114,13 +114,13 @@ export default function Index({ transactions = {}, categories = [], accounts = [
         e.preventDefault();
         const formData = new FormData(e.target);
         const filterParams = {};
-        
+
         for (let [key, value] of formData.entries()) {
             if (value && value.trim() !== '') {
                 filterParams[key] = value;
             }
         }
-        
+
         router.get('/transactions', filterParams, {
             preserveState: true,
             preserveScroll: true,
@@ -148,7 +148,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
     return (
         <BootstrapLayout>
             <Head title="Transaction Management" />
-            
+
             {/* Header */}
             <div className="row">
                 <div className="col-12">
@@ -157,7 +157,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                             <h1><i className="fas fa-exchange-alt text-primary me-3"></i>Transaction Management</h1>
                             <small className="text-muted">
                                 <i className="fas fa-info-circle me-1"></i>
-                                Categories: 
+                                Categories:
                                 <span className="badge bg-success me-1">Income</span>
                                 <span className="badge bg-info me-1">₹1-99</span>
                                 <span className="badge bg-warning me-1">₹100-499</span>
@@ -191,8 +191,8 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                         <div className="card-header">
                             <h5 className="mb-0">
                                 <i className="fas fa-filter me-2"></i>Search & Filters
-                                <button 
-                                    className="btn btn-sm btn-outline-secondary float-end" 
+                                <button
+                                    className="btn btn-sm btn-outline-secondary float-end"
                                     type="button"
                                     onClick={() => setFiltersCollapsed(!filtersCollapsed)}
                                 >
@@ -206,20 +206,20 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                     <div className="row">
                                         <div className="col-md-3">
                                             <label htmlFor="search" className="form-label">Search Description/Notes/Payee</label>
-                                            <input 
-                                                type="text" 
-                                                className="form-control" 
-                                                id="search" 
-                                                name="search" 
-                                                defaultValue={filters.search || ''} 
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                id="search"
+                                                name="search"
+                                                defaultValue={filters.search || ''}
                                                 placeholder="Search descriptions, notes, or payee names..."
                                             />
                                         </div>
                                         <div className="col-md-2">
                                             <label htmlFor="category" className="form-label">Category</label>
-                                            <select 
-                                                className="form-select" 
-                                                id="category" 
+                                            <select
+                                                className="form-select"
+                                                id="category"
                                                 name="category"
                                                 value={selectedCategory}
                                                 onChange={handleCategoryChange}
@@ -234,9 +234,9 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                         </div>
                                         <div className="col-md-2">
                                             <label htmlFor="subcategory" className="form-label">Subcategory</label>
-                                            <select 
-                                                className="form-select" 
-                                                id="subcategory" 
+                                            <select
+                                                className="form-select"
+                                                id="subcategory"
                                                 name="subcategory"
                                                 defaultValue={filters.subcategory || ''}
                                             >
@@ -250,22 +250,22 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                         </div>
                                         <div className="col-md-2">
                                             <label htmlFor="account" className="form-label">Account</label>
-                                            <select className="form-select" id="account" name="account">
+                                            <select className="form-select" id="account" name="account" defaultValue={filters.account || ''}>
                                                 <option value="">All Accounts</option>
                                                 {accounts.map(account => (
-                                                    <option key={account.id} value={account.id} selected={filters.account == account.id}>
-                                                        {account.account_name}
+                                                    <option key={account.id} value={account.id}>
+                                                        {account.name}
                                                     </option>
                                                 ))}
                                             </select>
                                         </div>
                                         <div className="col-md-2">
                                             <label htmlFor="date_from" className="form-label">From Date</label>
-                                            <input 
-                                                type="date" 
-                                                className="form-control" 
-                                                id="date_from" 
-                                                name="date_from" 
+                                            <input
+                                                type="date"
+                                                className="form-control"
+                                                id="date_from"
+                                                name="date_from"
                                                 defaultValue={filters.date_from || ''}
                                             />
                                         </div>
@@ -278,30 +278,30 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                     <div className="row mt-3">
                                         <div className="col-md-2">
                                             <label htmlFor="sort_by" className="form-label">Sort By</label>
-                                            <select className="form-select" id="sort_by" name="sort_by">
-                                                <option value="date_desc" selected={filters.sort_by === 'date_desc'}>Date (Newest First)</option>
-                                                <option value="date_asc" selected={filters.sort_by === 'date_asc'}>Date (Oldest First)</option>
-                                                <option value="amount_desc" selected={filters.sort_by === 'amount_desc'}>Amount (High to Low)</option>
-                                                <option value="amount_asc" selected={filters.sort_by === 'amount_asc'}>Amount (Low to High)</option>
-                                                <option value="category" selected={filters.sort_by === 'category'}>Category (A-Z)</option>
+                                            <select className="form-select" id="sort_by" name="sort_by" defaultValue={filters.sort_by || 'date_desc'}>
+                                                <option value="date_desc">Date (Newest First)</option>
+                                                <option value="date_asc">Date (Oldest First)</option>
+                                                <option value="amount_desc">Amount (High to Low)</option>
+                                                <option value="amount_asc">Amount (Low to High)</option>
+                                                <option value="category">Category (A-Z)</option>
                                             </select>
                                         </div>
                                         <div className="col-md-2">
                                             <label htmlFor="date_to" className="form-label">To Date</label>
-                                            <input 
-                                                type="date" 
-                                                className="form-control" 
-                                                id="date_to" 
-                                                name="date_to" 
+                                            <input
+                                                type="date"
+                                                className="form-control"
+                                                id="date_to"
+                                                name="date_to"
                                                 defaultValue={filters.date_to || ''}
                                             />
                                         </div>
                                         <div className="col-md-2">
                                             <label htmlFor="payment_method" className="form-label">Payment Method</label>
-                                            <select className="form-select" id="payment_method" name="payment_method">
+                                            <select className="form-select" id="payment_method" name="payment_method" defaultValue={filters.payment_method || ''}>
                                                 <option value="">All Methods</option>
                                                 {paymentMethods.map(method => (
-                                                    <option key={method} value={method} selected={filters.payment_method === method}>
+                                                    <option key={method} value={method}>
                                                         {method}
                                                     </option>
                                                 ))}
@@ -309,10 +309,10 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                         </div>
                                         <div className="col-md-2">
                                             <label htmlFor="status" className="form-label">Status</label>
-                                            <select className="form-select" id="status" name="status">
+                                            <select className="form-select" id="status" name="status" defaultValue={filters.status || ''}>
                                                 <option value="">All Status</option>
                                                 {statuses.map(status => (
-                                                    <option key={status} value={status} selected={filters.status === status}>
+                                                    <option key={status} value={status}>
                                                         {status}
                                                     </option>
                                                 ))}
@@ -320,12 +320,12 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                         </div>
                                         <div className="col-md-2">
                                             <label htmlFor="tags" className="form-label">Tags</label>
-                                            <input 
-                                                type="text" 
-                                                className="form-control" 
-                                                id="tags" 
-                                                name="tags" 
-                                                defaultValue={filters.tags || ''} 
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                id="tags"
+                                                name="tags"
+                                                defaultValue={filters.tags || ''}
                                                 placeholder="comma,separated"
                                             />
                                         </div>
@@ -335,8 +335,8 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                             </button>
                                         </div>
                                         <div className="col-md-1 d-flex align-items-end">
-                                            <button 
-                                                type="button" 
+                                            <button
+                                                type="button"
                                                 onClick={clearFilters}
                                                 className="btn btn-outline-secondary w-100"
                                             >
@@ -445,9 +445,9 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                         <thead className="table-light">
                                             <tr>
                                                 <th>
-                                                    <input 
-                                                        type="checkbox" 
-                                                        className="form-check-input" 
+                                                    <input
+                                                        type="checkbox"
+                                                        className="form-check-input"
                                                         checked={selectAll}
                                                         onChange={handleSelectAll}
                                                     />
@@ -465,9 +465,9 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                             {transactionData.map(transaction => (
                                                 <tr key={transaction.id}>
                                                     <td>
-                                                        <input 
-                                                            type="checkbox" 
-                                                            className="form-check-input transaction-checkbox" 
+                                                        <input
+                                                            type="checkbox"
+                                                            className="form-check-input transaction-checkbox"
                                                             value={transaction.id}
                                                             checked={selectedTransactions.includes(transaction.id)}
                                                             onChange={() => handleTransactionSelect(transaction.id)}
@@ -480,7 +480,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                             {transaction.category?.name || 'N/A'}
                                                         </span>
                                                     </td>
-                                                    <td>{transaction.account?.account_name || 'N/A'}</td>
+                                                    <td>{transaction.account?.name || 'N/A'}</td>
                                                     <td>
                                                         <span className={`fw-bold ${getAmountColorClass(transaction.amount, transaction.transaction_type)}`}>
                                                             {transaction.transaction_type === 'income' ? '+' : '-'}₹{parseFloat(transaction.amount || 0).toFixed(2)}
@@ -493,22 +493,22 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                     </td>
                                                     <td>
                                                         <div className="btn-group btn-group-sm">
-                                                            <Link 
+                                                            <Link
                                                                 href={`/transactions/${transaction.id}`}
                                                                 className="btn btn-outline-primary btn-sm"
                                                                 title="View Details"
                                                             >
                                                                 <i className="fas fa-eye"></i>
                                                             </Link>
-                                                            <Link 
-                                                                href={`/transactions/${transaction.id}/edit`} 
+                                                            <Link
+                                                                href={`/transactions/${transaction.id}/edit`}
                                                                 className="btn btn-outline-warning btn-sm"
                                                                 title="Edit"
                                                             >
                                                                 <i className="fas fa-edit"></i>
                                                             </Link>
-                                                            <button 
-                                                                type="button" 
+                                                            <button
+                                                                type="button"
                                                                 className="btn btn-outline-danger btn-sm"
                                                                 title="Delete"
                                                                 onClick={() => {
@@ -527,17 +527,17 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                     </table>
                                 </div>
                             )}
-                                
+
                             {/* Pagination */}
-                            <Pagination 
+                            <Pagination
                                 paginationData={paginationInfo}
                                 onPerPageChange={(e) => {
-                                    router.get('/transactions', { 
-                                        ...filters, 
-                                        per_page: e.target.value 
-                                    }, { 
-                                        preserveState: true, 
-                                        preserveScroll: true 
+                                    router.get('/transactions', {
+                                        ...filters,
+                                        per_page: e.target.value
+                                    }, {
+                                        preserveState: true,
+                                        preserveScroll: true
                                     });
                                 }}
                             />

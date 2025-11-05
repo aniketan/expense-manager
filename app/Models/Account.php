@@ -83,4 +83,36 @@ class Account extends Model
     {
         return self::getTypes()[$this->type] ?? $this->type;
     }
+
+    // Relationship with transactions
+    public function transactions()
+    {
+        return $this->hasMany(\App\Models\Transaction::class);
+    }
+
+    /**
+     * Recalculate current balance from opening balance and all transactions
+     * Useful for fixing balance inconsistencies
+     */
+    public function recalculateBalance()
+    {
+        $transactions = $this->transactions()
+            ->select('transaction_type', 'amount')
+            ->get();
+
+        $balance = $this->opening_balance;
+
+        foreach ($transactions as $transaction) {
+            if ($transaction->transaction_type === 'income') {
+                $balance += $transaction->amount;
+            } else {
+                $balance -= $transaction->amount;
+            }
+        }
+
+        $this->current_balance = $balance;
+        $this->save();
+
+        return $balance;
+    }
 }

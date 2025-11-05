@@ -5,9 +5,9 @@ import BootstrapLayout from '../../Layouts/BootstrapLayout';
 export default function Show({ account }) {
     // Debug: Check account data
     console.log('Account data:', account);
-    
+
     const handleDelete = () => {
-        if (window.confirm(`Are you sure you want to delete ${account.account_name}?`)) {
+        if (window.confirm(`Are you sure you want to delete ${account.name}?`)) {
             router.delete(`/accounts/${account.id}`);
         }
     };
@@ -17,9 +17,9 @@ export default function Show({ account }) {
     };
 
     const formatCurrency = (amount) => {
-        return `₹${parseFloat(amount).toLocaleString('en-IN', { 
-            minimumFractionDigits: 2, 
-            maximumFractionDigits: 2 
+        return `₹${parseFloat(amount).toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         })}`;
     };
 
@@ -47,24 +47,24 @@ export default function Show({ account }) {
 
     return (
         <BootstrapLayout>
-            <Head title={account.account_name} />
-            
+            <Head title={account.name} />
+
             <div className="container-fluid">
                 {/* Header */}
                 <div className="row mb-4">
                     <div className="col-12">
                         <div className="d-flex justify-content-between align-items-center mb-3">
                             <div>
-                                <Link 
-                                    href="/accounts" 
+                                <Link
+                                    href="/accounts"
                                     className="btn btn-outline-secondary btn-sm mb-2"
                                 >
                                     <i className="fas fa-arrow-left me-2"></i>Back to Accounts
                                 </Link>
                                 <div className="d-flex align-items-center">
-                                    <h1 className="h2 mb-0 me-3">{account.account_name}</h1>
-                                    <span className={`badge ${getAccountTypeColor(account.account_type)} me-2`}>
-                                        {getAccountTypeLabel(account.account_type)}
+                                    <h1 className="h2 mb-0 me-3">{account.name}</h1>
+                                    <span className={`badge ${getAccountTypeColor(account.type)} me-2`}>
+                                        {getAccountTypeLabel(account.type)}
                                     </span>
                                     <span className={`badge ${account.is_active ? 'bg-success' : 'bg-danger'}`}>
                                         {account.is_active ? 'Active' : 'Inactive'}
@@ -110,11 +110,11 @@ export default function Show({ account }) {
                                 <div className="row">
                                     <div className="col-md-6 mb-3">
                                         <label className="form-label text-muted">Account Code</label>
-                                        <div className="fw-bold font-monospace">{account.account_code || 'N/A'}</div>
+                                        <div className="fw-bold font-monospace">{account.code || 'N/A'}</div>
                                     </div>
                                     <div className="col-md-6 mb-3">
                                         <label className="form-label text-muted">Account Type</label>
-                                        <div className="fw-bold">{getAccountTypeLabel(account.account_type)}</div>
+                                        <div className="fw-bold">{getAccountTypeLabel(account.type)}</div>
                                     </div>
                                     <div className="col-md-6 mb-3">
                                         <label className="form-label text-muted">Status</label>
@@ -145,7 +145,7 @@ export default function Show({ account }) {
                         </div>
 
                         {/* Bank Details */}
-                        {account.account_type !== 'cash' && (account.bank_name || account.account_number || account.ifsc_code) && (
+                        {account.type !== 'cash' && (account.bank_name || account.account_number || account.ifsc_code) && (
                             <div className="card mb-4">
                                 <div className="card-header">
                                     <h5 className="card-title mb-0">
@@ -200,7 +200,7 @@ export default function Show({ account }) {
                                         {formatCurrency(account.current_balance || 0)}
                                     </h3>
                                 </div>
-                                
+
                                 <div className="border-top pt-3">
                                     <div className="d-flex justify-content-between align-items-center mb-2">
                                         <span className="text-muted">Opening Balance:</span>
@@ -208,8 +208,8 @@ export default function Show({ account }) {
                                             {formatCurrency(account.opening_balance || 0)}
                                         </span>
                                     </div>
-                                    
-                                    {account.account_type === 'credit_card' && account.credit_limit > 0 && (
+
+                                    {account.type === 'credit_card' && account.credit_limit > 0 && (
                                         <>
                                             <div className="d-flex justify-content-between align-items-center mb-2">
                                                 <span className="text-muted">Credit Limit:</span>
