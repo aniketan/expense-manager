@@ -399,7 +399,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                                 {recentTransactions.map((transaction, index) => (
                                                     <tr key={transaction.id}>
                                                         <td>
-                                                            {new Date(transaction.transaction_date).toLocaleDateString()}
+                                                            {new Date(transaction.transaction_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                                                         </td>
                                                         <td>
                                                             <div className="fw-medium">{transaction.description || 'No description'}</div>

@@ -12,6 +12,7 @@ export default function Edit({ transaction, categories, accounts }) {
         transaction_time: transaction.transaction_time || '',
         amount: transaction.amount || '',
         account_id: transaction.account_id || '',
+        transfer_to_account_id: '',
         payment_method: transaction.payment_method || '',
         description: transaction.description || '',
         category_id: transaction.category_id || '',
@@ -103,6 +104,11 @@ export default function Edit({ transaction, categories, accounts }) {
         }
     };
 
+    // Prevent number input scroll behavior
+    const handleWheel = (e) => {
+        e.target.blur();
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         put(`/transactions/${transaction.id}`);
@@ -141,115 +147,7 @@ export default function Edit({ transaction, categories, accounts }) {
                         </div>
                         <div className="card-body">
                             <form onSubmit={handleSubmit}>
-                                <div className="row mb-4">
-                                    <div className="col-12">
-                                        <h6 className="text-primary">
-                                            <i className="fas fa-info-circle me-2"></i>Basic Information
-                                        </h6>
-                                        <hr />
-                                    </div>
-                                </div>
-
-                                <div className="row mb-3">
-                                    <div className="col-md-4">
-                                        <label htmlFor="expensed_date" className="form-label">
-                                            Date <span className="text-danger">*</span>
-                                        </label>
-                                        <input
-                                            type="date"
-                                            className={`form-control ${errors.expensed_date ? 'is-invalid' : ''}`}
-                                            id="expensed_date"
-                                            value={data.expensed_date}
-                                            onChange={e => setData('expensed_date', e.target.value)}
-                                            required
-                                        />
-                                        {errors.expensed_date && <div className="invalid-feedback">{errors.expensed_date}</div>}
-                                    </div>
-                                    <div className="col-md-4">
-                                        <label htmlFor="transaction_time" className="form-label">Time</label>
-                                        <input
-                                            type="time"
-                                            className={`form-control ${errors.transaction_time ? 'is-invalid' : ''}`}
-                                            id="transaction_time"
-                                            value={data.transaction_time}
-                                            onChange={e => setData('transaction_time', e.target.value)}
-                                        />
-                                        {errors.transaction_time && <div className="invalid-feedback">{errors.transaction_time}</div>}
-                                    </div>
-                                    <div className="col-md-4">
-                                        <label htmlFor="amount" className="form-label">
-                                            Amount (₹) <span className="text-danger">*</span>
-                                        </label>
-                                        <input
-                                            type="number"
-                                            className={`form-control ${errors.amount ? 'is-invalid' : ''}`}
-                                            id="amount"
-                                            value={data.amount}
-                                            onChange={e => setData('amount', e.target.value)}
-                                            step="0.01"
-                                            min="0"
-                                            required
-                                        />
-                                        {errors.amount && <div className="invalid-feedback">{errors.amount}</div>}
-                                    </div>
-                                </div>
-
-                                <div className="row mb-3">
-                                    <div className="col-md-6">
-                                        <label htmlFor="account" className="form-label">
-                                            Account <span className="text-danger">*</span>
-                                        </label>
-                                        <select
-                                            className={`form-select ${errors.account_id ? 'is-invalid' : ''}`}
-                                            id="account"
-                                            value={data.account_id}
-                                            onChange={e => setData('account_id', e.target.value)}
-                                            required
-                                        >
-                                            <option value="">Select Account</option>
-                                            {accounts.map(account => (
-                                                <option key={account.id} value={account.id}>
-                                                    {account.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {errors.account_id && <div className="invalid-feedback">{errors.account_id}</div>}
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label htmlFor="payment_method" className="form-label">Payment Method</label>
-                                        <select
-                                            className={`form-select ${errors.payment_method ? 'is-invalid' : ''}`}
-                                            id="payment_method"
-                                            value={data.payment_method}
-                                            onChange={e => setData('payment_method', e.target.value)}
-                                        >
-                                            <option value="">Select Method</option>
-                                            <option value="UPI">UPI</option>
-                                            <option value="Bank Transfer">Bank Transfer</option>
-                                            <option value="Credit Card">Credit Card</option>
-                                            <option value="Debit Card">Debit Card</option>
-                                            <option value="Cash">Cash</option>
-                                            <option value="Cheque">Cheque</option>
-                                        </select>
-                                        {errors.payment_method && <div className="invalid-feedback">{errors.payment_method}</div>}
-                                    </div>
-                                </div>
-
-                                <div className="mb-3">
-                                    <label htmlFor="description" className="form-label">
-                                        Description
-                                    </label>
-                                    <textarea
-                                        className={`form-control ${errors.description ? 'is-invalid' : ''}`}
-                                        id="description"
-                                        rows="3"
-                                        value={data.description}
-                                        onChange={e => setData('description', e.target.value)}
-                                        placeholder="Optional: Add transaction details"
-                                    />
-                                    {errors.description && <div className="invalid-feedback">{errors.description}</div>}
-                                </div>
-
+                                {/* Transaction Type - Moved to top */}
                                 <div className="row mb-4">
                                     <div className="col-12">
                                         <h6 className="text-primary">
@@ -300,6 +198,139 @@ export default function Edit({ transaction, categories, accounts }) {
                                             <i className="fas fa-exchange-alt me-2"></i>Account Transfer
                                         </label>
                                     </div>
+                                </div>
+
+                                <div className="row mb-4">
+                                    <div className="col-12">
+                                        <h6 className="text-primary">
+                                            <i className="fas fa-info-circle me-2"></i>Basic Information
+                                        </h6>
+                                        <hr />
+                                    </div>
+                                </div>
+
+                                <div className="row mb-3">
+                                    <div className="col-md-4">
+                                        <label htmlFor="expensed_date" className="form-label">
+                                            Date <span className="text-danger">*</span>
+                                        </label>
+                                        <input
+                                            type="date"
+                                            className={`form-control ${errors.expensed_date ? 'is-invalid' : ''}`}
+                                            id="expensed_date"
+                                            value={data.expensed_date}
+                                            onChange={e => setData('expensed_date', e.target.value)}
+                                            required
+                                        />
+                                        {errors.expensed_date && <div className="invalid-feedback">{errors.expensed_date}</div>}
+                                    </div>
+                                    <div className="col-md-4">
+                                        <label htmlFor="transaction_time" className="form-label">Time</label>
+                                        <input
+                                            type="time"
+                                            className={`form-control ${errors.transaction_time ? 'is-invalid' : ''}`}
+                                            id="transaction_time"
+                                            value={data.transaction_time}
+                                            onChange={e => setData('transaction_time', e.target.value)}
+                                        />
+                                        {errors.transaction_time && <div className="invalid-feedback">{errors.transaction_time}</div>}
+                                    </div>
+                                    <div className="col-md-4">
+                                        <label htmlFor="amount" className="form-label">
+                                            Amount (₹) <span className="text-danger">*</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className={`form-control ${errors.amount ? 'is-invalid' : ''}`}
+                                            id="amount"
+                                            value={data.amount}
+                                            onChange={e => setData('amount', e.target.value)}
+                                            onWheel={handleWheel}
+                                            step="0.01"
+                                            min="0"
+                                            required
+                                        />
+                                        {errors.amount && <div className="invalid-feedback">{errors.amount}</div>}
+                                    </div>
+                                </div>
+
+                                <div className="row mb-3">
+                                    <div className="col-md-6">
+                                        <label htmlFor="account" className="form-label">
+                                            {transactionType === 'transfer' ? 'From Account' : 'Account'} <span className="text-danger">*</span>
+                                        </label>
+                                        <select
+                                            className={`form-select ${errors.account_id ? 'is-invalid' : ''}`}
+                                            id="account"
+                                            value={data.account_id}
+                                            onChange={e => setData('account_id', e.target.value)}
+                                            required
+                                        >
+                                            <option value="">Select Account</option>
+                                            {accounts.map(account => (
+                                                <option key={account.id} value={account.id}>
+                                                    {account.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.account_id && <div className="invalid-feedback">{errors.account_id}</div>}
+                                    </div>
+                                    {transactionType === 'transfer' ? (
+                                        <div className="col-md-6">
+                                            <label htmlFor="transfer_to_account" className="form-label">
+                                                To Account <span className="text-danger">*</span>
+                                            </label>
+                                            <select
+                                                className={`form-select ${errors.transfer_to_account_id ? 'is-invalid' : ''}`}
+                                                id="transfer_to_account"
+                                                value={data.transfer_to_account_id}
+                                                onChange={e => setData('transfer_to_account_id', e.target.value)}
+                                                required
+                                            >
+                                                <option value="">Select Account</option>
+                                                {accounts.filter(acc => acc.id != data.account_id).map(account => (
+                                                    <option key={account.id} value={account.id}>
+                                                        {account.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {errors.transfer_to_account_id && <div className="invalid-feedback">{errors.transfer_to_account_id}</div>}
+                                        </div>
+                                    ) : (
+                                        <div className="col-md-6">
+                                            <label htmlFor="payment_method" className="form-label">Payment Method</label>
+                                            <select
+                                                className={`form-select ${errors.payment_method ? 'is-invalid' : ''}`}
+                                                id="payment_method"
+                                                value={data.payment_method}
+                                                onChange={e => setData('payment_method', e.target.value)}
+                                            >
+                                                <option value="">Select Method</option>
+                                                <option value="UPI">UPI</option>
+                                                <option value="Bank Transfer">Bank Transfer</option>
+                                                <option value="Credit Card">Credit Card</option>
+                                                <option value="Debit Card">Debit Card</option>
+                                                <option value="Cash">Cash</option>
+                                                <option value="Cheque">Cheque</option>
+                                            </select>
+                                            {errors.payment_method && <div className="invalid-feedback">{errors.payment_method}</div>}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mb-3">
+                                    <label htmlFor="description" className="form-label">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        className={`form-control ${errors.description ? 'is-invalid' : ''}`}
+                                        id="description"
+                                        rows="3"
+                                        value={data.description}
+                                        onChange={e => setData('description', e.target.value)}
+                                        placeholder="Optional: Add transaction details"
+                                    />
+                                    {errors.description && <div className="invalid-feedback">{errors.description}</div>}
                                 </div>
 
                                 {/* Category Section - Conditional based on transaction type */}
@@ -428,6 +459,7 @@ export default function Edit({ transaction, categories, accounts }) {
                                             id="tax"
                                             value={data.tax}
                                             onChange={e => setData('tax', e.target.value)}
+                                            onWheel={handleWheel}
                                             step="0.01"
                                             min="0"
                                         />

@@ -127,9 +127,9 @@ export default function Show({ account }) {
                                     <div className="col-md-6 mb-3">
                                         <label className="form-label text-muted">Created</label>
                                         <div className="fw-bold">
-                                            {new Date(account.created_at).toLocaleDateString('en-IN', {
+                                            {new Date(account.created_at).toLocaleDateString('en-US', {
                                                 year: 'numeric',
-                                                month: 'long',
+                                                month: 'short',
                                                 day: 'numeric'
                                             })}
                                         </div>

@@ -11,7 +11,7 @@ export default function Show({ category, transactions, stats }) {
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-IN', {
+        return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
@@ -398,12 +398,14 @@ export default function Show({ category, transactions, stats }) {
                                     </div>
                                     <div className="mb-2">
                                         <strong>Created:</strong><br />
-                                        {new Date(category.created_at).toLocaleString('en-IN')}
+                                        {new Date(category.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}{' '}
+                                        {new Date(category.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                     {category.updated_at !== category.created_at && (
                                         <div>
                                             <strong>Last Updated:</strong><br />
-                                            {new Date(category.updated_at).toLocaleString('en-IN')}
+                                            {new Date(category.updated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}{' '}
+                                            {new Date(category.updated_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                         </div>
                                     )}
                                 </small>

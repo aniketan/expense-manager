@@ -35,4 +35,5 @@ Route::get('api/categories/with-totals', [CategoryController::class, 'getCategor
 
 // Transaction routes
 Route::resource('transactions', TransactionController::class);
+Route::post('transactions/bulk-destroy', [TransactionController::class, 'bulkDestroy'])->name('transactions.bulk-destroy');
 Route::get('api/transactions', [TransactionController::class, 'getTransactions'])->name('api.transactions');

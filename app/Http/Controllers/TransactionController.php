@@ -172,12 +172,13 @@ class TransactionController extends Controller
      * Note: Account balance is automatically updated via Transaction model events
      * - Income transactions: Add to account balance
      * - Expense transactions: Subtract from account balance
+     * - Transfer transactions: Creates two entries (outgoing + incoming)
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'account_id' => 'required|exists:accounts,id',
-            'category_id' => 'required|exists:categories,id',
+            'category_id' => 'nullable|exists:categories,id',
             'transaction_type' => 'required|string|max:20',
             'amount' => 'required|numeric',
             'description' => 'nullable|string',
@@ -186,8 +187,68 @@ class TransactionController extends Controller
             'reference_number' => 'nullable|string|max:100',
             'tags' => 'nullable|string',
             'location' => 'nullable|string',
+            'transfer_to_account_id' => 'nullable|required_if:transaction_type,transfer|exists:accounts,id',
         ]);
 
+        // Handle account transfer - create two transactions
+        if ($validated['transaction_type'] === 'transfer') {
+            // Get the account transfer category
+            $transferCategory = \App\Models\Category::where('code', 'ACCOUNTTR')->first();
+
+            if (!$transferCategory) {
+                return Redirect::back()
+                    ->withErrors(['transfer' => 'Account transfer category not found. Please contact administrator.']);
+            }
+
+            // Get a subcategory under ACCOUNTTR or use the parent if no subcategories exist
+            $transferSubcategory = \App\Models\Category::where('parent_id', $transferCategory->id)->first();
+            $categoryId = $transferSubcategory ? $transferSubcategory->id : $transferCategory->id;
+
+            // Create outgoing transaction (from source account)
+            Transaction::create([
+                'account_id' => $validated['account_id'],
+                'category_id' => $categoryId,
+                'transaction_type' => 'transfer',
+                'amount' => $validated['amount'],
+                'description' => $validated['description'] ?? 'Transfer to account',
+                'transaction_date' => $validated['transaction_date'],
+                'payment_method' => $validated['payment_method'] ?? null,
+                'reference_number' => $validated['reference_number'] ?? null,
+                'tags' => $validated['tags'] ?? null,
+                'location' => $validated['location'] ?? null,
+            ]);
+
+            // Get income category for the incoming transaction
+            $incomeCategory = \App\Models\Category::where('code', 'INCOME')->first();
+
+            if (!$incomeCategory) {
+                return Redirect::back()
+                    ->withErrors(['transfer' => 'Income category not found. Please contact administrator.']);
+            }
+
+            // Get a subcategory under INCOME or use the parent if no subcategories exist
+            $incomeSubcategory = \App\Models\Category::where('parent_id', $incomeCategory->id)->first();
+            $incomeCategoryId = $incomeSubcategory ? $incomeSubcategory->id : $incomeCategory->id;
+
+            // Create incoming transaction (to destination account)
+            Transaction::create([
+                'account_id' => $validated['transfer_to_account_id'],
+                'category_id' => $incomeCategoryId,
+                'transaction_type' => 'income',
+                'amount' => $validated['amount'],
+                'description' => $validated['description'] ?? 'Transfer from account',
+                'transaction_date' => $validated['transaction_date'],
+                'payment_method' => $validated['payment_method'] ?? null,
+                'reference_number' => $validated['reference_number'] ?? null,
+                'tags' => $validated['tags'] ?? null,
+                'location' => $validated['location'] ?? null,
+            ]);
+
+            return Redirect::route('transactions.index')
+                ->with('success', 'Account transfer completed successfully.');
+        }
+
+        // Regular transaction (income or expense)
         Transaction::create($validated);
 
         return Redirect::route('transactions.index')
@@ -272,6 +333,32 @@ class TransactionController extends Controller
 
         return Redirect::route('transactions.index')
             ->with('success', 'Transaction deleted successfully.');
+    }
+
+    /**
+     * Remove multiple transactions from storage.
+     *
+     * Note: Account balances are automatically reverted via Transaction model events
+     * - Each transaction is deleted individually to trigger the model's deleted event
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'required|exists:transactions,id',
+        ]);
+
+        // Fetch transactions individually and delete them to trigger model events
+        $transactions = Transaction::whereIn('id', $validated['ids'])->get();
+        $count = 0;
+
+        foreach ($transactions as $transaction) {
+            $transaction->delete();
+            $count++;
+        }
+
+        return Redirect::route('transactions.index')
+            ->with('success', "{$count} transaction(s) deleted successfully.");
     }
 
     /**

@@ -140,8 +140,14 @@ export default function Index({ transactions = {}, categories = [], accounts = [
             return;
         }
         if (confirm(`Are you sure you want to delete ${selectedTransactions.length} transaction(s)?`)) {
-            // Implementation for bulk delete
-            console.log('Deleting transactions:', selectedTransactions);
+            router.post('/transactions/bulk-destroy', {
+                ids: selectedTransactions
+            }, {
+                onSuccess: () => {
+                    setSelectedTransactions([]);
+                    setSelectAll(false);
+                }
+            });
         }
     };
 
@@ -473,7 +479,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                             onChange={() => handleTransactionSelect(transaction.id)}
                                                         />
                                                     </td>
-                                                    <td>{transaction.transaction_date}</td>
+                                                    <td>{new Date(transaction.transaction_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
                                                     <td>{transaction.description}</td>
                                                     <td>
                                                         <span className={`badge ${transaction.transaction_type === 'income' ? 'bg-success' : 'bg-danger'}`}>
