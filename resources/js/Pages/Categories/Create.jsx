@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
+import {
+    validateName,
+    validateCode,
+    validateDescription,
+    sanitizeText
+} from '../../utils/inputValidation';
 
 export default function Create({ categoryTypes, parentCategories }) {
+    const [validationErrors, setValidationErrors] = useState({});
+
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         code: '',
@@ -21,22 +29,90 @@ export default function Create({ categoryTypes, parentCategories }) {
         '#06B6D4', '#EAB308', '#DC2626', '#059669', '#7C3AED'
     ];
 
+    // Handle name with validation
+    const handleNameChange = (e) => {
+        const sanitized = sanitizeText(e.target.value, 100);
+        setData('name', sanitized);
+
+        const validation = validateName(sanitized, 2, 100);
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, name: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, name: null });
+        }
+    };
+
+    // Handle code with validation
+    const handleCodeChange = (e) => {
+        const validation = validateCode(e.target.value, 20);
+        setData('code', validation.value || e.target.value);
+
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, code: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, code: null });
+        }
+    };
+
+    // Handle description with validation
+    const handleDescriptionChange = (e) => {
+        const validation = validateDescription(e.target.value, 500, false);
+        setData('description', validation.value);
+
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, description: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, description: null });
+        }
+    };
+
+    // Handle icon with sanitization
+    const handleIconChange = (e) => {
+        const sanitized = sanitizeText(e.target.value, 50);
+        setData('icon', sanitized);
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Validate name
+        const nameValidation = validateName(data.name, 2, 100);
+        if (!nameValidation.isValid) {
+            setValidationErrors({ ...validationErrors, name: nameValidation.error });
+            return;
+        }
+
+        // Validate code
+        const codeValidation = validateCode(data.code, 20);
+        if (!codeValidation.isValid) {
+            setValidationErrors({ ...validationErrors, code: codeValidation.error });
+            return;
+        }
+
+        // Validate description if provided
+        if (data.description) {
+            const descValidation = validateDescription(data.description, 500, false);
+            if (!descValidation.isValid) {
+                setValidationErrors({ ...validationErrors, description: descValidation.error });
+                return;
+            }
+        }
+
         post('/categories');
     };
 
     const generateCode = () => {
         if (data.name) {
             const code = data.name.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 10);
-            setData('code', code);
+            const validation = validateCode(code, 20);
+            setData('code', validation.value || code);
         }
     };
 
     return (
         <BootstrapLayout>
             <Head title="Create Category" />
-            
+
             <div className="row">
                 <div className="col-12">
                     <div className="d-flex justify-content-between align-items-center mb-4">
@@ -82,13 +158,15 @@ export default function Create({ categoryTypes, parentCategories }) {
                                         </label>
                                         <input
                                             type="text"
-                                            className={`form-control ${errors.name ? 'is-invalid' : ''}`}
+                                            className={`form-control ${errors.name || validationErrors.name ? 'is-invalid' : ''}`}
                                             id="name"
                                             value={data.name}
-                                            onChange={(e) => setData('name', e.target.value)}
+                                            onChange={handleNameChange}
                                             onBlur={generateCode}
+                                            maxLength={100}
                                             required
                                         />
+                                        {validationErrors.name && <div className="invalid-feedback">{validationErrors.name}</div>}
                                         {errors.name && <div className="invalid-feedback">{errors.name}</div>}
                                     </div>
                                     <div className="col-md-4">
@@ -98,10 +176,11 @@ export default function Create({ categoryTypes, parentCategories }) {
                                         <div className="input-group">
                                             <input
                                                 type="text"
-                                                className={`form-control ${errors.code ? 'is-invalid' : ''}`}
+                                                className={`form-control ${errors.code || validationErrors.code ? 'is-invalid' : ''}`}
                                                 id="code"
                                                 value={data.code}
-                                                onChange={(e) => setData('code', e.target.value)}
+                                                onChange={handleCodeChange}
+                                                maxLength={20}
                                                 required
                                             />
                                             <button
@@ -113,6 +192,7 @@ export default function Create({ categoryTypes, parentCategories }) {
                                                 <i className="fas fa-magic"></i>
                                             </button>
                                         </div>
+                                        {validationErrors.code && <div className="invalid-feedback">{validationErrors.code}</div>}
                                         {errors.code && <div className="invalid-feedback">{errors.code}</div>}
                                     </div>
                                 </div>
@@ -149,7 +229,8 @@ export default function Create({ categoryTypes, parentCategories }) {
                                                 className={`form-control ${errors.icon ? 'is-invalid' : ''}`}
                                                 id="icon"
                                                 value={data.icon}
-                                                onChange={(e) => setData('icon', e.target.value)}
+                                                onChange={handleIconChange}
+                                                maxLength={50}
                                                 placeholder="fas fa-tag"
                                             />
                                         </div>
@@ -163,14 +244,17 @@ export default function Create({ categoryTypes, parentCategories }) {
                                 <div className="mb-3">
                                     <label htmlFor="description" className="form-label">Description</label>
                                     <textarea
-                                        className={`form-control ${errors.description ? 'is-invalid' : ''}`}
+                                        className={`form-control ${errors.description || validationErrors.description ? 'is-invalid' : ''}`}
                                         id="description"
                                         rows="3"
                                         value={data.description}
-                                        onChange={(e) => setData('description', e.target.value)}
+                                        onChange={handleDescriptionChange}
+                                        maxLength={500}
                                         placeholder="Optional description for this category"
                                     ></textarea>
-                                    {errors.description && <div className="invalid-feedback">{errors.description}</div>}
+                                    <small className="text-muted">{data.description.length}/500</small>
+                                    {validationErrors.description && <div className="invalid-feedback d-block">{validationErrors.description}</div>}
+                                    {errors.description && <div className="invalid-feedback d-block">{errors.description}</div>}
                                 </div>
 
                                 <div className="row mb-3">
@@ -240,7 +324,7 @@ export default function Create({ categoryTypes, parentCategories }) {
 
                                 <div className="row mt-4">
                                     <div className="col-12 text-end">
-                                        <button type="button" className="btn btn-outline-secondary me-2" 
+                                        <button type="button" className="btn btn-outline-secondary me-2"
                                                 onClick={() => window.history.back()}>
                                             <i className="fas fa-times me-2"></i>Cancel
                                         </button>
@@ -267,7 +351,7 @@ export default function Create({ categoryTypes, parentCategories }) {
                         </div>
                         <div className="card-body">
                             <div className="d-flex align-items-center">
-                                <div 
+                                <div
                                     className="me-3 d-flex align-items-center justify-content-center"
                                     style={{
                                         backgroundColor: data.color,
@@ -282,7 +366,7 @@ export default function Create({ categoryTypes, parentCategories }) {
                                 <div>
                                     <h6 className="mb-0">{data.name || 'Category Name'}</h6>
                                     <small className="text-muted">
-                                        Code: {data.code || 'AUTO'} | 
+                                        Code: {data.code || 'AUTO'} |
                                         Status: <span className={`badge ${data.is_active ? 'bg-success' : 'bg-danger'}`}>
                                             {data.is_active ? 'Active' : 'Inactive'}
                                         </span>

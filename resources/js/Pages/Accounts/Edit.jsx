@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
+import { validateCode, validateName, validateIFSC, sanitizeText, handleAmountInput } from '../../utils/inputValidation';
 
 export default function Edit({ account, accountTypes }) {
     const { data, setData, put, processing, errors } = useForm({
@@ -16,8 +17,88 @@ export default function Edit({ account, accountTypes }) {
         is_active: account.is_active ?? true,
     });
 
+    const [validationErrors, setValidationErrors] = useState({});
+
+    // Handle code with validation
+    const handleCodeChange = (e) => {
+        const validation = validateCode(e.target.value, 20);
+        setData('code', validation.value || e.target.value);
+
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, code: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, code: null });
+        }
+    };
+
+    // Handle name with validation
+    const handleNameChange = (e) => {
+        const sanitized = sanitizeText(e.target.value, 100);
+        setData('name', sanitized);
+
+        const validation = validateName(sanitized, 2, 100);
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, name: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, name: null });
+        }
+    };
+
+    // Handle bank name with sanitization
+    const handleBankNameChange = (e) => {
+        const sanitized = sanitizeText(e.target.value, 100);
+        setData('bank_name', sanitized);
+    };
+
+    // Handle account number with sanitization
+    const handleAccountNumberChange = (e) => {
+        const sanitized = sanitizeText(e.target.value, 50);
+        setData('account_number', sanitized);
+    };
+
+    // Handle IFSC with validation
+    const handleIFSCChange = (e) => {
+        const validation = validateIFSC(e.target.value);
+        setData('ifsc_code', validation.value);
+
+        if (!validation.isValid && validation.value.length > 0) {
+            setValidationErrors({ ...validationErrors, ifsc_code: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, ifsc_code: null });
+        }
+    };
+
+    // Prevent wheel events on number inputs
+    const handleWheel = (e) => {
+        e.target.blur();
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Validate code
+        const codeValidation = validateCode(data.code, 20);
+        if (!codeValidation.isValid) {
+            setValidationErrors({ ...validationErrors, code: codeValidation.error });
+            return;
+        }
+
+        // Validate name
+        const nameValidation = validateName(data.name, 2, 100);
+        if (!nameValidation.isValid) {
+            setValidationErrors({ ...validationErrors, name: nameValidation.error });
+            return;
+        }
+
+        // Validate IFSC if provided
+        if (data.ifsc_code) {
+            const ifscValidation = validateIFSC(data.ifsc_code);
+            if (!ifscValidation.isValid) {
+                setValidationErrors({ ...validationErrors, ifsc_code: ifscValidation.error });
+                return;
+            }
+        }
+
         put(`/accounts/${account.id}`);
     };
 
@@ -70,11 +151,13 @@ export default function Edit({ account, accountTypes }) {
                                             <input
                                                 type="text"
                                                 value={data.code}
-                                                onChange={e => setData('code', e.target.value.toUpperCase())}
-                                                className={`form-control ${errors.code ? 'is-invalid' : ''}`}
+                                                onChange={handleCodeChange}
+                                                className={`form-control ${errors.code || validationErrors.code ? 'is-invalid' : ''}`}
                                                 placeholder="e.g., SBI01, CASH"
+                                                maxLength={20}
                                                 required
                                             />
+                                            {validationErrors.code && <div className="invalid-feedback">{validationErrors.code}</div>}
                                             {errors.code && <div className="invalid-feedback">{errors.code}</div>}
                                         </div>
 
@@ -103,11 +186,13 @@ export default function Edit({ account, accountTypes }) {
                                         <input
                                             type="text"
                                             value={data.name}
-                                            onChange={e => setData('name', e.target.value)}
-                                            className={`form-control ${errors.name ? 'is-invalid' : ''}`}
+                                            onChange={handleNameChange}
+                                            className={`form-control ${errors.name || validationErrors.name ? 'is-invalid' : ''}`}
                                             placeholder="e.g., SBI Savings Account, Cash Wallet"
+                                            maxLength={100}
                                             required
                                         />
+                                        {validationErrors.name && <div className="invalid-feedback">{validationErrors.name}</div>}
                                         {errors.name && <div className="invalid-feedback">{errors.name}</div>}
                                     </div>
 
@@ -119,9 +204,10 @@ export default function Edit({ account, accountTypes }) {
                                                 <input
                                                     type="text"
                                                     value={data.bank_name}
-                                                    onChange={e => setData('bank_name', e.target.value)}
+                                                    onChange={handleBankNameChange}
                                                     className={`form-control ${errors.bank_name ? 'is-invalid' : ''}`}
                                                     placeholder="e.g., State Bank of India"
+                                                    maxLength={100}
                                                 />
                                                 {errors.bank_name && <div className="invalid-feedback">{errors.bank_name}</div>}
                                             </div>
@@ -132,9 +218,10 @@ export default function Edit({ account, accountTypes }) {
                                                     <input
                                                         type="text"
                                                         value={data.account_number}
-                                                        onChange={e => setData('account_number', e.target.value)}
+                                                        onChange={handleAccountNumberChange}
                                                         className={`form-control ${errors.account_number ? 'is-invalid' : ''}`}
                                                         placeholder={isCreditCard ? "****-****-****-1234" : "Account number"}
+                                                        maxLength={50}
                                                     />
                                                     {errors.account_number && <div className="invalid-feedback">{errors.account_number}</div>}
                                                 </div>
@@ -144,10 +231,12 @@ export default function Edit({ account, accountTypes }) {
                                                     <input
                                                         type="text"
                                                         value={data.ifsc_code}
-                                                        onChange={e => setData('ifsc_code', e.target.value.toUpperCase())}
-                                                        className={`form-control ${errors.ifsc_code ? 'is-invalid' : ''}`}
+                                                        onChange={handleIFSCChange}
+                                                        className={`form-control ${errors.ifsc_code || validationErrors.ifsc_code ? 'is-invalid' : ''}`}
                                                         placeholder="e.g., SBIN0001234"
+                                                        maxLength={11}
                                                     />
+                                                    {validationErrors.ifsc_code && <div className="invalid-feedback">{validationErrors.ifsc_code}</div>}
                                                     {errors.ifsc_code && <div className="invalid-feedback">{errors.ifsc_code}</div>}
                                                 </div>
                                             </div>
@@ -161,10 +250,11 @@ export default function Edit({ account, accountTypes }) {
                                             <div className="input-group">
                                                 <span className="input-group-text">₹</span>
                                                 <input
-                                                    type="number"
-                                                    step="0.01"
+                                                    type="text"
+                                                    inputMode="decimal"
                                                     value={data.opening_balance}
-                                                    onChange={e => setData('opening_balance', e.target.value)}
+                                                    onChange={(e) => handleAmountInput(e, setData, 'opening_balance')}
+                                                    onWheel={handleWheel}
                                                     className={`form-control ${errors.opening_balance ? 'is-invalid' : ''}`}
                                                     placeholder="0.00"
                                                 />
@@ -177,10 +267,11 @@ export default function Edit({ account, accountTypes }) {
                                             <div className="input-group">
                                                 <span className="input-group-text">₹</span>
                                                 <input
-                                                    type="number"
-                                                    step="0.01"
+                                                    type="text"
+                                                    inputMode="decimal"
                                                     value={data.current_balance}
-                                                    onChange={e => setData('current_balance', e.target.value)}
+                                                    onChange={(e) => handleAmountInput(e, setData, 'current_balance')}
+                                                    onWheel={handleWheel}
                                                     className={`form-control ${errors.current_balance ? 'is-invalid' : ''}`}
                                                     placeholder="0.00"
                                                 />
@@ -196,10 +287,11 @@ export default function Edit({ account, accountTypes }) {
                                             <div className="input-group">
                                                 <span className="input-group-text">₹</span>
                                                 <input
-                                                    type="number"
-                                                    step="0.01"
+                                                    type="text"
+                                                    inputMode="decimal"
                                                     value={data.credit_limit}
-                                                    onChange={e => setData('credit_limit', e.target.value)}
+                                                    onChange={(e) => handleAmountInput(e, setData, 'credit_limit')}
+                                                    onWheel={handleWheel}
                                                     className={`form-control ${errors.credit_limit ? 'is-invalid' : ''}`}
                                                     placeholder="0.00"
                                                 />
