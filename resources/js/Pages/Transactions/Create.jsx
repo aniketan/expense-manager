@@ -158,7 +158,7 @@ export default function Create({ categories, accounts }) {
         }
 
         // Validate date
-        const dateValidation = validateDate(data.transaction_date, false, 10);
+        const dateValidation = validateDate(data.transaction_date, false, 10,data.transaction_time);
         if (!dateValidation.isValid) {
             setValidationErrors({ ...validationErrors, transaction_date: dateValidation.error });
             return;

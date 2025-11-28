@@ -68,7 +68,7 @@ export const validateAmount = (amount, allowNegative = false, maxValue = 9999999
 /**
  * Validate date input
  */
-export const validateDate = (dateString, allowFuture = false, maxPastYears = 10) => {
+export const validateDate = (dateString, allowFuture = false, maxPastYears = 10,time='') => {
     if (!dateString) {
         return { isValid: false, value: null, error: 'Date is required' };
     }
@@ -79,8 +79,6 @@ export const validateDate = (dateString, allowFuture = false, maxPastYears = 10)
     }
 
     const inputDate = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
     if (isNaN(inputDate.getTime())) {
         return { isValid: false, value: null, error: 'Invalid date' };
@@ -94,7 +92,10 @@ export const validateDate = (dateString, allowFuture = false, maxPastYears = 10)
         return { isValid: false, value: null, error: 'Invalid date (impossible date)' };
     }
 
-    if (!allowFuture && inputDate > today) {
+    const today = new Date();
+    const inputDateTime = time ? new Date(`${dateString}T${time}`) : inputDate;
+
+    if (!allowFuture && inputDateTime > today) {
         return { isValid: false, value: null, error: 'Future dates are not allowed' };
     }
 
