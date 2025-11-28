@@ -5,7 +5,6 @@ import {
     validateAmount,
     validateDate,
     validateTime,
-    validateDescription,
     sanitizeText,
     validateTags,
     handleAmountInput,
@@ -43,9 +42,6 @@ export default function Create({ categories, accounts }) {
 
     // Get income category
     const incomeCategory = parentCategories.find(cat => cat.code === 'INCOME');
-
-    // Get account transfer category
-    const accountTransferCategory = parentCategories.find(cat => cat.code === 'ACCOUNTTR');
 
     // Get expense categories (excluding income and account transfer)
     const expenseCategories = parentCategories.filter(cat =>
@@ -340,7 +336,6 @@ export default function Create({ categories, accounts }) {
                                                 {errors.amount || validationErrors.amount}
                                             </div>
                                         )}
-                                        <small className="text-muted">Enter positive amount only</small>
                                     </div>
                                 </div>
 
