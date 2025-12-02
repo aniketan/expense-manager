@@ -56,6 +56,11 @@ export default function Create({ categories, accounts }) {
     const updateSubcategories = (parentCategoryId) => {
         const subs = getSubcategories(parentCategoryId);
         setSubcategories(subs);
+        if (!subs || subs.length === 0) {
+            alert('No subcategories found for the selected category. Please pick a different category.');
+            setSelectedCategory('');
+            setSubcategories([]);
+        }
         setData('category_id', '');
     };
 
