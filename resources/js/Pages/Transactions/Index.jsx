@@ -162,8 +162,6 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                         <div>
                             <h1><i className="fas fa-exchange-alt text-primary me-3"></i>Transaction Management</h1>
                             <small className="text-muted">
-                                <i className="fas fa-info-circle me-1"></i>
-                                Categories:
                                 <span className="badge bg-success me-1">Income</span>
                                 <span className="badge bg-info me-1">₹1-99</span>
                                 <span className="badge bg-warning me-1">₹100-499</span>
