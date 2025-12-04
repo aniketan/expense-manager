@@ -501,6 +501,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                                 href={`/transactions/${transaction.id}`}
                                                                 className="btn btn-outline-primary btn-sm"
                                                                 title="View Details"
+                                                                aria-label="View Details"
                                                             >
                                                                 <i className="fas fa-eye"></i>
                                                             </Link>
@@ -508,6 +509,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                                 href={`/transactions/${transaction.id}/edit`}
                                                                 className="btn btn-outline-warning btn-sm"
                                                                 title="Edit"
+                                                                aria-label="Edit"
                                                             >
                                                                 <i className="fas fa-edit"></i>
                                                             </Link>
@@ -515,6 +517,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                                 type="button"
                                                                 className="btn btn-outline-danger btn-sm"
                                                                 title="Delete"
+                                                                aria-label="Delete"
                                                                 onClick={() => {
                                                                     if (confirm('Are you sure you want to delete this transaction?')) {
                                                                         router.delete(`/transactions/${transaction.id}`);

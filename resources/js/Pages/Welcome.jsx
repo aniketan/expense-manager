@@ -161,6 +161,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                         <i className="fas fa-tags me-2"></i>Manage Categories
                                     </Link>
                                     <button
+                                        type="button"
                                         className="btn btn-outline-info"
                                         onClick={() => showComingSoon('Category Analytics')}
                                     >
@@ -187,12 +188,14 @@ export default function Welcome({ stats, recentTransactions }) {
                                 </ul>
                                 <div className="d-grid gap-2">
                                     <button
+                                        type="button"
                                         className="btn btn-warning text-dark"
                                         onClick={() => showComingSoon('Budget Management')}
                                     >
                                         <i className="fas fa-wallet me-2"></i>Manage Budgets
                                     </button>
                                     <button
+                                        type="button"
                                         className="btn btn-outline-warning"
                                         onClick={() => showComingSoon('Budget Analytics')}
                                     >
@@ -219,12 +222,14 @@ export default function Welcome({ stats, recentTransactions }) {
                                 </ul>
                                 <div className="d-grid gap-2">
                                     <button
+                                        type="button"
                                         className="btn btn-success"
                                         onClick={() => showComingSoon('Recurring Dashboard')}
                                     >
                                         <i className="fas fa-sync me-2"></i>Recurring Dashboard
                                     </button>
                                     <button
+                                        type="button"
                                         className="btn btn-outline-success"
                                         onClick={() => showComingSoon('Create New Rule')}
                                     >
@@ -251,12 +256,14 @@ export default function Welcome({ stats, recentTransactions }) {
                                 </ul>
                                 <div className="d-grid gap-2">
                                     <button
+                                        type="button"
                                         className="btn btn-success"
                                         onClick={() => showComingSoon('Payee Management')}
                                     >
                                         <i className="fas fa-address-book me-2"></i>Manage Payees
                                     </button>
                                     <button
+                                        type="button"
                                         className="btn btn-outline-success"
                                         onClick={() => showComingSoon('Payee History')}
                                     >
@@ -283,6 +290,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                 </ul>
                                 <div className="d-grid gap-2">
                                     <button
+                                        type="button"
                                         className="btn btn-outline-danger"
                                         onClick={() => showComingSoon('View Reports')}
                                     >
@@ -325,6 +333,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                 <h6 className="card-title">Import/Export</h6>
                                 <p className="card-text small">CSV import, bank statement processing</p>
                                 <button
+                                    type="button"
                                     className="btn btn-sm btn-outline-success"
                                     onClick={() => showComingSoon('Import/Export')}
                                 >
@@ -341,6 +350,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                 <h6 className="card-title">AI Integration</h6>
                                 <p className="card-text small">Smart categorization & insights</p>
                                 <button
+                                    type="button"
                                     className="btn btn-sm btn-outline-warning"
                                     onClick={() => showComingSoon('AI Features')}
                                 >
@@ -357,6 +367,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                 <h6 className="card-title">Mobile App</h6>
                                 <p className="card-text small">Responsive mobile experience</p>
                                 <button
+                                    type="button"
                                     className="btn btn-sm btn-outline-info"
                                     onClick={() => showComingSoon('Mobile App')}
                                 >
@@ -469,6 +480,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                     <div className="col-md-2 col-sm-4 col-6 mb-2">
                                         <div className="d-grid">
                                             <button
+                                                type="button"
                                                 className="btn btn-info"
                                                 onClick={() => showComingSoon('Monthly Report')}
                                             >
@@ -479,6 +491,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                     <div className="col-md-2 col-sm-4 col-6 mb-2">
                                         <div className="d-grid">
                                             <button
+                                                type="button"
                                                 className="btn btn-warning"
                                                 onClick={() => showComingSoon('Budget Setup')}
                                             >
@@ -489,6 +502,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                     <div className="col-md-2 col-sm-4 col-6 mb-2">
                                         <div className="d-grid">
                                             <button
+                                                type="button"
                                                 className="btn btn-secondary"
                                                 onClick={() => showComingSoon('Import Data')}
                                             >
@@ -499,6 +513,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                     <div className="col-md-2 col-sm-4 col-6 mb-2">
                                         <div className="d-grid">
                                             <button
+                                                type="button"
                                                 className="btn btn-danger"
                                                 onClick={() => showComingSoon('Export Data')}
                                             >

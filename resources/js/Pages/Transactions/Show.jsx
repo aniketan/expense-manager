@@ -210,6 +210,7 @@ export default function Show({ transaction }) {
                                     </Link>
 
                                     <button
+                                        type="button"
                                         className="btn btn-outline-danger"
                                         onClick={() => {
                                             if (confirm('Are you sure you want to delete this transaction?')) {

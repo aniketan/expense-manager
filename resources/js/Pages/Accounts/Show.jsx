@@ -79,6 +79,7 @@ export default function Show({ account }) {
                                     <i className="fas fa-edit me-2"></i>Edit Account
                                 </Link>
                                 <button
+                                    type="button"
                                     onClick={handleToggleStatus}
                                     className={`btn ${account.is_active ? 'btn-warning' : 'btn-success'}`}
                                 >
@@ -86,6 +87,7 @@ export default function Show({ account }) {
                                     {account.is_active ? 'Disable' : 'Enable'}
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleDelete}
                                     className="btn btn-danger"
                                 >

@@ -358,6 +358,7 @@ export default function Show({ category, transactions, stats }) {
                                     </Link>
 
                                     <button
+                                        type="button"
                                         className="btn btn-outline-danger"
                                         onClick={handleDelete}
                                         disabled={stats.transaction_count > 0}
