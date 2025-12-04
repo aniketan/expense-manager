@@ -23,6 +23,10 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
+# Lock files
+composer.lock
+package-lock.json
+
 # Database files
 *.db
 *.sqlite
