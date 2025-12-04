@@ -4,16 +4,17 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     $transactionController = new \App\Http\Controllers\TransactionController();
-    
+
     // Get dashboard statistics
     $stats = $transactionController->getDashboardStats();
-    
+
     // Get recent transactions
     $recentTransactions = $transactionController->getRecentTransactions(10);
-    
+
     return \Inertia\Inertia::render('Welcome', [
         'stats' => $stats,
         'recentTransactions' => $recentTransactions
@@ -37,3 +38,7 @@ Route::get('api/categories/with-totals', [CategoryController::class, 'getCategor
 Route::resource('transactions', TransactionController::class);
 Route::post('transactions/bulk-destroy', [TransactionController::class, 'bulkDestroy'])->name('transactions.bulk-destroy');
 Route::get('api/transactions', [TransactionController::class, 'getTransactions'])->name('api.transactions');
+
+// Dashboard routes
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+Route::get('/dashboard/analytics', [DashboardController::class, 'analytics'])->name('dashboard.analytics');

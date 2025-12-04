@@ -288,12 +288,9 @@ export default function Welcome({ stats, recentTransactions }) {
                                     >
                                         <i className="fas fa-chart-line me-2"></i>View Reports
                                     </button>
-                                    <button
-                                        className="btn btn-outline-danger"
-                                        onClick={() => showComingSoon('Visualizations')}
-                                    >
+                                    <Link href="/dashboard/analytics" className="btn btn-outline-danger">
                                         <i className="fas fa-chart-bar me-2"></i>Visualizations
-                                    </button>
+                                    </Link>
                                 </div>
                             </div>
                         </div>
