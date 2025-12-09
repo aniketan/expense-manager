@@ -140,8 +140,14 @@ export default function Index({ transactions = {}, categories = [], accounts = [
             return;
         }
         if (confirm(`Are you sure you want to delete ${selectedTransactions.length} transaction(s)?`)) {
-            // Implementation for bulk delete
-            console.log('Deleting transactions:', selectedTransactions);
+            router.post('/transactions/bulk-destroy', {
+                ids: selectedTransactions
+            }, {
+                onSuccess: () => {
+                    setSelectedTransactions([]);
+                    setSelectAll(false);
+                }
+            });
         }
     };
 
@@ -156,8 +162,6 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                         <div>
                             <h1><i className="fas fa-exchange-alt text-primary me-3"></i>Transaction Management</h1>
                             <small className="text-muted">
-                                <i className="fas fa-info-circle me-1"></i>
-                                Categories:
                                 <span className="badge bg-success me-1">Income</span>
                                 <span className="badge bg-info me-1">₹1-99</span>
                                 <span className="badge bg-warning me-1">₹100-499</span>
@@ -473,7 +477,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                             onChange={() => handleTransactionSelect(transaction.id)}
                                                         />
                                                     </td>
-                                                    <td>{transaction.transaction_date}</td>
+                                                    <td>{new Date(transaction.transaction_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
                                                     <td>{transaction.description}</td>
                                                     <td>
                                                         <span className={`badge ${transaction.transaction_type === 'income' ? 'bg-success' : 'bg-danger'}`}>
@@ -497,6 +501,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                                 href={`/transactions/${transaction.id}`}
                                                                 className="btn btn-outline-primary btn-sm"
                                                                 title="View Details"
+                                                                aria-label="View Details"
                                                             >
                                                                 <i className="fas fa-eye"></i>
                                                             </Link>
@@ -504,6 +509,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                                 href={`/transactions/${transaction.id}/edit`}
                                                                 className="btn btn-outline-warning btn-sm"
                                                                 title="Edit"
+                                                                aria-label="Edit"
                                                             >
                                                                 <i className="fas fa-edit"></i>
                                                             </Link>
@@ -511,6 +517,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                                 type="button"
                                                                 className="btn btn-outline-danger btn-sm"
                                                                 title="Delete"
+                                                                aria-label="Delete"
                                                                 onClick={() => {
                                                                     if (confirm('Are you sure you want to delete this transaction?')) {
                                                                         router.delete(`/transactions/${transaction.id}`);

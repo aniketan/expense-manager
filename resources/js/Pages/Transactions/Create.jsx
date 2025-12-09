@@ -1,17 +1,29 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
+import {
+    validateAmount,
+    validateDate,
+    validateTime,
+    sanitizeText,
+    validateTags,
+    handleAmountInput,
+    getMaxDate,
+    getMinDate
+} from '../../utils/inputValidation';
 
 export default function Create({ categories, accounts }) {
     const [selectedCategory, setSelectedCategory] = useState('');
     const [subcategories, setSubcategories] = useState([]);
-    const [transactionType, setTransactionType] = useState('expense'); // Default to expense
+    const [transactionType, setTransactionType] = useState('expense');
+    const [validationErrors, setValidationErrors] = useState({});
 
     const { data, setData, post, processing, errors } = useForm({
         transaction_date: new Date().toISOString().split('T')[0],
         transaction_time: new Date().toTimeString().slice(0, 5),
         amount: '',
         account_id: '',
+        transfer_to_account_id: '',
         payment_method: '',
         description: '',
         category: '',
@@ -31,9 +43,6 @@ export default function Create({ categories, accounts }) {
     // Get income category
     const incomeCategory = parentCategories.find(cat => cat.code === 'INCOME');
 
-    // Get account transfer category
-    const accountTransferCategory = parentCategories.find(cat => cat.code === 'ACCOUNTTR');
-
     // Get expense categories (excluding income and account transfer)
     const expenseCategories = parentCategories.filter(cat =>
         cat.code !== 'INCOME' && cat.code !== 'ACCOUNTTR'
@@ -47,6 +56,11 @@ export default function Create({ categories, accounts }) {
     const updateSubcategories = (parentCategoryId) => {
         const subs = getSubcategories(parentCategoryId);
         setSubcategories(subs);
+        if (!subs || subs.length === 0) {
+            alert('No subcategories found for the selected category. Please pick a different category.');
+            setSelectedCategory('');
+            setSubcategories([]);
+        }
         setData('category_id', '');
     };
 
@@ -70,8 +84,114 @@ export default function Create({ categories, accounts }) {
         }
     };
 
+    // Prevent number input scroll behavior
+    const handleWheel = (e) => {
+        e.target.blur();
+    };
+
+    // Handle amount with validation
+    const handleAmountChange = (e) => {
+        handleAmountInput(e, (value) => {
+            setData('amount', value);
+            if (validationErrors.amount) {
+                setValidationErrors({ ...validationErrors, amount: null });
+            }
+        });
+    };
+
+    // Handle date with validation
+    const handleDateChange = (e) => {
+        const value = e.target.value;
+        setData('transaction_date', value);
+
+        const validation = validateDate(value, false, 10);
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, transaction_date: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, transaction_date: null });
+        }
+    };
+
+    // Handle description with sanitization
+    const handleDescriptionChange = (e) => {
+        const sanitized = sanitizeText(e.target.value, 1000);
+        setData('description', sanitized);
+    };
+
+    // Handle tags with validation
+    const handleTagsChange = (e) => {
+        const validation = validateTags(e.target.value, 10, 30);
+        setData('tags', validation.value);
+
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, tags: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, tags: null });
+        }
+    };
+
+    // Handle notes with sanitization
+    const handleNotesChange = (e) => {
+        const sanitized = sanitizeText(e.target.value, 2000);
+        setData('notes', sanitized);
+    };
+
+    // Handle payee/payer with sanitization
+    const handlePayeePayerChange = (e) => {
+        const sanitized = sanitizeText(e.target.value, 100);
+        setData('payee_payer', sanitized);
+    };
+
+    // Handle reference with sanitization
+    const handleReferenceChange = (e) => {
+        const sanitized = sanitizeText(e.target.value, 50);
+        setData('reference_number', sanitized);
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Validate amount
+        const amountValidation = validateAmount(data.amount, false, 999999999.99);
+        if (!amountValidation.isValid) {
+            setValidationErrors({ ...validationErrors, amount: amountValidation.error });
+            return;
+        }
+
+        // Validate date
+        const dateValidation = validateDate(data.transaction_date, false, 10,data.transaction_time);
+        if (!dateValidation.isValid) {
+            setValidationErrors({ ...validationErrors, transaction_date: dateValidation.error });
+            return;
+        }
+
+        // Validate time if provided
+        if (data.transaction_time) {
+            const timeValidation = validateTime(data.transaction_time);
+            if (!timeValidation.isValid) {
+                setValidationErrors({ ...validationErrors, transaction_time: timeValidation.error });
+                return;
+            }
+        }
+
+        // Validate category for non-transfer
+        if (transactionType !== 'transfer' && !data.category_id) {
+            alert('Please select a category');
+            return;
+        }
+
+        // Validate transfer accounts
+        if (transactionType === 'transfer') {
+            if (!data.transfer_to_account_id) {
+                alert('Please select destination account');
+                return;
+            }
+            if (data.account_id === data.transfer_to_account_id) {
+                alert('Source and destination accounts must be different');
+                return;
+            }
+        }
+
         post('/transactions');
     };
 
@@ -103,114 +223,7 @@ export default function Create({ categories, accounts }) {
                         </div>
                         <div className="card-body">
                             <form onSubmit={handleSubmit}>
-                                <div className="row mb-4">
-                                    <div className="col-12">
-                                        <h6 className="text-primary">
-                                            <i className="fas fa-info-circle me-2"></i>Basic Information
-                                        </h6>
-                                        <hr />
-                                    </div>
-                                </div>
-
-                                <div className="row mb-3">
-                                    <div className="col-md-4">
-                                        <label htmlFor="transaction_date" className="form-label">
-                                            Date <span className="text-danger">*</span>
-                                        </label>
-                                        <input
-                                            type="date"
-                                            className={`form-control ${errors.transaction_date ? 'is-invalid' : ''}`}
-                                            id="transaction_date"
-                                            value={data.transaction_date}
-                                            onChange={e => setData('transaction_date', e.target.value)}
-                                            required
-                                        />
-                                        {errors.transaction_date && <div className="invalid-feedback">{errors.transaction_date}</div>}
-                                    </div>
-                                    <div className="col-md-4">
-                                        <label htmlFor="transaction_time" className="form-label">Time</label>
-                                        <input
-                                            type="time"
-                                            className={`form-control ${errors.transaction_time ? 'is-invalid' : ''}`}
-                                            id="transaction_time"
-                                            value={data.transaction_time}
-                                            onChange={e => setData('transaction_time', e.target.value)}
-                                        />
-                                        {errors.transaction_time && <div className="invalid-feedback d-block">{errors.transaction_time}</div>}
-                                    </div>
-                                    <div className="col-md-4">
-                                        <label htmlFor="amount" className="form-label">
-                                            Amount (₹) <span className="text-danger">*</span>
-                                        </label>
-                                        <input
-                                            type="number"
-                                            className={`form-control ${errors.amount ? 'is-invalid' : ''}`}
-                                            id="amount"
-                                            value={data.amount}
-                                            onChange={e => setData('amount', e.target.value)}
-                                            step="0.01"
-                                            min="0"
-                                            required
-                                        />
-                                        {errors.amount && <div className="invalid-feedback">{errors.amount}</div>}
-                                    </div>
-                                </div>
-
-                                <div className="row mb-3">
-                                    <div className="col-md-6">
-                                        <label htmlFor="account" className="form-label">
-                                            Account <span className="text-danger">*</span>
-                                        </label>
-                                        <select
-                                            className={`form-select ${errors.account_id ? 'is-invalid' : ''}`}
-                                            id="account"
-                                            value={data.account_id}
-                                            onChange={e => setData('account_id', e.target.value)}
-                                            required
-                                        >
-                                            <option value="">Select Account</option>
-                                            {accounts.map(account => (
-                                                <option key={account.id} value={account.id}>
-                                                    {account.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {errors.account_id && <div className="invalid-feedback">{errors.account_id}</div>}
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label htmlFor="payment_method" className="form-label">Payment Method</label>
-                                        <select
-                                            className={`form-select ${errors.payment_method ? 'is-invalid' : ''}`}
-                                            id="payment_method"
-                                            value={data.payment_method}
-                                            onChange={e => setData('payment_method', e.target.value)}
-                                        >
-                                            <option value="">Select Method</option>
-                                            <option value="UPI">UPI</option>
-                                            <option value="Bank Transfer">Bank Transfer</option>
-                                            <option value="Credit Card">Credit Card</option>
-                                            <option value="Debit Card">Debit Card</option>
-                                            <option value="Cheque">Cheque</option>
-                                        </select>
-                                        {errors.payment_method && <div className="invalid-feedback">{errors.payment_method}</div>}
-                                    </div>
-                                </div>
-
-                                <div className="mb-3">
-                                    <label htmlFor="description" className="form-label">
-                                        Description
-                                    </label>
-                                    <textarea
-                                        className={`form-control ${errors.description ? 'is-invalid' : ''}`}
-                                        id="description"
-                                        rows="3"
-                                        value={data.description}
-                                        onChange={e => setData('description', e.target.value)}
-                                        placeholder="Optional: Add transaction details"
-                                    />
-                                    {errors.description && <div className="invalid-feedback">{errors.description}</div>}
-                                </div>
-
+                                {/* Transaction Type - Moved to top */}
                                 <div className="row mb-4">
                                     <div className="col-12">
                                         <h6 className="text-primary">
@@ -261,6 +274,157 @@ export default function Create({ categories, accounts }) {
                                             <i className="fas fa-exchange-alt me-2"></i>Account Transfer
                                         </label>
                                     </div>
+                                </div>
+
+                                <div className="row mb-4">
+                                    <div className="col-12">
+                                        <h6 className="text-primary">
+                                            <i className="fas fa-info-circle me-2"></i>Basic Information
+                                        </h6>
+                                        <hr />
+                                    </div>
+                                </div>
+
+                                <div className="row mb-3">
+                                    <div className="col-md-4">
+                                        <label htmlFor="transaction_date" className="form-label">
+                                            Date <span className="text-danger">*</span>
+                                        </label>
+                                        <input
+                                            type="date"
+                                            className={`form-control ${errors.transaction_date || validationErrors.transaction_date ? 'is-invalid' : ''}`}
+                                            id="transaction_date"
+                                            value={data.transaction_date}
+                                            onChange={handleDateChange}
+                                            max={getMaxDate()}
+                                            min={getMinDate(10)}
+                                            required
+                                        />
+                                        {(errors.transaction_date || validationErrors.transaction_date) && (
+                                            <div className="invalid-feedback">
+                                                {errors.transaction_date || validationErrors.transaction_date}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="col-md-4">
+                                        <label htmlFor="transaction_time" className="form-label">Time</label>
+                                        <input
+                                            type="time"
+                                            className={`form-control ${errors.transaction_time || validationErrors.transaction_time ? 'is-invalid' : ''}`}
+                                            id="transaction_time"
+                                            value={data.transaction_time}
+                                            onChange={e => setData('transaction_time', e.target.value)}
+                                        />
+                                        {(errors.transaction_time || validationErrors.transaction_time) && (
+                                            <div className="invalid-feedback d-block">
+                                                {errors.transaction_time || validationErrors.transaction_time}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="col-md-4">
+                                        <label htmlFor="amount" className="form-label">
+                                            Amount (₹) <span className="text-danger">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            inputMode="decimal"
+                                            className={`form-control ${errors.amount || validationErrors.amount ? 'is-invalid' : ''}`}
+                                            id="amount"
+                                            value={data.amount}
+                                            onChange={handleAmountChange}
+                                            onWheel={handleWheel}
+                                            placeholder="0.00"
+                                            required
+                                        />
+                                        {(errors.amount || validationErrors.amount) && (
+                                            <div className="invalid-feedback">
+                                                {errors.amount || validationErrors.amount}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="row mb-3">
+                                    <div className="col-md-6">
+                                        <label htmlFor="account" className="form-label">
+                                            {transactionType === 'transfer' ? 'From Account' : 'Account'} <span className="text-danger">*</span>
+                                        </label>
+                                        <select
+                                            className={`form-select ${errors.account_id ? 'is-invalid' : ''}`}
+                                            id="account"
+                                            value={data.account_id}
+                                            onChange={e => setData('account_id', e.target.value)}
+                                            required
+                                        >
+                                            <option value="">Select Account</option>
+                                            {accounts.map(account => (
+                                                <option key={account.id} value={account.id}>
+                                                    {account.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.account_id && <div className="invalid-feedback">{errors.account_id}</div>}
+                                    </div>
+                                    {transactionType === 'transfer' ? (
+                                        <div className="col-md-6">
+                                            <label htmlFor="transfer_to_account" className="form-label">
+                                                To Account <span className="text-danger">*</span>
+                                            </label>
+                                            <select
+                                                className={`form-select ${errors.transfer_to_account_id ? 'is-invalid' : ''}`}
+                                                id="transfer_to_account"
+                                                value={data.transfer_to_account_id}
+                                                onChange={e => setData('transfer_to_account_id', e.target.value)}
+                                                required
+                                            >
+                                                <option value="">Select Account</option>
+                                                {accounts.filter(acc => acc.id != data.account_id).map(account => (
+                                                    <option key={account.id} value={account.id}>
+                                                        {account.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {errors.transfer_to_account_id && <div className="invalid-feedback">{errors.transfer_to_account_id}</div>}
+                                        </div>
+                                    ) : (
+                                        <div className="col-md-6">
+                                            <label htmlFor="payment_method" className="form-label">
+                                                Payment Method <span className="text-danger">*</span>
+                                            </label>
+                                            <select
+                                                className={`form-select ${errors.payment_method ? 'is-invalid' : ''}`}
+                                                id="payment_method"
+                                                value={data.payment_method}
+                                                onChange={e => setData('payment_method', e.target.value)}
+                                                required
+                                            >
+                                                <option value="">Select Method</option>
+                                                <option value="UPI">UPI</option>
+                                                <option value="Bank Transfer">Bank Transfer</option>
+                                                <option value="Credit Card">Credit Card</option>
+                                                <option value="Debit Card">Debit Card</option>
+                                                <option value="Cheque">Cheque</option>
+                                            </select>
+                                            {errors.payment_method && <div className="invalid-feedback">{errors.payment_method}</div>}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mb-3">
+                                    <label htmlFor="description" className="form-label">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        className={`form-control ${errors.description ? 'is-invalid' : ''}`}
+                                        id="description"
+                                        rows="3"
+                                        value={data.description}
+                                        onChange={handleDescriptionChange}
+                                        placeholder="Optional: Add transaction details"
+                                        maxLength="1000"
+                                    />
+                                    {errors.description && <div className="invalid-feedback">{errors.description}</div>}
+                                    <small className="text-muted">{data.description.length}/1000 characters</small>
                                 </div>
 
                                 {/* Category Section - Conditional based on transaction type */}
@@ -350,8 +514,9 @@ export default function Create({ categories, accounts }) {
                                         className="form-control"
                                         id="payee_payer"
                                         value={data.payee_payer}
-                                        onChange={e => setData('payee_payer', e.target.value)}
+                                        onChange={handlePayeePayerChange}
                                         placeholder="Who did you pay or who paid you?"
+                                        maxLength="100"
                                     />
                                 </div>
 
@@ -372,21 +537,24 @@ export default function Create({ categories, accounts }) {
                                             className="form-control"
                                             id="reference_number"
                                             value={data.reference_number}
-                                            onChange={e => setData('reference_number', e.target.value)}
+                                            onChange={handleReferenceChange}
                                             placeholder="Receipt number, transaction ID, etc."
+                                            maxLength="50"
                                         />
                                     </div>
                                     <div className="col-md-6">
                                         <label htmlFor="tax" className="form-label">Tax Amount (₹)</label>
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="decimal"
                                             className="form-control"
                                             id="tax"
                                             value={data.tax}
-                                            onChange={e => setData('tax', e.target.value)}
-                                            step="0.01"
-                                            min="0"
+                                            onChange={(e) => handleAmountInput(e, (value) => setData('tax', value))}
+                                            onWheel={handleWheel}
+                                            placeholder="0.00"
                                         />
+                                        <small className="text-muted">Optional tax amount</small>
                                     </div>
                                 </div>
 
@@ -408,13 +576,16 @@ export default function Create({ categories, accounts }) {
                                         <label htmlFor="tags" className="form-label">Tags</label>
                                         <input
                                             type="text"
-                                            className="form-control"
+                                            className={`form-control ${validationErrors.tags ? 'is-invalid' : ''}`}
                                             id="tags"
                                             value={data.tags}
-                                            onChange={e => setData('tags', e.target.value)}
+                                            onChange={handleTagsChange}
                                             placeholder="comma, separated, tags"
                                         />
-                                        <div className="form-text">Use commas to separate multiple tags</div>
+                                        {validationErrors.tags && (
+                                            <div className="invalid-feedback">{validationErrors.tags}</div>
+                                        )}
+                                        <div className="form-text">Use commas to separate multiple tags (max 10)</div>
                                     </div>
                                 </div>
 
@@ -425,9 +596,11 @@ export default function Create({ categories, accounts }) {
                                         id="notes"
                                         rows="3"
                                         value={data.notes}
-                                        onChange={e => setData('notes', e.target.value)}
+                                        onChange={handleNotesChange}
                                         placeholder="Additional notes about this transaction"
+                                        maxLength="2000"
                                     />
+                                    <small className="text-muted">{data.notes.length}/2000 characters</small>
                                 </div>
 
                                 <div className="row mt-4">

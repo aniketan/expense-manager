@@ -1,17 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
+import {
+    validateAmount,
+    validateDate,
+    validateTime,
+    validateDescription,
+    validateTags,
+    sanitizeText,
+    handleAmountInput,
+    getMaxDate,
+    getMinDate
+} from '../../utils/inputValidation';
 
 export default function Edit({ transaction, categories, accounts }) {
     const [selectedCategory, setSelectedCategory] = useState('');
     const [subcategories, setSubcategories] = useState([]);
     const [transactionType, setTransactionType] = useState(transaction.transaction_type || 'expense');
+    const [validationErrors, setValidationErrors] = useState({});
 
     const { data, setData, put, processing, errors } = useForm({
         expensed_date: transaction.transaction_date || '',
         transaction_time: transaction.transaction_time || '',
         amount: transaction.amount || '',
         account_id: transaction.account_id || '',
+        transfer_to_account_id: '',
         payment_method: transaction.payment_method || '',
         description: transaction.description || '',
         category_id: transaction.category_id || '',
@@ -103,8 +116,138 @@ export default function Edit({ transaction, categories, accounts }) {
         }
     };
 
+    // Prevent number input scroll behavior
+    const handleWheel = (e) => {
+        e.target.blur();
+    };
+
+    // Handle amount with validation
+    const handleAmountChange = (e) => {
+        handleAmountInput(e, setData, 'amount');
+        const validation = validateAmount(e.target.value, false);
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, amount: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, amount: null });
+        }
+    };
+
+    // Handle date with validation
+    const handleDateChange = (e) => {
+        setData('expensed_date', e.target.value);
+        const validation = validateDate(e.target.value);
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, expensed_date: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, expensed_date: null });
+        }
+    };
+
+    // Handle time with validation
+    const handleTimeChange = (e) => {
+        setData('transaction_time', e.target.value);
+        const validation = validateTime(e.target.value);
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, transaction_time: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, transaction_time: null });
+        }
+    };
+
+    // Handle description with validation
+    const handleDescriptionChange = (e) => {
+        const validation = validateDescription(e.target.value, 1000, true);
+        setData('description', validation.value);
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, description: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, description: null });
+        }
+    };
+
+    // Handle tags with validation
+    const handleTagsChange = (e) => {
+        const validation = validateTags(e.target.value, 10);
+        setData('tags', validation.value);
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, tags: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, tags: null });
+        }
+    };
+
+    // Handle notes with validation
+    const handleNotesChange = (e) => {
+        const validation = validateDescription(e.target.value, 2000, false);
+        setData('notes', validation.value);
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, notes: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, notes: null });
+        }
+    };
+
+    // Handle payee/payer with sanitization
+    const handlePayeePayerChange = (e) => {
+        const sanitized = sanitizeText(e.target.value, 255);
+        setData('payee_payer', sanitized);
+    };
+
+    // Handle reference number with sanitization
+    const handleReferenceChange = (e) => {
+        const sanitized = sanitizeText(e.target.value, 100);
+        setData('reference_number', sanitized);
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Validate amount
+        const amountValidation = validateAmount(data.amount, false);
+        if (!amountValidation.isValid) {
+            setValidationErrors({ ...validationErrors, amount: amountValidation.error });
+            return;
+        }
+
+        // Validate date
+        const dateValidation = validateDate(data.expensed_date);
+        if (!dateValidation.isValid) {
+            setValidationErrors({ ...validationErrors, expensed_date: dateValidation.error });
+            return;
+        }
+
+        // Validate time
+        const timeValidation = validateTime(data.transaction_time);
+        if (!timeValidation.isValid) {
+            setValidationErrors({ ...validationErrors, transaction_time: timeValidation.error });
+            return;
+        }
+
+        // Validate description
+        const descValidation = validateDescription(data.description, 1000, true);
+        if (!descValidation.isValid) {
+            setValidationErrors({ ...validationErrors, description: descValidation.error });
+            return;
+        }
+
+        // Validate tags if provided
+        if (data.tags) {
+            const tagsValidation = validateTags(data.tags, 10);
+            if (!tagsValidation.isValid) {
+                setValidationErrors({ ...validationErrors, tags: tagsValidation.error });
+                return;
+            }
+        }
+
+        // Validate notes if provided
+        if (data.notes) {
+            const notesValidation = validateDescription(data.notes, 2000, false);
+            if (!notesValidation.isValid) {
+                setValidationErrors({ ...validationErrors, notes: notesValidation.error });
+                return;
+            }
+        }
+
         put(`/transactions/${transaction.id}`);
     };
 
@@ -141,115 +284,7 @@ export default function Edit({ transaction, categories, accounts }) {
                         </div>
                         <div className="card-body">
                             <form onSubmit={handleSubmit}>
-                                <div className="row mb-4">
-                                    <div className="col-12">
-                                        <h6 className="text-primary">
-                                            <i className="fas fa-info-circle me-2"></i>Basic Information
-                                        </h6>
-                                        <hr />
-                                    </div>
-                                </div>
-
-                                <div className="row mb-3">
-                                    <div className="col-md-4">
-                                        <label htmlFor="expensed_date" className="form-label">
-                                            Date <span className="text-danger">*</span>
-                                        </label>
-                                        <input
-                                            type="date"
-                                            className={`form-control ${errors.expensed_date ? 'is-invalid' : ''}`}
-                                            id="expensed_date"
-                                            value={data.expensed_date}
-                                            onChange={e => setData('expensed_date', e.target.value)}
-                                            required
-                                        />
-                                        {errors.expensed_date && <div className="invalid-feedback">{errors.expensed_date}</div>}
-                                    </div>
-                                    <div className="col-md-4">
-                                        <label htmlFor="transaction_time" className="form-label">Time</label>
-                                        <input
-                                            type="time"
-                                            className={`form-control ${errors.transaction_time ? 'is-invalid' : ''}`}
-                                            id="transaction_time"
-                                            value={data.transaction_time}
-                                            onChange={e => setData('transaction_time', e.target.value)}
-                                        />
-                                        {errors.transaction_time && <div className="invalid-feedback">{errors.transaction_time}</div>}
-                                    </div>
-                                    <div className="col-md-4">
-                                        <label htmlFor="amount" className="form-label">
-                                            Amount (₹) <span className="text-danger">*</span>
-                                        </label>
-                                        <input
-                                            type="number"
-                                            className={`form-control ${errors.amount ? 'is-invalid' : ''}`}
-                                            id="amount"
-                                            value={data.amount}
-                                            onChange={e => setData('amount', e.target.value)}
-                                            step="0.01"
-                                            min="0"
-                                            required
-                                        />
-                                        {errors.amount && <div className="invalid-feedback">{errors.amount}</div>}
-                                    </div>
-                                </div>
-
-                                <div className="row mb-3">
-                                    <div className="col-md-6">
-                                        <label htmlFor="account" className="form-label">
-                                            Account <span className="text-danger">*</span>
-                                        </label>
-                                        <select
-                                            className={`form-select ${errors.account_id ? 'is-invalid' : ''}`}
-                                            id="account"
-                                            value={data.account_id}
-                                            onChange={e => setData('account_id', e.target.value)}
-                                            required
-                                        >
-                                            <option value="">Select Account</option>
-                                            {accounts.map(account => (
-                                                <option key={account.id} value={account.id}>
-                                                    {account.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {errors.account_id && <div className="invalid-feedback">{errors.account_id}</div>}
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label htmlFor="payment_method" className="form-label">Payment Method</label>
-                                        <select
-                                            className={`form-select ${errors.payment_method ? 'is-invalid' : ''}`}
-                                            id="payment_method"
-                                            value={data.payment_method}
-                                            onChange={e => setData('payment_method', e.target.value)}
-                                        >
-                                            <option value="">Select Method</option>
-                                            <option value="UPI">UPI</option>
-                                            <option value="Bank Transfer">Bank Transfer</option>
-                                            <option value="Credit Card">Credit Card</option>
-                                            <option value="Debit Card">Debit Card</option>
-                                            <option value="Cash">Cash</option>
-                                            <option value="Cheque">Cheque</option>
-                                        </select>
-                                        {errors.payment_method && <div className="invalid-feedback">{errors.payment_method}</div>}
-                                    </div>
-                                </div>
-
-                                <div className="mb-3">
-                                    <label htmlFor="description" className="form-label">
-                                        Description
-                                    </label>
-                                    <textarea
-                                        className={`form-control ${errors.description ? 'is-invalid' : ''}`}
-                                        id="description"
-                                        rows="3"
-                                        value={data.description}
-                                        onChange={e => setData('description', e.target.value)}
-                                        placeholder="Optional: Add transaction details"
-                                    />
-                                    {errors.description && <div className="invalid-feedback">{errors.description}</div>}
-                                </div>
-
+                                {/* Transaction Type - Moved to top */}
                                 <div className="row mb-4">
                                     <div className="col-12">
                                         <h6 className="text-primary">
@@ -300,6 +335,149 @@ export default function Edit({ transaction, categories, accounts }) {
                                             <i className="fas fa-exchange-alt me-2"></i>Account Transfer
                                         </label>
                                     </div>
+                                </div>
+
+                                <div className="row mb-4">
+                                    <div className="col-12">
+                                        <h6 className="text-primary">
+                                            <i className="fas fa-info-circle me-2"></i>Basic Information
+                                        </h6>
+                                        <hr />
+                                    </div>
+                                </div>
+
+                                <div className="row mb-3">
+                                    <div className="col-md-4">
+                                        <label htmlFor="expensed_date" className="form-label">
+                                            Date <span className="text-danger">*</span>
+                                        </label>
+                                        <input
+                                            type="date"
+                                            className={`form-control ${errors.expensed_date || validationErrors.expensed_date ? 'is-invalid' : ''}`}
+                                            id="expensed_date"
+                                            value={data.expensed_date}
+                                            onChange={handleDateChange}
+                                            max={getMaxDate()}
+                                            min={getMinDate()}
+                                            required
+                                        />
+                                        {validationErrors.expensed_date && <div className="invalid-feedback">{validationErrors.expensed_date}</div>}
+                                        {errors.expensed_date && <div className="invalid-feedback">{errors.expensed_date}</div>}
+                                    </div>
+                                    <div className="col-md-4">
+                                        <label htmlFor="transaction_time" className="form-label">Time</label>
+                                        <input
+                                            type="time"
+                                            className={`form-control ${errors.transaction_time || validationErrors.transaction_time ? 'is-invalid' : ''}`}
+                                            id="transaction_time"
+                                            value={data.transaction_time}
+                                            onChange={handleTimeChange}
+                                        />
+                                        {validationErrors.transaction_time && <div className="invalid-feedback">{validationErrors.transaction_time}</div>}
+                                        {errors.transaction_time && <div className="invalid-feedback">{errors.transaction_time}</div>}
+                                    </div>
+                                    <div className="col-md-4">
+                                        <label htmlFor="amount" className="form-label">
+                                            Amount (₹) <span className="text-danger">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            inputMode="decimal"
+                                            className={`form-control ${errors.amount || validationErrors.amount ? 'is-invalid' : ''}`}
+                                            id="amount"
+                                            value={data.amount}
+                                            onChange={handleAmountChange}
+                                            onWheel={handleWheel}
+                                            required
+                                        />
+                                        {validationErrors.amount && <div className="invalid-feedback">{validationErrors.amount}</div>}
+                                        {errors.amount && <div className="invalid-feedback">{errors.amount}</div>}
+                                    </div>
+                                </div>
+
+                                <div className="row mb-3">
+                                    <div className="col-md-6">
+                                        <label htmlFor="account" className="form-label">
+                                            {transactionType === 'transfer' ? 'From Account' : 'Account'} <span className="text-danger">*</span>
+                                        </label>
+                                        <select
+                                            className={`form-select ${errors.account_id ? 'is-invalid' : ''}`}
+                                            id="account"
+                                            value={data.account_id}
+                                            onChange={e => setData('account_id', e.target.value)}
+                                            required
+                                        >
+                                            <option value="">Select Account</option>
+                                            {accounts.map(account => (
+                                                <option key={account.id} value={account.id}>
+                                                    {account.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.account_id && <div className="invalid-feedback">{errors.account_id}</div>}
+                                    </div>
+                                    {transactionType === 'transfer' ? (
+                                        <div className="col-md-6">
+                                            <label htmlFor="transfer_to_account" className="form-label">
+                                                To Account <span className="text-danger">*</span>
+                                            </label>
+                                            <select
+                                                className={`form-select ${errors.transfer_to_account_id ? 'is-invalid' : ''}`}
+                                                id="transfer_to_account"
+                                                value={data.transfer_to_account_id}
+                                                onChange={e => setData('transfer_to_account_id', e.target.value)}
+                                                required
+                                            >
+                                                <option value="">Select Account</option>
+                                                {accounts.filter(acc => acc.id != data.account_id).map(account => (
+                                                    <option key={account.id} value={account.id}>
+                                                        {account.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {errors.transfer_to_account_id && <div className="invalid-feedback">{errors.transfer_to_account_id}</div>}
+                                        </div>
+                                    ) : (
+                                        <div className="col-md-6">
+                                            <label htmlFor="payment_method" className="form-label">
+                                                Payment Method <span className="text-danger">*</span>
+                                            </label>
+                                            <select
+                                                className={`form-select ${errors.payment_method ? 'is-invalid' : ''}`}
+                                                id="payment_method"
+                                                value={data.payment_method}
+                                                onChange={e => setData('payment_method', e.target.value)}
+                                                required
+                                            >
+                                                <option value="">Select Method</option>
+                                                <option value="UPI">UPI</option>
+                                                <option value="Bank Transfer">Bank Transfer</option>
+                                                <option value="Credit Card">Credit Card</option>
+                                                <option value="Debit Card">Debit Card</option>
+                                                <option value="Cash">Cash</option>
+                                                <option value="Cheque">Cheque</option>
+                                            </select>
+                                            {errors.payment_method && <div className="invalid-feedback">{errors.payment_method}</div>}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mb-3">
+                                    <label htmlFor="description" className="form-label">
+                                        Description
+                                    </label>
+                                    <textarea
+                                        className={`form-control ${errors.description || validationErrors.description ? 'is-invalid' : ''}`}
+                                        id="description"
+                                        rows="3"
+                                        value={data.description}
+                                        onChange={handleDescriptionChange}
+                                        maxLength={1000}
+                                        placeholder="Optional: Add transaction details"
+                                    />
+                                    <small className="text-muted">{data.description.length}/1000</small>
+                                    {validationErrors.description && <div className="invalid-feedback d-block">{validationErrors.description}</div>}
+                                    {errors.description && <div className="invalid-feedback d-block">{errors.description}</div>}
                                 </div>
 
                                 {/* Category Section - Conditional based on transaction type */}
@@ -392,7 +570,8 @@ export default function Edit({ transaction, categories, accounts }) {
                                         className={`form-control ${errors.payee_payer ? 'is-invalid' : ''}`}
                                         id="payee_payer"
                                         value={data.payee_payer}
-                                        onChange={e => setData('payee_payer', e.target.value)}
+                                        onChange={handlePayeePayerChange}
+                                        maxLength={255}
                                         placeholder="Who did you pay or who paid you?"
                                     />
                                     {errors.payee_payer && <div className="invalid-feedback">{errors.payee_payer}</div>}
@@ -415,7 +594,8 @@ export default function Edit({ transaction, categories, accounts }) {
                                             className={`form-control ${errors.reference_number ? 'is-invalid' : ''}`}
                                             id="reference_number"
                                             value={data.reference_number}
-                                            onChange={e => setData('reference_number', e.target.value)}
+                                            onChange={handleReferenceChange}
+                                            maxLength={100}
                                             placeholder="Receipt number, transaction ID, etc."
                                         />
                                         {errors.reference_number && <div className="invalid-feedback">{errors.reference_number}</div>}
@@ -428,6 +608,7 @@ export default function Edit({ transaction, categories, accounts }) {
                                             id="tax"
                                             value={data.tax}
                                             onChange={e => setData('tax', e.target.value)}
+                                            onWheel={handleWheel}
                                             step="0.01"
                                             min="0"
                                         />
@@ -454,13 +635,14 @@ export default function Edit({ transaction, categories, accounts }) {
                                         <label htmlFor="tags" className="form-label">Tags</label>
                                         <input
                                             type="text"
-                                            className={`form-control ${errors.tags ? 'is-invalid' : ''}`}
+                                            className={`form-control ${errors.tags || validationErrors.tags ? 'is-invalid' : ''}`}
                                             id="tags"
                                             value={data.tags}
-                                            onChange={e => setData('tags', e.target.value)}
+                                            onChange={handleTagsChange}
                                             placeholder="comma, separated, tags"
                                         />
-                                        <div className="form-text">Use commas to separate multiple tags</div>
+                                        <div className="form-text">Use commas to separate multiple tags (max 10)</div>
+                                        {validationErrors.tags && <div className="invalid-feedback">{validationErrors.tags}</div>}
                                         {errors.tags && <div className="invalid-feedback">{errors.tags}</div>}
                                     </div>
                                 </div>
@@ -468,14 +650,17 @@ export default function Edit({ transaction, categories, accounts }) {
                                 <div className="mb-3">
                                     <label htmlFor="notes" className="form-label">Notes</label>
                                     <textarea
-                                        className={`form-control ${errors.notes ? 'is-invalid' : ''}`}
+                                        className={`form-control ${errors.notes || validationErrors.notes ? 'is-invalid' : ''}`}
                                         id="notes"
                                         rows="3"
                                         value={data.notes}
-                                        onChange={e => setData('notes', e.target.value)}
+                                        onChange={handleNotesChange}
+                                        maxLength={2000}
                                         placeholder="Additional notes about this transaction"
                                     />
-                                    {errors.notes && <div className="invalid-feedback">{errors.notes}</div>}
+                                    <small className="text-muted">{data.notes.length}/2000</small>
+                                    {validationErrors.notes && <div className="invalid-feedback d-block">{validationErrors.notes}</div>}
+                                    {errors.notes && <div className="invalid-feedback d-block">{errors.notes}</div>}
                                 </div>
 
                                 <div className="row mt-4">

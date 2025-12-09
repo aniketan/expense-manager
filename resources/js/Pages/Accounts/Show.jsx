@@ -79,6 +79,7 @@ export default function Show({ account }) {
                                     <i className="fas fa-edit me-2"></i>Edit Account
                                 </Link>
                                 <button
+                                    type="button"
                                     onClick={handleToggleStatus}
                                     className={`btn ${account.is_active ? 'btn-warning' : 'btn-success'}`}
                                 >
@@ -86,6 +87,7 @@ export default function Show({ account }) {
                                     {account.is_active ? 'Disable' : 'Enable'}
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleDelete}
                                     className="btn btn-danger"
                                 >
@@ -127,9 +129,9 @@ export default function Show({ account }) {
                                     <div className="col-md-6 mb-3">
                                         <label className="form-label text-muted">Created</label>
                                         <div className="fw-bold">
-                                            {new Date(account.created_at).toLocaleDateString('en-IN', {
+                                            {new Date(account.created_at).toLocaleDateString('en-US', {
                                                 year: 'numeric',
-                                                month: 'long',
+                                                month: 'short',
                                                 day: 'numeric'
                                             })}
                                         </div>

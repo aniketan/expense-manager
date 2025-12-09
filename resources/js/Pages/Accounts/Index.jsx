@@ -202,21 +202,24 @@ export default function Index({ accounts, success }) {
                                         {/* Actions */}
                                         <div className="card-footer">
                                             <div className="btn-group w-100" role="group">
-                                                <Link
-                                                    href={`/accounts/${account.id}`}
-                                                    className="btn btn-outline-secondary btn-sm"
-                                                    title="View Details"
-                                                >
+                                                                <Link
+                                                                    href={`/accounts/${account.id}`}
+                                                                    className="btn btn-outline-secondary btn-sm"
+                                                                    title="View Details"
+                                                                    aria-label="View Details"
+                                                                >
                                                     <i className="fas fa-eye"></i>
                                                 </Link>
-                                                <Link
-                                                    href={`/accounts/${account.id}/edit`}
-                                                    className="btn btn-outline-warning btn-sm"
-                                                    title="Edit Account"
-                                                >
+                                                                <Link
+                                                                    href={`/accounts/${account.id}/edit`}
+                                                                    className="btn btn-outline-warning btn-sm"
+                                                                    title="Edit Account"
+                                                                    aria-label="Edit Account"
+                                                                >
                                                     <i className="fas fa-edit"></i>
                                                 </Link>
                                                 <button
+                                                    type="button"
                                                     onClick={() => handleToggleStatus(account)}
                                                     className={`btn btn-sm ${
                                                         account.is_active
@@ -224,13 +227,16 @@ export default function Index({ accounts, success }) {
                                                             : 'btn-outline-success'
                                                     }`}
                                                     title={account.is_active ? 'Disable Account' : 'Enable Account'}
+                                                    aria-label={account.is_active ? 'Disable Account' : 'Enable Account'}
                                                 >
                                                     <i className={`fas ${account.is_active ? 'fa-pause' : 'fa-play'}`}></i>
                                                 </button>
                                                 <button
+                                                    type="button"
                                                     onClick={() => handleDelete(account)}
                                                     className="btn btn-outline-danger btn-sm"
                                                     title="Delete Account"
+                                                    aria-label="Delete Account"
                                                 >
                                                     <i className="fas fa-trash"></i>
                                                 </button>

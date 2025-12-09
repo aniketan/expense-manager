@@ -12,9 +12,9 @@ export default function Show({ transaction }) {
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-IN', {
+        return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
-            month: 'long',
+            month: 'short',
             day: 'numeric'
         });
     };
@@ -210,6 +210,7 @@ export default function Show({ transaction }) {
                                     </Link>
 
                                     <button
+                                        type="button"
                                         className="btn btn-outline-danger"
                                         onClick={() => {
                                             if (confirm('Are you sure you want to delete this transaction?')) {
@@ -244,12 +245,14 @@ export default function Show({ transaction }) {
                                 <small className="text-muted">
                                     <div className="mb-2">
                                         <strong>Created:</strong><br />
-                                        {new Date(transaction.created_at).toLocaleString('en-IN')}
+                                        {new Date(transaction.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}{' '}
+                                        {new Date(transaction.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                     {transaction.updated_at !== transaction.created_at && (
                                         <div>
                                             <strong>Last Updated:</strong><br />
-                                            {new Date(transaction.updated_at).toLocaleString('en-IN')}
+                                            {new Date(transaction.updated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}{' '}
+                                            {new Date(transaction.updated_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                         </div>
                                     )}
                                 </small>

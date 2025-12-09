@@ -30,6 +30,16 @@ class Transaction extends Model
     ];
 
     /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'amount' => 'decimal:2',
+        'transaction_date' => 'date',
+    ];
+
+    /**
      * The "booted" method of the model.
      */
     protected static function booted()

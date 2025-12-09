@@ -25,9 +25,9 @@ export default function Index({ categories = {}, success, error }) {
     };
 
     const formatCurrency = (amount) => {
-        return `₹${parseFloat(amount || 0).toLocaleString('en-IN', { 
-            minimumFractionDigits: 2, 
-            maximumFractionDigits: 2 
+        return `₹${parseFloat(amount || 0).toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         })}`;
     };
 
@@ -40,7 +40,7 @@ export default function Index({ categories = {}, success, error }) {
     const groupCategories = (categories) => {
         const result = [];
         let currentParent = null;
-        
+
         categories.forEach(category => {
             if (!category.parent_id) {
                 // This is a parent category
@@ -56,7 +56,7 @@ export default function Index({ categories = {}, success, error }) {
                 }
             }
         });
-        
+
         return result;
     };
 
@@ -65,7 +65,7 @@ export default function Index({ categories = {}, success, error }) {
     return (
         <BootstrapLayout>
             <Head title="Category Management" />
-            
+
             {/* Header */}
             <div className="row">
                 <div className="col-12">
@@ -201,7 +201,7 @@ export default function Index({ categories = {}, success, error }) {
                                                     <tr className="table-light">
                                                         <td>
                                                             <div className="d-flex align-items-center">
-                                                                <div 
+                                                                <div
                                                                     className="me-2 d-flex align-items-center justify-content-center"
                                                                     style={{
                                                                         backgroundColor: parentCategory.color || '#3B82F6',
@@ -257,6 +257,7 @@ export default function Index({ categories = {}, success, error }) {
                                                                     href={`/categories/${parentCategory.id}`}
                                                                     className="btn btn-outline-primary btn-sm"
                                                                     title="View Details"
+                                                                    aria-label="View Details"
                                                                 >
                                                                     <i className="fas fa-eye"></i>
                                                                 </Link>
@@ -264,6 +265,7 @@ export default function Index({ categories = {}, success, error }) {
                                                                     href={`/categories/${parentCategory.id}/edit`}
                                                                     className="btn btn-outline-warning btn-sm"
                                                                     title="Edit"
+                                                                    aria-label="Edit"
                                                                 >
                                                                     <i className="fas fa-edit"></i>
                                                                 </Link>
@@ -271,20 +273,25 @@ export default function Index({ categories = {}, success, error }) {
                                                                     href={`/categories/create?parent_id=${parentCategory.id}`}
                                                                     className="btn btn-outline-success btn-sm"
                                                                     title="Add Subcategory"
+                                                                    aria-label="Add Subcategory"
                                                                 >
                                                                     <i className="fas fa-plus"></i>
                                                                 </Link>
                                                                 <button
+                                                                    type="button"
                                                                     onClick={() => handleToggleStatus(parentCategory)}
                                                                     className={`btn btn-sm ${parentCategory.is_active ? 'btn-outline-warning' : 'btn-outline-success'}`}
                                                                     title={parentCategory.is_active ? 'Deactivate' : 'Activate'}
+                                                                    aria-label={parentCategory.is_active ? 'Deactivate' : 'Activate'}
                                                                 >
                                                                     <i className={`fas ${parentCategory.is_active ? 'fa-pause' : 'fa-play'}`}></i>
                                                                 </button>
                                                                 <button
+                                                                    type="button"
                                                                     onClick={() => handleDelete(parentCategory)}
                                                                     className="btn btn-outline-danger btn-sm"
                                                                     title="Delete"
+                                                                    aria-label="Delete"
                                                                 >
                                                                     <i className="fas fa-trash"></i>
                                                                 </button>
@@ -298,7 +305,7 @@ export default function Index({ categories = {}, success, error }) {
                                                             <td>
                                                                 <div className="d-flex align-items-center">
                                                                     <span className="text-muted me-2" style={{ fontSize: '16px' }}>└─</span>
-                                                                    <div 
+                                                                    <div
                                                                         className="me-2 d-flex align-items-center justify-content-center"
                                                                         style={{
                                                                             backgroundColor: childCategory.color || '#6B7280',
@@ -354,6 +361,7 @@ export default function Index({ categories = {}, success, error }) {
                                                                         href={`/categories/${childCategory.id}`}
                                                                         className="btn btn-outline-primary btn-sm"
                                                                         title="View Details"
+                                                                        aria-label="View Details"
                                                                     >
                                                                         <i className="fas fa-eye"></i>
                                                                     </Link>
@@ -361,20 +369,25 @@ export default function Index({ categories = {}, success, error }) {
                                                                         href={`/categories/${childCategory.id}/edit`}
                                                                         className="btn btn-outline-warning btn-sm"
                                                                         title="Edit"
+                                                                        aria-label="Edit"
                                                                     >
                                                                         <i className="fas fa-edit"></i>
                                                                     </Link>
                                                                     <button
+                                                                        type="button"
                                                                         onClick={() => handleToggleStatus(childCategory)}
                                                                         className={`btn btn-sm ${childCategory.is_active ? 'btn-outline-warning' : 'btn-outline-success'}`}
                                                                         title={childCategory.is_active ? 'Deactivate' : 'Activate'}
+                                                                        aria-label={childCategory.is_active ? 'Deactivate' : 'Activate'}
                                                                     >
                                                                         <i className={`fas ${childCategory.is_active ? 'fa-pause' : 'fa-play'}`}></i>
                                                                     </button>
                                                                     <button
+                                                                        type="button"
                                                                         onClick={() => handleDelete(childCategory)}
                                                                         className="btn btn-outline-danger btn-sm"
                                                                         title="Delete"
+                                                                        aria-label="Delete"
                                                                     >
                                                                         <i className="fas fa-trash"></i>
                                                                     </button>
@@ -388,7 +401,7 @@ export default function Index({ categories = {}, success, error }) {
                                     </table>
                                 </div>
                             )}
-                            
+
                             {/* Pagination */}
                             {paginationInfo.last_page > 1 && (
                                 <div className="card-footer d-flex justify-content-between align-items-center">
@@ -398,14 +411,14 @@ export default function Index({ categories = {}, success, error }) {
                                         </div>
                                         <div className="d-flex align-items-center">
                                             <label className="text-muted small me-2">Categories per page:</label>
-                                            <select 
-                                                className="form-select form-select-sm" 
+                                            <select
+                                                className="form-select form-select-sm"
                                                 style={{width: 'auto'}}
                                                 value={paginationInfo.per_page}
                                                 onChange={(e) => {
-                                                    router.get('/categories', { per_page: e.target.value }, { 
-                                                        preserveState: true, 
-                                                        preserveScroll: true 
+                                                    router.get('/categories', { per_page: e.target.value }, {
+                                                        preserveState: true,
+                                                        preserveScroll: true
                                                     });
                                                 }}
                                             >
@@ -416,7 +429,7 @@ export default function Index({ categories = {}, success, error }) {
                                             </select>
                                         </div>
                                     </div>
-                                    
+
                                     <nav aria-label="Page navigation">
                                         <ul className="pagination pagination-sm mb-0">
                                             {/* Previous Page */}
@@ -430,7 +443,7 @@ export default function Index({ categories = {}, success, error }) {
                                                     « Previous
                                                 </Link>
                                             </li>
-                                            
+
                                             {/* Page Numbers */}
                                             {[...Array(Math.min(5, paginationInfo.last_page))].map((_, index) => {
                                                 let pageNumber;
@@ -443,7 +456,7 @@ export default function Index({ categories = {}, success, error }) {
                                                 } else {
                                                     pageNumber = paginationInfo.current_page - 2 + index;
                                                 }
-                                                
+
                                                 return (
                                                     <li key={pageNumber} className={`page-item ${paginationInfo.current_page === pageNumber ? 'active' : ''}`}>
                                                         <Link
@@ -457,7 +470,7 @@ export default function Index({ categories = {}, success, error }) {
                                                     </li>
                                                 );
                                             })}
-                                            
+
                                             {/* Next Page */}
                                             <li className={`page-item ${paginationInfo.current_page === paginationInfo.last_page ? 'disabled' : ''}`}>
                                                 <Link
