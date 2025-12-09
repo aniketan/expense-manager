@@ -5,6 +5,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Api\StatsController;
 
 Route::get('/', function () {
     $transactionController = new \App\Http\Controllers\TransactionController();
@@ -42,3 +43,13 @@ Route::get('api/transactions', [TransactionController::class, 'getTransactions']
 // Dashboard routes
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
 Route::get('/dashboard/analytics', [DashboardController::class, 'analytics'])->name('dashboard.analytics');
+
+// API Routes for Statistics (useful for mobile apps)
+Route::prefix('api/stats')->name('api.stats.')->group(function () {
+    Route::get('today', [StatsController::class, 'today'])->name('today');
+    Route::get('weekly', [StatsController::class, 'weekly'])->name('weekly');
+    Route::get('monthly', [StatsController::class, 'monthly'])->name('monthly');
+    Route::get('balance', [StatsController::class, 'balance'])->name('balance');
+    Route::get('dashboard', [StatsController::class, 'dashboard'])->name('dashboard');
+    Route::get('date-range', [StatsController::class, 'dateRange'])->name('date-range');
+});
