@@ -388,12 +388,15 @@ export default function Create({ categories, accounts }) {
                                         </div>
                                     ) : (
                                         <div className="col-md-6">
-                                            <label htmlFor="payment_method" className="form-label">Payment Method</label>
+                                            <label htmlFor="payment_method" className="form-label">
+                                                Payment Method <span className="text-danger">*</span>
+                                            </label>
                                             <select
                                                 className={`form-select ${errors.payment_method ? 'is-invalid' : ''}`}
                                                 id="payment_method"
                                                 value={data.payment_method}
                                                 onChange={e => setData('payment_method', e.target.value)}
+                                                required
                                             >
                                                 <option value="">Select Method</option>
                                                 <option value="UPI">UPI</option>
