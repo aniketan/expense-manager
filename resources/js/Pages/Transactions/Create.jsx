@@ -112,10 +112,15 @@ export default function Create({ categories, accounts }) {
         }
     };
 
-    // Handle description with sanitization
+    // Handle description with validation
     const handleDescriptionChange = (e) => {
-        const sanitized = sanitizeText(e.target.value, 1000);
-        setData('description', sanitized);
+        const validation = validateDescription(e.target.value, 1000, false);
+        setData('description', validation.value);
+        if (!validation.isValid) {
+            setValidationErrors({ ...validationErrors, description: validation.error });
+        } else {
+            setValidationErrors({ ...validationErrors, description: null });
+        }
     };
 
     // Handle tags with validation
@@ -415,7 +420,7 @@ export default function Create({ categories, accounts }) {
                                         Description
                                     </label>
                                     <textarea
-                                        className={`form-control ${errors.description ? 'is-invalid' : ''}`}
+                                        className={`form-control ${errors.description || validationErrors.description ? 'is-invalid' : ''}`}
                                         id="description"
                                         rows="3"
                                         value={data.description}
@@ -423,6 +428,7 @@ export default function Create({ categories, accounts }) {
                                         placeholder="Optional: Add transaction details"
                                         maxLength="1000"
                                     />
+                                    {validationErrors.description && <div className="invalid-feedback d-block">{validationErrors.description}</div>}
                                     {errors.description && <div className="invalid-feedback">{errors.description}</div>}
                                     <small className="text-muted">{data.description.length}/1000 characters</small>
                                 </div>
