@@ -20,6 +20,9 @@ export default function Layout({ children }) {
                         <Link className="nav-link" href="/transactions/create">
                             <i className="fas fa-plus me-1"></i>Add Transaction
                         </Link>
+                        <Link className="nav-link" href="/budgets">
+                            <i className="fas fa-chart-pie me-1"></i>Budgets
+                        </Link>
                         <Link className="nav-link" href="/categories">
                             <i className="fas fa-tags me-1"></i>Categories
                         </Link>

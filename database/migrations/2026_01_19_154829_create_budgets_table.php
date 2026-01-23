@@ -22,7 +22,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->text('notes')->nullable();
             $table->timestamps();
-            
+
             // Foreign key constraint
             $table->foreign('category_id')
                   ->references('id')

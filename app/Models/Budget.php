@@ -90,7 +90,7 @@ class Budget extends Model
     public function getStatusAttribute()
     {
         $percentage = $this->percentage_used;
-        
+
         if ($percentage >= 100) {
             return 'danger'; // Exceeded
         } elseif ($percentage >= 80) {
