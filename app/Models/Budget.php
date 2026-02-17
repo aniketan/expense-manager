@@ -62,12 +62,20 @@ class Budget extends Model
                      ->where('end_date', '>=', $today);
     }
 
-    // Get spent amount for this budget
+    // Get spent amount for this budget (includes child categories)
     public function getSpentAmountAttribute()
     {
-        return $this->category->transactions()
-            ->whereBetween('date', [$this->start_date, $this->end_date])
-            ->where('type', 'expense')
+        // Get category IDs to include (this category + all children if it's a parent)
+        $categoryIds = [$this->category_id];
+
+        if ($this->category->hasChildren()) {
+            $childIds = $this->category->children->pluck('id')->toArray();
+            $categoryIds = array_merge($categoryIds, $childIds);
+        }
+
+        return Transaction::whereIn('category_id', $categoryIds)
+            ->whereBetween('transaction_date', [$this->start_date, $this->end_date])
+            ->where('transaction_type', 'expense')
             ->sum('amount');
     }
 
