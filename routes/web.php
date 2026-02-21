@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\DashboardController;
@@ -39,6 +40,11 @@ Route::get('api/categories/with-totals', [CategoryController::class, 'getCategor
 Route::resource('transactions', TransactionController::class);
 Route::post('transactions/bulk-destroy', [TransactionController::class, 'bulkDestroy'])->name('transactions.bulk-destroy');
 Route::get('api/transactions', [TransactionController::class, 'getTransactions'])->name('api.transactions');
+
+// Budget routes
+Route::resource('budgets', BudgetController::class);
+Route::patch('budgets/{budget}/toggle-status', [BudgetController::class, 'toggleStatus'])->name('budgets.toggle-status');
+Route::get('api/budgets/summary', [BudgetController::class, 'getSummary'])->name('api.budgets.summary');
 
 // Dashboard routes
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');

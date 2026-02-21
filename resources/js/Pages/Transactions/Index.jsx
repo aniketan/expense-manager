@@ -3,7 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 import Pagination from '../../Components/Pagination';
 
-export default function Index({ transactions = {}, categories = [], accounts = [], success, filters = {}, totals = {} }) {
+export default function Index({ transactions = {}, categories = [], accounts = [], success, budget_alerts, filters = {}, totals = {} }) {
     const [filtersCollapsed, setFiltersCollapsed] = useState(false);
     const [selectedTransactions, setSelectedTransactions] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
@@ -185,6 +185,19 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                 <div className="alert alert-success alert-dismissible fade show" role="alert">
                     {success}
                     <button type="button" className="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            )}
+
+            {/* Budget Alerts */}
+            {budget_alerts && budget_alerts.length > 0 && (
+                <div className="mb-3">
+                    {budget_alerts.map((alert, index) => (
+                        <div key={index} className={`alert alert-${alert.type} alert-dismissible fade show`} role="alert">
+                            <i className={`fas fa-${alert.type === 'danger' ? 'exclamation-triangle' : 'exclamation-circle'} me-2`}></i>
+                            {alert.message}
+                            <button type="button" className="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    ))}
                 </div>
             )}
 

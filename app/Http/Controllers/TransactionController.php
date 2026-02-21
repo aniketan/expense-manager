@@ -249,7 +249,18 @@ class TransactionController extends Controller
         }
 
         // Regular transaction (income or expense)
-        Transaction::create($validated);
+        $transaction = Transaction::create($validated);
+
+        // Check budget alerts for expense transactions
+        if ($validated['transaction_type'] === 'expense' && isset($validated['category_id'])) {
+            $budgetAlerts = $this->checkBudgetAlerts($validated['category_id'], $validated['transaction_date']);
+
+            if (!empty($budgetAlerts)) {
+                return Redirect::route('transactions.index')
+                    ->with('success', 'Transaction created successfully.')
+                    ->with('budget_alerts', $budgetAlerts);
+            }
+        }
 
         return Redirect::route('transactions.index')
             ->with('success', 'Transaction created successfully.');
@@ -401,5 +412,38 @@ class TransactionController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * Check if any budgets are exceeded or approaching limit for the given category
+     */
+    private function checkBudgetAlerts($categoryId, $transactionDate)
+    {
+        $alerts = [];
+
+        // Find active budgets for this category that cover the transaction date
+        $budgets = \App\Models\Budget::where('category_id', $categoryId)
+            ->where('is_active', true)
+            ->where('start_date', '<=', $transactionDate)
+            ->where('end_date', '>=', $transactionDate)
+            ->get();
+
+        foreach ($budgets as $budget) {
+            $percentage = $budget->percentage_used;
+
+            if ($percentage >= 100) {
+                $alerts[] = [
+                    'type' => 'danger',
+                    'message' => "Budget '{$budget->name}' has been exceeded! {$percentage}% used (₹{$budget->spent_amount} / ₹{$budget->amount})"
+                ];
+            } elseif ($percentage >= 80) {
+                $alerts[] = [
+                    'type' => 'warning',
+                    'message' => "Budget '{$budget->name}' is at {$percentage}% (₹{$budget->remaining_amount} remaining)"
+                ];
+            }
+        }
+
+        return $alerts;
     }
 }
