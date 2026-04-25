@@ -7,6 +7,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Api\StatsController;
+use App\Http\Controllers\ChatController;
 
 Route::get('/', function () {
     $transactionController = new \App\Http\Controllers\TransactionController();
@@ -59,3 +60,8 @@ Route::prefix('api/stats')->name('api.stats.')->group(function () {
     Route::get('dashboard', [StatsController::class, 'dashboard'])->name('dashboard');
     Route::get('date-range', [StatsController::class, 'dateRange'])->name('date-range');
 });
+
+// Chatbot routes (SSE + history)
+Route::post('/chat/stream', [ChatController::class, 'stream'])->name('chat.stream');
+Route::get('/chat/history', [ChatController::class, 'history'])->name('chat.history');
+Route::post('/chat/reset', [ChatController::class, 'reset'])->name('chat.reset');

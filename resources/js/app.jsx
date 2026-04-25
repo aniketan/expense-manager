@@ -1,3 +1,4 @@
+import './secure-context-polyfill';
 import './bootstrap';
 import React from 'react';
 import { createInertiaApp } from '@inertiajs/react'
