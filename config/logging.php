@@ -127,13 +127,18 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
-        'llm' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/llm.log'),
-            'level' => 'debug',
-            'days' => 7,
-            'replace_placeholders' => true,
-        ],
+        'llm' => env('APP_ENV') === 'testing'
+            ? [
+                'driver' => 'monolog',
+                'handler' => NullHandler::class,
+            ]
+            : [
+                'driver' => 'daily',
+                'path' => storage_path('logs/llm.log'),
+                'level' => 'debug',
+                'days' => 7,
+                'replace_placeholders' => true,
+            ],
 
     ],
 

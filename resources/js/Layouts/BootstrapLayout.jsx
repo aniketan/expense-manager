@@ -15,6 +15,9 @@ export default function Layout({ children }) {
                         <i className="fas fa-chart-line me-2"></i>Expense Manager
                     </Link>
                     <div className="navbar-nav ms-auto">
+                        <Link className="nav-link" href="/statements/upload">
+                            <i className="fas fa-file-import me-1"></i>Import
+                        </Link>
                         <Link className="nav-link" href="/transactions">
                             <i className="fas fa-list me-1"></i>Transactions
                         </Link>

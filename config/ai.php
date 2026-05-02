@@ -3,19 +3,35 @@
 return [
     /*
      * AI Provider Configuration
-     * 
+     *
      * Supported providers: 'ollama', 'anthropic', 'openai'
      */
     'provider' => env('AI_PROVIDER', 'ollama'),
 
     /*
      * Model Name
-     * 
+     *
      * For Ollama: 'qwen3.5:9b', 'mistral:7b', 'llama3.1:8b'
      * For Anthropic: 'claude-3-5-haiku-20241022', 'claude-3-5-sonnet-20241022'
      * For OpenAI: 'gpt-4-turbo', 'gpt-3.5-turbo'
      */
     'model' => env('AI_MODEL', 'qwen3.5:9b'),
+
+    /*
+     * Optional: use a smaller/faster model for per-row statement categorization.
+     * Defaults to the main AI_MODEL when unset.
+     */
+    'categorize_model' => env('AI_CATEGORIZE_MODEL'),
+
+    /*
+     * Max tokens for categorize responses (short JSON only).
+     */
+    'categorize_max_tokens' => (int) env('AI_CATEGORIZE_MAX_TOKENS', 512),
+
+    /*
+     * Tool rounds for categorize (list_categories + final JSON reply).
+     */
+    'categorize_max_steps' => (int) env('AI_CATEGORIZE_MAX_STEPS', 4),
 
     /*
      * Maximum tool-calling steps

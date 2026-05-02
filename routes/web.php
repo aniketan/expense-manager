@@ -1,16 +1,19 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AiController;
+use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\TransactionController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\StatementController;
+use App\Http\Controllers\TransactionController;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
-    $transactionController = new \App\Http\Controllers\TransactionController();
+    $transactionController = new TransactionController;
 
     // Get dashboard statistics
     $stats = $transactionController->getDashboardStats();
@@ -18,9 +21,9 @@ Route::get('/', function () {
     // Get recent transactions
     $recentTransactions = $transactionController->getRecentTransactions(10);
 
-    return \Inertia\Inertia::render('Welcome', [
+    return Inertia::render('Welcome', [
         'stats' => $stats,
-        'recentTransactions' => $recentTransactions
+        'recentTransactions' => $recentTransactions,
     ]);
 });
 
@@ -65,3 +68,11 @@ Route::prefix('api/stats')->name('api.stats.')->group(function () {
 Route::post('/chat/stream', [ChatController::class, 'stream'])->name('chat.stream');
 Route::get('/chat/history', [ChatController::class, 'history'])->name('chat.history');
 Route::post('/chat/reset', [ChatController::class, 'reset'])->name('chat.reset');
+
+// AI categorization (statement review table)
+Route::post('/ai/categorize', [AiController::class, 'categorize'])->name('ai.categorize');
+
+// Bank statement import
+Route::get('/statements/upload', [StatementController::class, 'uploadPage'])->name('statements.upload');
+Route::post('/statements/process', [StatementController::class, 'process'])->name('statements.process');
+Route::post('/statements/import', [StatementController::class, 'importTransactions'])->name('statements.import');
