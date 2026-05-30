@@ -20,6 +20,15 @@ import {
     validateTransactionForm,
 } from '../../utils/inputValidation';
 
+const toTimeInputValue = (value) => {
+    if (!value) return '';
+
+    const stringValue = String(value);
+    const timeMatch = stringValue.match(/(?:T|\s)(\d{2}:\d{2})(?::\d{2})?/);
+
+    return timeMatch ? timeMatch[1] : stringValue.slice(0, 5);
+};
+
 export default function Edit({ transaction, categories, accounts }) {
     const [selectedCategory, setSelectedCategory] = useState('');
     const [subcategories, setSubcategories] = useState([]);
@@ -28,7 +37,7 @@ export default function Edit({ transaction, categories, accounts }) {
 
     const { data, setData, put, processing, errors } = useForm({
         expensed_date: transaction.transaction_date || '',
-        transaction_time: transaction.transaction_time || '',
+        transaction_time: toTimeInputValue(transaction.transaction_time),
         amount: transaction.amount || '',
         account_id: transaction.account_id || '',
         transfer_to_account_id: '',
