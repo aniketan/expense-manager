@@ -37,6 +37,59 @@ export default function Edit({ transaction, categories, accounts }) {
         transaction_type: transaction.transaction_type || 'expense'
     });
 
+    const errorLabels = {
+        expensed_date: 'Date',
+        transaction_time: 'Time',
+        amount: 'Amount',
+        account_id: transactionType === 'transfer' ? 'From Account' : 'Account',
+        transfer_to_account_id: 'To Account',
+        payment_method: 'Payment Method',
+        category: 'Category',
+        category_id: transactionType === 'income' ? 'Income Category' : 'Subcategory',
+        description: 'Description',
+        payee_payer: 'Payee/Payer',
+        reference_number: 'Reference Number',
+        tax: 'Tax Amount',
+        status: 'Status',
+        tags: 'Tags',
+        notes: 'Notes',
+        transfer: 'Transfer',
+    };
+
+    const errorOrder = [
+        'expensed_date',
+        'transaction_time',
+        'amount',
+        'account_id',
+        'transfer_to_account_id',
+        'payment_method',
+        'category',
+        'category_id',
+        'description',
+        'payee_payer',
+        'reference_number',
+        'tax',
+        'status',
+        'tags',
+        'notes',
+        'transfer',
+    ];
+
+    const combinedErrors = { ...validationErrors, ...errors };
+    const errorEntries = [
+        ...errorOrder
+            .filter((field) => combinedErrors[field])
+            .map((field) => [field, combinedErrors[field]]),
+        ...Object.entries(combinedErrors)
+            .filter(([field, message]) => message && !errorOrder.includes(field)),
+    ];
+
+    const setFieldError = (field, message) => {
+        setValidationErrors((current) => ({ ...current, [field]: message || null }));
+    };
+
+    const clearFieldError = (field) => setFieldError(field, null);
+
     // Get parent categories (where parent_id is null)
     const parentCategories = categories.filter(cat => cat.parent_id === null);
 
@@ -89,6 +142,8 @@ export default function Edit({ transaction, categories, accounts }) {
     const handleCategoryChange = (e) => {
         const parentCategoryId = parseInt(e.target.value);
         setSelectedCategory(parentCategoryId);
+        clearFieldError('category');
+        clearFieldError('category_id');
 
         if (parentCategoryId) {
             const subs = getSubcategories(parentCategoryId);
@@ -107,6 +162,14 @@ export default function Edit({ transaction, categories, accounts }) {
         setSelectedCategory('');
         setSubcategories([]);
         setData('category_id', '');
+        setValidationErrors((current) => ({
+            ...current,
+            category: null,
+            category_id: null,
+            payment_method: null,
+            transfer_to_account_id: null,
+            transfer: null,
+        }));
 
         // Auto-select category for income
         if (type === 'income' && incomeCategory) {
@@ -126,9 +189,9 @@ export default function Edit({ transaction, categories, accounts }) {
         handleAmountInput(e, setData, 'amount');
         const validation = validateAmount(e.target.value, false);
         if (!validation.isValid) {
-            setValidationErrors({ ...validationErrors, amount: validation.error });
+            setFieldError('amount', validation.error);
         } else {
-            setValidationErrors({ ...validationErrors, amount: null });
+            clearFieldError('amount');
         }
     };
 
@@ -137,9 +200,9 @@ export default function Edit({ transaction, categories, accounts }) {
         setData('expensed_date', e.target.value);
         const validation = validateDate(e.target.value);
         if (!validation.isValid) {
-            setValidationErrors({ ...validationErrors, expensed_date: validation.error });
+            setFieldError('expensed_date', validation.error);
         } else {
-            setValidationErrors({ ...validationErrors, expensed_date: null });
+            clearFieldError('expensed_date');
         }
     };
 
@@ -148,20 +211,20 @@ export default function Edit({ transaction, categories, accounts }) {
         setData('transaction_time', e.target.value);
         const validation = validateTime(e.target.value);
         if (!validation.isValid) {
-            setValidationErrors({ ...validationErrors, transaction_time: validation.error });
+            setFieldError('transaction_time', validation.error);
         } else {
-            setValidationErrors({ ...validationErrors, transaction_time: null });
+            clearFieldError('transaction_time');
         }
     };
 
     // Handle description with validation
     const handleDescriptionChange = (e) => {
-        const validation = validateDescription(e.target.value, 1000, true);
+        const validation = validateDescription(e.target.value, 1000, false);
         setData('description', validation.value);
         if (!validation.isValid) {
-            setValidationErrors({ ...validationErrors, description: validation.error });
+            setFieldError('description', validation.error);
         } else {
-            setValidationErrors({ ...validationErrors, description: null });
+            clearFieldError('description');
         }
     };
 
@@ -170,9 +233,9 @@ export default function Edit({ transaction, categories, accounts }) {
         const validation = validateTags(e.target.value, 10);
         setData('tags', validation.value);
         if (!validation.isValid) {
-            setValidationErrors({ ...validationErrors, tags: validation.error });
+            setFieldError('tags', validation.error);
         } else {
-            setValidationErrors({ ...validationErrors, tags: null });
+            clearFieldError('tags');
         }
     };
 
@@ -181,9 +244,9 @@ export default function Edit({ transaction, categories, accounts }) {
         const validation = validateDescription(e.target.value, 2000, false);
         setData('notes', validation.value);
         if (!validation.isValid) {
-            setValidationErrors({ ...validationErrors, notes: validation.error });
+            setFieldError('notes', validation.error);
         } else {
-            setValidationErrors({ ...validationErrors, notes: null });
+            clearFieldError('notes');
         }
     };
 
@@ -202,50 +265,75 @@ export default function Edit({ transaction, categories, accounts }) {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // Validate amount
+        const nextErrors = {};
+
         const amountValidation = validateAmount(data.amount, false);
         if (!amountValidation.isValid) {
-            setValidationErrors({ ...validationErrors, amount: amountValidation.error });
-            return;
+            nextErrors.amount = amountValidation.error;
         }
 
-        // Validate date
         const dateValidation = validateDate(data.expensed_date);
         if (!dateValidation.isValid) {
-            setValidationErrors({ ...validationErrors, expensed_date: dateValidation.error });
-            return;
+            nextErrors.expensed_date = dateValidation.error;
         }
 
-        // Validate time
         const timeValidation = validateTime(data.transaction_time);
         if (!timeValidation.isValid) {
-            setValidationErrors({ ...validationErrors, transaction_time: timeValidation.error });
-            return;
+            nextErrors.transaction_time = timeValidation.error;
         }
 
-        // Validate description
-        const descValidation = validateDescription(data.description, 1000, true);
-        if (!descValidation.isValid) {
-            setValidationErrors({ ...validationErrors, description: descValidation.error });
-            return;
+        if (!data.account_id) {
+            nextErrors.account_id = 'Account is required';
         }
 
-        // Validate tags if provided
+        if (transactionType !== 'transfer') {
+            if (!data.payment_method) {
+                nextErrors.payment_method = 'Payment method is required';
+            }
+            if (transactionType !== 'income' && !selectedCategory) {
+                nextErrors.category = 'Category is required';
+            }
+            if (!data.category_id) {
+                nextErrors.category_id = transactionType === 'income'
+                    ? 'Income category is required'
+                    : 'Subcategory is required';
+            }
+        }
+
+        if (transactionType === 'transfer') {
+            if (!data.transfer_to_account_id) {
+                nextErrors.transfer_to_account_id = 'Destination account is required';
+            }
+            if (data.account_id && data.account_id === data.transfer_to_account_id) {
+                nextErrors.transfer = 'Source and destination accounts must be different';
+            }
+        }
+
+        if (data.description) {
+            const descValidation = validateDescription(data.description, 1000, false);
+            if (!descValidation.isValid) {
+                nextErrors.description = descValidation.error;
+            }
+        }
+
         if (data.tags) {
             const tagsValidation = validateTags(data.tags, 10);
             if (!tagsValidation.isValid) {
-                setValidationErrors({ ...validationErrors, tags: tagsValidation.error });
-                return;
+                nextErrors.tags = tagsValidation.error;
             }
         }
 
-        // Validate notes if provided
         if (data.notes) {
             const notesValidation = validateDescription(data.notes, 2000, false);
             if (!notesValidation.isValid) {
-                setValidationErrors({ ...validationErrors, notes: notesValidation.error });
-                return;
+                nextErrors.notes = notesValidation.error;
             }
+        }
+
+        setValidationErrors(nextErrors);
+
+        if (Object.keys(nextErrors).length > 0) {
+            return;
         }
 
         put(`/transactions/${transaction.id}`);
@@ -283,7 +371,22 @@ export default function Edit({ transaction, categories, accounts }) {
                             </h5>
                         </div>
                         <div className="card-body">
-                            <form onSubmit={handleSubmit}>
+                            <form onSubmit={handleSubmit} noValidate>
+                                {errorEntries.length > 0 && (
+                                    <div className="alert alert-danger" role="alert" aria-live="polite">
+                                        <div className="fw-semibold mb-2">
+                                            Please fix the highlighted fields before saving.
+                                        </div>
+                                        <ul className="mb-0 ps-3">
+                                            {errorEntries.map(([field, message]) => (
+                                                <li key={field}>
+                                                    <strong>{errorLabels[field] || field}:</strong> {message}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
                                 {/* Transaction Type - Moved to top */}
                                 <div className="row mb-4">
                                     <div className="col-12">
@@ -401,10 +504,14 @@ export default function Edit({ transaction, categories, accounts }) {
                                             {transactionType === 'transfer' ? 'From Account' : 'Account'} <span className="text-danger">*</span>
                                         </label>
                                         <select
-                                            className={`form-select ${errors.account_id ? 'is-invalid' : ''}`}
+                                            className={`form-select ${errors.account_id || validationErrors.account_id ? 'is-invalid' : ''}`}
                                             id="account"
                                             value={data.account_id}
-                                            onChange={e => setData('account_id', e.target.value)}
+                                            onChange={e => {
+                                                setData('account_id', e.target.value);
+                                                clearFieldError('account_id');
+                                                clearFieldError('transfer');
+                                            }}
                                             required
                                         >
                                             <option value="">Select Account</option>
@@ -414,7 +521,11 @@ export default function Edit({ transaction, categories, accounts }) {
                                                 </option>
                                             ))}
                                         </select>
-                                        {errors.account_id && <div className="invalid-feedback">{errors.account_id}</div>}
+                                        {(errors.account_id || validationErrors.account_id) && (
+                                            <div className="invalid-feedback">
+                                                {errors.account_id || validationErrors.account_id}
+                                            </div>
+                                        )}
                                     </div>
                                     {transactionType === 'transfer' ? (
                                         <div className="col-md-6">
@@ -422,10 +533,14 @@ export default function Edit({ transaction, categories, accounts }) {
                                                 To Account <span className="text-danger">*</span>
                                             </label>
                                             <select
-                                                className={`form-select ${errors.transfer_to_account_id ? 'is-invalid' : ''}`}
+                                                className={`form-select ${errors.transfer_to_account_id || validationErrors.transfer_to_account_id || validationErrors.transfer ? 'is-invalid' : ''}`}
                                                 id="transfer_to_account"
                                                 value={data.transfer_to_account_id}
-                                                onChange={e => setData('transfer_to_account_id', e.target.value)}
+                                                onChange={e => {
+                                                    setData('transfer_to_account_id', e.target.value);
+                                                    clearFieldError('transfer_to_account_id');
+                                                    clearFieldError('transfer');
+                                                }}
                                                 required
                                             >
                                                 <option value="">Select Account</option>
@@ -435,7 +550,11 @@ export default function Edit({ transaction, categories, accounts }) {
                                                     </option>
                                                 ))}
                                             </select>
-                                            {errors.transfer_to_account_id && <div className="invalid-feedback">{errors.transfer_to_account_id}</div>}
+                                            {(errors.transfer_to_account_id || validationErrors.transfer_to_account_id || validationErrors.transfer) && (
+                                                <div className="invalid-feedback">
+                                                    {errors.transfer_to_account_id || validationErrors.transfer_to_account_id || validationErrors.transfer}
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="col-md-6">
@@ -443,10 +562,13 @@ export default function Edit({ transaction, categories, accounts }) {
                                                 Payment Method <span className="text-danger">*</span>
                                             </label>
                                             <select
-                                                className={`form-select ${errors.payment_method ? 'is-invalid' : ''}`}
+                                                className={`form-select ${errors.payment_method || validationErrors.payment_method ? 'is-invalid' : ''}`}
                                                 id="payment_method"
                                                 value={data.payment_method}
-                                                onChange={e => setData('payment_method', e.target.value)}
+                                                onChange={e => {
+                                                    setData('payment_method', e.target.value);
+                                                    clearFieldError('payment_method');
+                                                }}
                                                 required
                                             >
                                                 <option value="">Select Method</option>
@@ -457,7 +579,11 @@ export default function Edit({ transaction, categories, accounts }) {
                                                 <option value="Cash">Cash</option>
                                                 <option value="Cheque">Cheque</option>
                                             </select>
-                                            {errors.payment_method && <div className="invalid-feedback">{errors.payment_method}</div>}
+                                            {(errors.payment_method || validationErrors.payment_method) && (
+                                                <div className="invalid-feedback">
+                                                    {errors.payment_method || validationErrors.payment_method}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -499,10 +625,13 @@ export default function Edit({ transaction, categories, accounts }) {
                                                     Income Category <span className="text-danger">*</span>
                                                 </label>
                                                 <select
-                                                    className={`form-select ${errors.category_id ? 'is-invalid' : ''}`}
+                                                    className={`form-select ${errors.category_id || validationErrors.category_id ? 'is-invalid' : ''}`}
                                                     id="subcategory"
                                                     value={data.category_id}
-                                                    onChange={e => setData('category_id', e.target.value)}
+                                                    onChange={e => {
+                                                        setData('category_id', e.target.value);
+                                                        clearFieldError('category_id');
+                                                    }}
                                                     required
                                                 >
                                                     <option value="">Select Income Category</option>
@@ -512,7 +641,11 @@ export default function Edit({ transaction, categories, accounts }) {
                                                         </option>
                                                     ))}
                                                 </select>
-                                                {errors.category_id && <div className="invalid-feedback">{errors.category_id}</div>}
+                                                {(errors.category_id || validationErrors.category_id) && (
+                                                    <div className="invalid-feedback">
+                                                        {errors.category_id || validationErrors.category_id}
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : (
                                             /* Expense: Show both category and subcategory */
@@ -522,7 +655,7 @@ export default function Edit({ transaction, categories, accounts }) {
                                                         Category <span className="text-danger">*</span>
                                                     </label>
                                                     <select
-                                                        className={`form-select ${errors.category ? 'is-invalid' : ''}`}
+                                                        className={`form-select ${errors.category || validationErrors.category ? 'is-invalid' : ''}`}
                                                         id="category"
                                                         value={selectedCategory}
                                                         onChange={handleCategoryChange}
@@ -535,17 +668,24 @@ export default function Edit({ transaction, categories, accounts }) {
                                                             </option>
                                                         ))}
                                                     </select>
-                                                    {errors.category && <div className="invalid-feedback">{errors.category}</div>}
+                                                    {(errors.category || validationErrors.category) && (
+                                                        <div className="invalid-feedback">
+                                                            {errors.category || validationErrors.category}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="col-md-6">
                                                     <label htmlFor="subcategory" className="form-label">
                                                         Subcategory <span className="text-danger">*</span>
                                                     </label>
                                                     <select
-                                                        className={`form-select ${errors.category_id ? 'is-invalid' : ''}`}
+                                                        className={`form-select ${errors.category_id || validationErrors.category_id ? 'is-invalid' : ''}`}
                                                         id="subcategory"
                                                         value={data.category_id}
-                                                        onChange={e => setData('category_id', e.target.value)}
+                                                        onChange={e => {
+                                                            setData('category_id', e.target.value);
+                                                            clearFieldError('category_id');
+                                                        }}
                                                         required
                                                         disabled={!selectedCategory}
                                                     >
@@ -556,7 +696,11 @@ export default function Edit({ transaction, categories, accounts }) {
                                                             </option>
                                                         ))}
                                                     </select>
-                                                    {errors.category_id && <div className="invalid-feedback">{errors.category_id}</div>}
+                                                    {(errors.category_id || validationErrors.category_id) && (
+                                                        <div className="invalid-feedback">
+                                                            {errors.category_id || validationErrors.category_id}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         )}
