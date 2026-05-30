@@ -1,0 +1,69 @@
+name: Feature / Task
+description: Propose a feature, workflow improvement, or implementation task.
+title: "Task: "
+labels: ["type:task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for product tasks, workflow improvements, and implementation slices.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or engineering problem are we solving?
+    validations:
+      required: true
+  - type: textarea
+    id: user_value
+    attributes:
+      label: User Value
+      description: Why does this matter for Expense Manager?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Chat entry
+        - Category mapping
+        - Statement import
+        - Transactions / audit trail
+        - Sync / data integrity
+        - Dashboard / UX
+        - Portfolio / docs
+        - Workflow / CI
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed Scope
+      description: What should be included, and what should stay out of scope?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: Checklist for implementation and review.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification Plan
+      description: Tests, build commands, manual checks, screenshots, or data checks expected for this task.
+      placeholder: |
+        - [ ] npm run build
+        - [ ] composer test
+  - type: textarea
+    id: notes
+    attributes:
+      label: Implementation Notes
+      description: Relevant files, constraints, risks, or follow-up work.
