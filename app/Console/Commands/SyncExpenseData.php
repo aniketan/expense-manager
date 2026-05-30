@@ -65,7 +65,11 @@ class SyncExpenseData extends Command
 
         } catch (Exception $e) {
             $this->error('❌ Sync failed: ' . $e->getMessage());
-            $this->error('Stack trace: ' . $e->getTraceAsString());
+
+            if ($this->output->isVerbose()) {
+                $this->error('Stack trace: ' . $e->getTraceAsString());
+            }
+
             return Command::FAILURE;
         }
     }
@@ -76,13 +80,14 @@ class SyncExpenseData extends Command
     private function displayConfiguration(?string $dbPath, bool $dryRun): void
     {
         $actualDbPath = $dbPath ?: config('sync.external_db_path');
+        $displayPath = $actualDbPath ?: 'Not configured';
 
         $this->info('📋 Configuration:');
         $this->table(
             ['Setting', 'Value'],
             [
-                ['External DB Path', $actualDbPath],
-                ['File Exists', file_exists($actualDbPath) ? '✅ Yes' : '❌ No'],
+                ['External DB Path', $displayPath],
+                ['File Exists', $actualDbPath && file_exists($actualDbPath) ? '✅ Yes' : '❌ No'],
                 ['Mode', $dryRun ? '🔍 Dry Run (no changes)' : '💾 Live Sync'],
                 ['Skip Duplicates', config('sync.sync_options.skip_duplicates') ? 'Yes' : 'No'],
                 ['Batch Size', config('sync.sync_options.batch_size')],
