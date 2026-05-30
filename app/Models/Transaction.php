@@ -23,6 +23,7 @@ class Transaction extends Model
         'amount',
         'description',
         'transaction_date',
+        'transaction_time',
         'payment_method',
         'reference_number',
         'tags',
