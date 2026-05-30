@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
+import FormErrorSummary from '../../Components/FormErrorSummary';
 import {
-    validateAmount,
     validateDate,
     validateTime,
     validateDescription,
@@ -10,7 +10,14 @@ import {
     sanitizeText,
     handleAmountInput,
     getMaxDate,
-    getMinDate
+    getMinDate,
+    TRANSACTION_ERROR_ORDER,
+    clearValidationFieldError,
+    clearValidationFieldErrors,
+    getErrorEntries,
+    getTransactionErrorLabels,
+    setValidationFieldError,
+    validateTransactionForm,
 } from '../../utils/inputValidation';
 
 export default function Edit({ transaction, categories, accounts }) {
@@ -37,58 +44,16 @@ export default function Edit({ transaction, categories, accounts }) {
         transaction_type: transaction.transaction_type || 'expense'
     });
 
-    const errorLabels = {
-        expensed_date: 'Date',
-        transaction_time: 'Time',
-        amount: 'Amount',
-        account_id: transactionType === 'transfer' ? 'From Account' : 'Account',
-        transfer_to_account_id: 'To Account',
-        payment_method: 'Payment Method',
-        category: 'Category',
-        category_id: transactionType === 'income' ? 'Income Category' : 'Subcategory',
-        description: 'Description',
-        payee_payer: 'Payee/Payer',
-        reference_number: 'Reference Number',
-        tax: 'Tax Amount',
-        status: 'Status',
-        tags: 'Tags',
-        notes: 'Notes',
-        transfer: 'Transfer',
-    };
-
-    const errorOrder = [
-        'expensed_date',
-        'transaction_time',
-        'amount',
-        'account_id',
-        'transfer_to_account_id',
-        'payment_method',
-        'category',
-        'category_id',
-        'description',
-        'payee_payer',
-        'reference_number',
-        'tax',
-        'status',
-        'tags',
-        'notes',
-        'transfer',
-    ];
-
-    const combinedErrors = { ...validationErrors, ...errors };
-    const errorEntries = [
-        ...errorOrder
-            .filter((field) => combinedErrors[field])
-            .map((field) => [field, combinedErrors[field]]),
-        ...Object.entries(combinedErrors)
-            .filter(([field, message]) => message && !errorOrder.includes(field)),
-    ];
+    const errorLabels = getTransactionErrorLabels(transactionType);
+    const errorEntries = getErrorEntries(validationErrors, errors, TRANSACTION_ERROR_ORDER);
 
     const setFieldError = (field, message) => {
-        setValidationErrors((current) => ({ ...current, [field]: message || null }));
+        setValidationFieldError(setValidationErrors, field, message);
     };
 
-    const clearFieldError = (field) => setFieldError(field, null);
+    const clearFieldError = (field) => {
+        clearValidationFieldError(setValidationErrors, field);
+    };
 
     // Get parent categories (where parent_id is null)
     const parentCategories = categories.filter(cat => cat.parent_id === null);
@@ -162,14 +127,13 @@ export default function Edit({ transaction, categories, accounts }) {
         setSelectedCategory('');
         setSubcategories([]);
         setData('category_id', '');
-        setValidationErrors((current) => ({
-            ...current,
-            category: null,
-            category_id: null,
-            payment_method: null,
-            transfer_to_account_id: null,
-            transfer: null,
-        }));
+        clearValidationFieldErrors(setValidationErrors, [
+            'category',
+            'category_id',
+            'payment_method',
+            'transfer_to_account_id',
+            'transfer',
+        ]);
 
         // Auto-select category for income
         if (type === 'income' && incomeCategory) {
@@ -187,12 +151,7 @@ export default function Edit({ transaction, categories, accounts }) {
     // Handle amount with validation
     const handleAmountChange = (e) => {
         handleAmountInput(e, setData, 'amount');
-        const validation = validateAmount(e.target.value, false);
-        if (!validation.isValid) {
-            setFieldError('amount', validation.error);
-        } else {
-            clearFieldError('amount');
-        }
+        clearFieldError('amount');
     };
 
     // Handle date with validation
@@ -265,70 +224,12 @@ export default function Edit({ transaction, categories, accounts }) {
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        const nextErrors = {};
-
-        const amountValidation = validateAmount(data.amount, false);
-        if (!amountValidation.isValid) {
-            nextErrors.amount = amountValidation.error;
-        }
-
-        const dateValidation = validateDate(data.expensed_date);
-        if (!dateValidation.isValid) {
-            nextErrors.expensed_date = dateValidation.error;
-        }
-
-        const timeValidation = validateTime(data.transaction_time);
-        if (!timeValidation.isValid) {
-            nextErrors.transaction_time = timeValidation.error;
-        }
-
-        if (!data.account_id) {
-            nextErrors.account_id = 'Account is required';
-        }
-
-        if (transactionType !== 'transfer') {
-            if (!data.payment_method) {
-                nextErrors.payment_method = 'Payment method is required';
-            }
-            if (transactionType !== 'income' && !selectedCategory) {
-                nextErrors.category = 'Category is required';
-            }
-            if (!data.category_id) {
-                nextErrors.category_id = transactionType === 'income'
-                    ? 'Income category is required'
-                    : 'Subcategory is required';
-            }
-        }
-
-        if (transactionType === 'transfer') {
-            if (!data.transfer_to_account_id) {
-                nextErrors.transfer_to_account_id = 'Destination account is required';
-            }
-            if (data.account_id && data.account_id === data.transfer_to_account_id) {
-                nextErrors.transfer = 'Source and destination accounts must be different';
-            }
-        }
-
-        if (data.description) {
-            const descValidation = validateDescription(data.description, 1000, false);
-            if (!descValidation.isValid) {
-                nextErrors.description = descValidation.error;
-            }
-        }
-
-        if (data.tags) {
-            const tagsValidation = validateTags(data.tags, 10);
-            if (!tagsValidation.isValid) {
-                nextErrors.tags = tagsValidation.error;
-            }
-        }
-
-        if (data.notes) {
-            const notesValidation = validateDescription(data.notes, 2000, false);
-            if (!notesValidation.isValid) {
-                nextErrors.notes = notesValidation.error;
-            }
-        }
+        const nextErrors = validateTransactionForm(data, {
+            transactionType,
+            selectedCategory,
+            dateField: 'expensed_date',
+            validateNotes: true,
+        });
 
         setValidationErrors(nextErrors);
 
@@ -372,20 +273,7 @@ export default function Edit({ transaction, categories, accounts }) {
                         </div>
                         <div className="card-body">
                             <form onSubmit={handleSubmit} noValidate>
-                                {errorEntries.length > 0 && (
-                                    <div className="alert alert-danger" role="alert" aria-live="polite">
-                                        <div className="fw-semibold mb-2">
-                                            Please fix the highlighted fields before saving.
-                                        </div>
-                                        <ul className="mb-0 ps-3">
-                                            {errorEntries.map(([field, message]) => (
-                                                <li key={field}>
-                                                    <strong>{errorLabels[field] || field}:</strong> {message}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
+                                <FormErrorSummary errorEntries={errorEntries} errorLabels={errorLabels} />
 
                                 {/* Transaction Type - Moved to top */}
                                 <div className="row mb-4">
