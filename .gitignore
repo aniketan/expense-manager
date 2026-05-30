@@ -42,3 +42,9 @@ database/expense_manager.db
 *.backup
 *.bak
 database/*.backup*
+
+# Local assistant/runtime context
+AGENTS.md
+.hermes/
+.codex/
+.claude/

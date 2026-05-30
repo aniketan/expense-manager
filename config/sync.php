@@ -11,7 +11,7 @@ return [
     |
     */
 
-    'external_db_path' => env('EXTERNAL_DB_PATH', '/mnt/c/Users/rohit/Dropbox/ExpenseManager/Database/personal_finance.db'),
+    'external_db_path' => env('EXTERNAL_DB_PATH'),
 
     /*
     |--------------------------------------------------------------------------

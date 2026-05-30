@@ -25,7 +25,13 @@ class ExpenseSyncService
 
     public function __construct(string $externalDbPath = null)
     {
-        $this->externalDbPath = $externalDbPath ?: config('sync.external_db_path', '/mnt/c/Users/rohit/Dropbox/ExpenseManager/Database/personal_finance.db');
+        $configuredPath = $externalDbPath ?: config('sync.external_db_path');
+
+        if (!$configuredPath) {
+            throw new Exception('External database path is not configured. Pass --db-path or set EXTERNAL_DB_PATH.');
+        }
+
+        $this->externalDbPath = $configuredPath;
         $this->initializeExternalDb();
     }
 
