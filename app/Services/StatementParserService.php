@@ -37,8 +37,7 @@ class StatementParserService
         $raw = (string) file_get_contents($path);
         $split = $this->splitter->splitCsvContent($raw);
 
-        $accountInfo = $this->extractAccountInfoWithLlm($split['preamble']);
-        $accountInfo = $this->enrichAccountInfoFromPreambleKeyValues($split['preamble'], $accountInfo);
+        $accountInfo = $this->extractAccountInfoFromPreamble($split['preamble']);
         $transactions = $split['table_csv'] !== null
             ? $this->parseTransactionsFromTableCsv($split['table_csv'])
             : [];
@@ -54,8 +53,7 @@ class StatementParserService
         $text = $this->extractFromPdf($file);
         $split = $this->splitter->splitPdfText($text);
 
-        $accountInfo = $this->extractAccountInfoWithLlm($split['preamble']);
-        $accountInfo = $this->enrichAccountInfoFromPreambleKeyValues($split['preamble'], $accountInfo);
+        $accountInfo = $this->extractAccountInfoFromPreamble($split['preamble']);
         $transactions = $this->parseTransactionsFromTableCsv($split['body']);
 
         return $this->mergeResult($accountInfo, $transactions);
@@ -67,6 +65,23 @@ class StatementParserService
         $pdf = $parser->parseFile($file->getRealPath() ?: $file->getPathname());
 
         return $pdf->getText() ?: '';
+    }
+
+    /**
+     * Prefer deterministic statement header key-values over LLM calls.
+     *
+     * @return array<string, mixed>
+     */
+    private function extractAccountInfoFromPreamble(string $preamble): array
+    {
+        $fromFile = $this->parseKeyValuePreambleLines($preamble);
+        if ($this->hasUsefulPreambleAccountInfo($fromFile)) {
+            return array_merge($this->emptyAccountInfo(), $fromFile);
+        }
+
+        $accountInfo = $this->extractAccountInfoWithLlm($preamble);
+
+        return $this->enrichAccountInfoFromPreambleKeyValues($preamble, $accountInfo);
     }
 
     /**
@@ -200,6 +215,19 @@ class StatementParserService
         return $out;
     }
 
+    /** @param  array<string, string|null>  $accountInfo */
+    private function hasUsefulPreambleAccountInfo(array $accountInfo): bool
+    {
+        foreach (['account_number', 'ifsc_code', 'account_holder_name'] as $key) {
+            $value = $accountInfo[$key] ?? null;
+            if (is_string($value) && trim($value) !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function buildPreambleAccountPrompt(string $preamble): string
     {
         return <<<PROMPT
@@ -326,7 +354,7 @@ PROMPT;
             return null;
         }
 
-        array_pop($parts); // balance (not used for classification)
+        $balanceRaw = (string) array_pop($parts);
         $creditRaw = (string) array_pop($parts);
         $debitRaw = (string) array_pop($parts);
 
@@ -370,12 +398,26 @@ PROMPT;
 
         $ref = $reference !== '' ? $reference : null;
 
+        $balanceParsed = $this->parseAmount($balanceRaw);
+        $statementSequence = null;
+        if ($reference !== '' && ctype_digit($reference)) {
+            $statementSequence = (int) $reference;
+        }
+
+        $debitAmt = ($debit !== null && $debit > 0) ? round($debit, 2) : 0.0;
+        $creditAmt = ($credit !== null && $credit > 0) ? round($credit, 2) : 0.0;
+
         return [
             'date' => $date,
             'description' => $description,
             'amount' => round($amount, 2),
             'type' => $incomeExpense,
             'reference' => $ref,
+            'balance_after' => $balanceParsed !== null ? round($balanceParsed, 2) : null,
+            'balance_raw' => $balanceRaw !== '' ? $balanceRaw : null,
+            'statement_sequence' => $statementSequence,
+            'debit_amount' => $debitAmt,
+            'credit_amount' => $creditAmt,
         ];
     }
 
@@ -401,7 +443,7 @@ PROMPT;
 
     /**
      * @param  array<string, string>  $norm
-     * @return array{date: string, description: string, amount: float, type: string, reference: string|null}|null
+     * @return array<string, mixed>|null
      */
     private function mapRowToTransaction(array $norm): ?array
     {
@@ -440,13 +482,31 @@ PROMPT;
 
         $reference = $norm['srno'] ?? $norm['sno'] ?? $norm['serialno'] ?? $norm['ref'] ?? $norm['referenceno'] ?? null;
 
-        return [
+        $balanceRaw = $norm['balance'] ?? $norm['closingbalance'] ?? $norm['availablebalance'] ?? $norm['bal'] ?? null;
+        $balanceParsed = $balanceRaw !== null && $balanceRaw !== '' ? $this->parseAmount($balanceRaw) : null;
+
+        $statementSequence = null;
+        if ($reference !== null && $reference !== '' && ctype_digit($reference)) {
+            $statementSequence = (int) $reference;
+        }
+
+        $debitAmt = ($debit !== null && $debit > 0) ? round($debit, 2) : 0.0;
+        $creditAmt = ($credit !== null && $credit > 0) ? round($credit, 2) : 0.0;
+
+        $row = [
             'date' => $date,
             'description' => $description,
             'amount' => round($amount, 2),
             'type' => $type,
             'reference' => $reference !== null && $reference !== '' ? $reference : null,
+            'balance_after' => $balanceParsed !== null ? round($balanceParsed, 2) : null,
+            'balance_raw' => ($balanceRaw !== null && $balanceRaw !== '') ? $balanceRaw : null,
+            'statement_sequence' => $statementSequence,
+            'debit_amount' => $debitAmt,
+            'credit_amount' => $creditAmt,
         ];
+
+        return $row;
     }
 
     private function parseAmount(?string $raw): ?float
@@ -474,8 +534,29 @@ PROMPT;
     {
         return [
             'account_info' => array_merge($this->emptyAccountInfo(), $accountInfo),
-            'transactions' => $transactions,
+            'transactions' => $this->sortTransactionsForStatementOrder($transactions),
         ];
+    }
+
+    /**
+     * Stable statement order: Sr.No. when present, then ISO date.
+     *
+     * @param  array<int, array<string, mixed>>  $transactions
+     * @return array<int, array<string, mixed>>
+     */
+    private function sortTransactionsForStatementOrder(array $transactions): array
+    {
+        usort($transactions, function (array $a, array $b): int {
+            $seqA = $a['statement_sequence'] ?? PHP_INT_MAX;
+            $seqB = $b['statement_sequence'] ?? PHP_INT_MAX;
+            if ($seqA !== $seqB) {
+                return $seqA <=> $seqB;
+            }
+
+            return strcmp((string) ($a['date'] ?? ''), (string) ($b['date'] ?? ''));
+        });
+
+        return array_values($transactions);
     }
 
     /**

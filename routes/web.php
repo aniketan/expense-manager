@@ -74,5 +74,15 @@ Route::post('/ai/categorize', [AiController::class, 'categorize'])->name('ai.cat
 
 // Bank statement import
 Route::get('/statements/upload', [StatementController::class, 'uploadPage'])->name('statements.upload');
+Route::get('/statements/review', [StatementController::class, 'review'])->name('statements.review');
+Route::get('/statements/process', function () {
+    if (session()->has('statement_review_snapshot')) {
+        return redirect()->route('statements.review');
+    }
+
+    return redirect()->route('statements.upload');
+});
 Route::post('/statements/process', [StatementController::class, 'process'])->name('statements.process');
 Route::post('/statements/import', [StatementController::class, 'importTransactions'])->name('statements.import');
+Route::post('/statements/enrich', [StatementController::class, 'enrichTransactions'])->name('statements.enrich');
+Route::post('/statements/bundle-link', [StatementController::class, 'bundleLink'])->name('statements.bundle-link');

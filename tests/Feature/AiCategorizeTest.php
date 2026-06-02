@@ -182,7 +182,7 @@ class AiCategorizeTest extends TestCase
         ]);
 
         $response = $this->postJson('/ai/categorize', [
-            'description' => 'INDUSIND CREDIT CARD PAYMENT/XXXXXXXXXXXX6183',
+            'description' => 'DEMO CREDIT CARD PAYMENT/XXXXXXXXXXXX0000',
             'type' => 'expense',
         ]);
 
@@ -230,7 +230,7 @@ class AiCategorizeTest extends TestCase
         ]);
 
         $response = $this->postJson('/ai/categorize', [
-            'description' => 'INDUSIND CREDIT CARD PAYMENT/XXXXXXXXXXXX6183',
+            'description' => 'DEMO CREDIT CARD PAYMENT/XXXXXXXXXXXX0000',
             'type' => 'expense',
         ]);
 
@@ -278,7 +278,7 @@ class AiCategorizeTest extends TestCase
         ]);
 
         $response = $this->postJson('/ai/categorize', [
-            'description' => 'INDUSIND CREDIT CARD PAYMENT/XXXXXXXXXXXX6183',
+            'description' => 'DEMO CREDIT CARD PAYMENT/XXXXXXXXXXXX0000',
             'type' => 'expense',
         ]);
 
