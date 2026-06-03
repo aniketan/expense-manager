@@ -41,6 +41,7 @@ Route::get('api/categories/{category}/children', [CategoryController::class, 'ge
 Route::get('api/categories/with-totals', [CategoryController::class, 'getCategoriesWithTotals'])->name('api.categories.with-totals');
 
 // Transaction routes
+Route::get('transactions/export', [TransactionController::class, 'export'])->name('transactions.export');
 Route::resource('transactions', TransactionController::class);
 Route::post('transactions/bulk-destroy', [TransactionController::class, 'bulkDestroy'])->name('transactions.bulk-destroy');
 Route::get('api/transactions', [TransactionController::class, 'getTransactions'])->name('api.transactions');
