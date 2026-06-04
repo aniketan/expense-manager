@@ -7,7 +7,7 @@ use Prism\Prism\Tool;
 
 class ListCategoriesTool extends Tool
 {
-public function __construct()
+    public function __construct()
     {
         $this
             ->as('list_categories')
@@ -16,17 +16,17 @@ public function __construct()
             ->using($this->execute(...));
     }
 
-public function execute(?string $type = null): string
+    public function execute(?string $type = null): string
     {
         try {
-            $query = Category::with(['parent', 'activeChildren' => fn($q) => $q->active()->withCount('transactions')])
+            $query = Category::with(['parent', 'activeChildren' => fn ($q) => $q->active()->withCount('transactions')])
                 ->active()
                 ->parent();
 
             if ($type === 'income') {
-                $query->where('code', 'INCOME');
+                $query->incomeRoot();
             } elseif ($type === 'expense') {
-                $query->whereNotIn('code', ['INCOME', 'ACCOUNTTR']);
+                $query->expenseParent();
             }
 
             $parents = $query->orderBy('name')->get()
@@ -52,7 +52,7 @@ public function execute(?string $type = null): string
         } catch (\Throwable $e) {
             return json_encode([
                 'success' => false,
-                'error' => 'Failed to fetch categories: ' . $e->getMessage(),
+                'error' => 'Failed to fetch categories: '.$e->getMessage(),
             ]);
         }
     }

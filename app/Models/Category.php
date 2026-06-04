@@ -22,12 +22,14 @@ class Category extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
-    
+
     // Category types as constants (you can add more as needed)
     public const TYPE_INCOME = 'income';
+
     public const TYPE_EXPENSE = 'expense';
+
     public const TYPE_BOTH = 'both';
-    
+
     // Get all available category types
     public static function getTypes(): array
     {
@@ -54,6 +56,24 @@ class Category extends Model
     public function scopeChild($query)
     {
         return $query->whereNotNull('parent_id');
+    }
+
+    public function scopeIncomeRoot($query)
+    {
+        return $query->parent()
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(COALESCE(code, ?)) = ?', ['', 'income'])
+                    ->orWhereRaw('LOWER(name) = ?', ['income']);
+            });
+    }
+
+    public function scopeExpenseParent($query)
+    {
+        return $query->parent()
+            ->whereNot(function ($q) {
+                $q->whereRaw('LOWER(COALESCE(code, ?)) IN (?, ?, ?)', ['', 'income', 'accounttr', 'account_transfer'])
+                    ->orWhereRaw('LOWER(name) IN (?, ?)', ['income', 'account transfer']);
+            });
     }
 
     // Relationship: Parent category
@@ -89,7 +109,7 @@ class Category extends Model
     // Get full category name (including parent if exists)
     public function getFullNameAttribute()
     {
-        return $this->parent ? $this->parent->name . ' > ' . $this->name : $this->name;
+        return $this->parent ? $this->parent->name.' > '.$this->name : $this->name;
     }
 
     // Get category hierarchy level
@@ -107,7 +127,7 @@ class Category extends Model
     // Check if category is child/sub-category
     public function isChild()
     {
-        return !is_null($this->parent_id);
+        return ! is_null($this->parent_id);
     }
 
     // Calculate total transaction amount for this category only
@@ -122,18 +142,18 @@ class Category extends Model
         if ($this->isParent()) {
             // For parent categories, sum all children's transaction amounts using efficient DB query
             $childrenIds = $this->children->pluck('id')->toArray();
-            
+
             // If no children, just return parent's total
             if (empty($childrenIds)) {
                 return $this->transactions()->sum('amount');
             }
-            
+
             // Include parent ID as well (in case parent has direct transactions)
             $allIds = array_merge($childrenIds, [$this->id]);
-            
+
             return Transaction::whereIn('category_id', $allIds)->sum('amount');
         }
-        
+
         // For child categories, just return their own total
         return $this->total_amount;
     }
@@ -150,18 +170,18 @@ class Category extends Model
         if ($this->isParent()) {
             // For parent categories, count all children's transactions using efficient DB query
             $childrenIds = $this->children->pluck('id')->toArray();
-            
+
             // If no children, just return parent's count
             if (empty($childrenIds)) {
                 return $this->transactions()->count();
             }
-            
+
             // Include parent ID as well (in case parent has direct transactions)
             $allIds = array_merge($childrenIds, [$this->id]);
-            
+
             return Transaction::whereIn('category_id', $allIds)->count();
         }
-        
+
         return $this->transaction_count;
     }
 }
