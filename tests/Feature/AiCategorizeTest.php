@@ -102,6 +102,111 @@ class AiCategorizeTest extends TestCase
             ->assertJsonPath('confidence', 'medium');
     }
 
+    public function test_categorize_income_accepts_seeded_lowercase_income_code(): void
+    {
+        $incomeRoot = Category::factory()->parent()->create([
+            'code' => 'income',
+            'name' => 'Income',
+            'is_active' => true,
+        ]);
+        $salary = Category::factory()->create([
+            'parent_id' => $incomeRoot->id,
+            'name' => 'Salary',
+            'is_active' => true,
+        ]);
+
+        Prism::fake([
+            new TextResponse(
+                steps: collect([]),
+                text: json_encode([
+                    'category_id' => $incomeRoot->id,
+                    'subcategory_id' => $salary->id,
+                    'confidence' => 'high',
+                    'reason' => 'Payroll deposit',
+                ]),
+                finishReason: FinishReason::Stop,
+                toolCalls: [],
+                toolResults: [],
+                usage: new Usage(0, 0),
+                meta: new Meta('fake', 'fake'),
+                messages: collect([]),
+            ),
+        ]);
+
+        $response = $this->postJson('/ai/categorize', [
+            'description' => 'SALARY CREDIT',
+            'type' => 'income',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('category_id', $incomeRoot->id)
+            ->assertJsonPath('subcategory_id', $salary->id)
+            ->assertJsonPath('confidence', 'high');
+    }
+
+    public function test_categorize_expense_fallback_excludes_income_and_account_transfer_roots(): void
+    {
+        $incomeRoot = Category::factory()->parent()->create([
+            'code' => 'income',
+            'name' => 'Income',
+            'is_active' => true,
+        ]);
+        Category::factory()->create([
+            'parent_id' => $incomeRoot->id,
+            'name' => 'Salary',
+            'is_active' => true,
+        ]);
+
+        $transferRoot = Category::factory()->parent()->create([
+            'code' => 'ACCOUNT_TRANSFER',
+            'name' => 'Account Transfer',
+            'is_active' => true,
+        ]);
+        $transferChild = Category::factory()->create([
+            'parent_id' => $transferRoot->id,
+            'name' => 'Account Transfer',
+            'is_active' => true,
+        ]);
+
+        $food = Category::factory()->parent()->create([
+            'code' => 'food',
+            'name' => 'Food',
+            'is_active' => true,
+        ]);
+        $groceries = Category::factory()->create([
+            'parent_id' => $food->id,
+            'name' => 'Groceries',
+            'is_active' => true,
+        ]);
+
+        Prism::fake([
+            new TextResponse(
+                steps: collect([]),
+                text: json_encode([
+                    'category_id' => $transferRoot->id,
+                    'subcategory_id' => $transferChild->id,
+                    'confidence' => 'low',
+                    'reason' => 'Wrong branch',
+                ]),
+                finishReason: FinishReason::Stop,
+                toolCalls: [],
+                toolResults: [],
+                usage: new Usage(0, 0),
+                meta: new Meta('fake', 'fake'),
+                messages: collect([]),
+            ),
+        ]);
+
+        $response = $this->postJson('/ai/categorize', [
+            'description' => 'GROCERY STORE',
+            'type' => 'expense',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('category_id', $food->id)
+            ->assertJsonPath('subcategory_id', $groceries->id);
+    }
+
     public function test_categorize_expense_falls_back_when_ai_returns_income_child(): void
     {
         $incomeRoot = Category::factory()->parent()->create([

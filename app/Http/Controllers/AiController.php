@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\AI\Tools\ListCategoriesTool;
 use App\Models\Category;
+use App\Services\LlmLoggingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Prism\Prism\Facades\Prism;
-use App\Services\LlmLoggingService;
-use App\AI\Tools\ListCategoriesTool;
 use Prism\Prism\Streaming\Events\TextDeltaEvent;
-use Prism\Prism\Streaming\Events\ToolCallEvent;
 use Prism\Prism\Streaming\Events\ToolResultEvent;
 use Prism\Prism\ValueObjects\ToolResult;
 
@@ -29,7 +28,7 @@ class AiController extends Controller
         ]);
 
         $logger = app(LlmLoggingService::class);
-        $sessionId = 'cat_' . uniqid();
+        $sessionId = 'cat_'.uniqid();
 
         $provider = config('ai.provider');
         $model = config('ai.categorize_model') ?: config('ai.model');
@@ -42,16 +41,17 @@ class AiController extends Controller
 
         // Check if categories exist for this type (quick DB check)
         $hasCategories = Category::active()->parent()
-            ->when($type === 'income', fn($q) => $q->where('code', 'INCOME'))
-            ->when($type === 'expense', fn($q) => $q->whereNotIn('code', ['INCOME', 'ACCOUNTTR']))
+            ->when($type === 'income', fn ($q) => $q->incomeRoot())
+            ->when($type === 'expense', fn ($q) => $q->expenseParent())
             ->exists();
 
         if (! $hasCategories) {
             $message = $type === 'income' ? 'No income categories configured' : 'No expense categories configured';
+
             return response()->json(['error' => $message], 422);
         }
         $userPrompt = $this->buildCategorizePrompt($validated['description'], $type);
-        $logger->logMessages($sessionId, [], "Tool-enabled categorize: type={$type}"); 
+        $logger->logMessages($sessionId, [], "Tool-enabled categorize: type={$type}");
 
         try {
             $start = microtime(true);
@@ -59,7 +59,7 @@ class AiController extends Controller
                 ->using($provider, $model)
                 ->withSystemPrompt('You are a financial categorization expert. You MUST call the list_categories tool with type='.$type.' first, read tree_structure names and ids, then output valid JSON only (no markdown) with matched category_id and subcategory_id from that tree.')
                 ->withPrompt($userPrompt)
-                ->withTools([new ListCategoriesTool()])
+                ->withTools([new ListCategoriesTool])
                 ->withMaxSteps(max(2, $categorizeMaxSteps))
                 ->withMaxTokens($maxTokens)
                 ->asText();
@@ -69,11 +69,11 @@ class AiController extends Controller
             $duration = round((microtime(true) - $start) * 1000);
             $logger->logResponse($sessionId, $duration, ['raw_text_length' => strlen($finalText)]);
 
-            $logger->logMessages($sessionId, [], 'Raw LLM response: ' . substr($finalText, 0, 1000));
+            $logger->logMessages($sessionId, [], 'Raw LLM response: '.substr($finalText, 0, 1000));
 
             $data = $this->decodeJsonResponse($finalText);
 
-            $logger->logMessages($sessionId, [], 'Parsed data: ' . json_encode($data));
+            $logger->logMessages($sessionId, [], 'Parsed data: '.json_encode($data));
 
             $normalized = null;
             $matchedDescriptionToTree = false;
@@ -97,7 +97,7 @@ class AiController extends Controller
                     if ($fromHeuristic) {
                         $normalized = $fromHeuristic;
                         $matchedDescriptionToTree = true;
-                        $logger->logMessages($sessionId, [], 'Description-to-tree heuristic: ' . json_encode($normalized));
+                        $logger->logMessages($sessionId, [], 'Description-to-tree heuristic: '.json_encode($normalized));
                     }
                 }
             }
@@ -110,10 +110,11 @@ class AiController extends Controller
                 $normalized = $this->refineExpenseSiblingByDescription($validated['description'], $normalized);
             }
 
-            $logger->logMessages($sessionId, [], 'Normalized: ' . json_encode($normalized));
+            $logger->logMessages($sessionId, [], 'Normalized: '.json_encode($normalized));
 
             if (! $normalized) {
                 $logger->logError($sessionId, 'normalize_failed', new \Exception('Invalid category IDs'));
+
                 return response()->json(['error' => 'AI returned invalid category ids'], 422);
             }
 
@@ -142,19 +143,21 @@ class AiController extends Controller
                 ];
             }
 
-            $logger->logMessages($sessionId, [], 'SUCCESS: ' . json_encode($successPayload));
+            $logger->logMessages($sessionId, [], 'SUCCESS: '.json_encode($successPayload));
 
             return response()->json($successPayload);
 
         } catch (\Throwable $e) {
             $logger->logError($sessionId, 'prism_failed', $e);
-            return response()->json(['error' => 'AI categorization failed: ' . $e->getMessage()], 503);
+
+            return response()->json(['error' => 'AI categorization failed: '.$e->getMessage()], 503);
         }
     }
 
     private function buildCategorizePrompt(string $description, string $type): string
     {
         $typeLabel = $type === 'income' ? 'income' : 'expense';
+
         return <<<PROMPT
 Categorize this {$typeLabel} transaction by predicting the BEST MATCHING category names semantically (NOT ids), then call list_categories(type="{$type}"), then MATCH your predictions to the exact names/IDs in the tree_structure response.
 
@@ -180,9 +183,9 @@ PROMPT;
     }
 
     /**
-     * Process categorize events from tool streaming, extract category tool results, 
+     * Process categorize events from tool streaming, extract category tool results,
      * semantically match LLM predictions to DB categories, normalize tree IDs.
-     * 
+     *
      * @return array{category_id: int, subcategory_id: int, confidence: string}|null
      */
     private function handleCategorizeEvents(array $events, string $type): ?array
@@ -193,7 +196,7 @@ PROMPT;
         foreach ($events as $event) {
             if ($event instanceof ToolResultEvent && $event->toolCall->name === 'list_categories') {
                 $toolResult = json_decode($event->content, true);
-                if (!($toolResult['success'] ?? false)) {
+                if (! ($toolResult['success'] ?? false)) {
                     return null;
                 }
                 break; // Assume single tool call per categorize
@@ -207,7 +210,7 @@ PROMPT;
         }
 
         $tree = $toolResult['tree_structure'];
-        
+
         // Parse final text for JSON (LLM final output after tool)
         $finalJson = $this->decodeJsonResponse($finalText);
         if ($finalJson && isset($finalJson['category_id'], $finalJson['subcategory_id'])) {
@@ -221,6 +224,7 @@ PROMPT;
 
         // Fallback: simple first-match normalization using existing logic
         $categories = $this->fetchCategoriesByType($type);
+
         return $this->normalizeToTreeIds(null, null, $type); // Uses existing fallbacks
     }
 
@@ -230,8 +234,7 @@ PROMPT;
         if ($type === 'income') {
             $incomeRoot = Category::query()
                 ->active()
-                ->parent()
-                ->where('code', 'INCOME')
+                ->incomeRoot()
                 ->with(['activeChildren' => fn ($q) => $q->orderBy('name')])
                 ->first();
 
@@ -251,8 +254,7 @@ PROMPT;
 
         return Category::query()
             ->active()
-            ->parent()
-            ->whereNotIn('code', ['INCOME', 'ACCOUNTTR'])
+            ->expenseParent()
             ->with(['activeChildren' => fn ($q) => $q->orderBy('name')])
             ->orderBy('name')
             ->get()
@@ -332,7 +334,7 @@ PROMPT;
     /**
      * Prefer the best sibling under the resolved parent when the wording matches another child much better than the current leaf (e.g. model returns Loans but picks Mortgage alphabetically).
      *
-     * @param array{category_id: int, subcategory_id: int} $normalized
+     * @param  array{category_id: int, subcategory_id: int}  $normalized
      * @return array{category_id: int, subcategory_id: int}
      */
     private function refineExpenseSiblingByDescription(string $description, array $normalized): array
@@ -463,8 +465,7 @@ PROMPT;
     {
         $incomeRoot = Category::query()
             ->active()
-            ->parent()
-            ->where('code', 'INCOME')
+            ->incomeRoot()
             ->with(['activeChildren' => fn ($q) => $q->orderBy('name')])
             ->first();
 
@@ -495,8 +496,7 @@ PROMPT;
     {
         $expenseParents = Category::query()
             ->active()
-            ->parent()
-            ->whereNotIn('code', ['INCOME', 'ACCOUNTTR'])
+            ->expenseParent()
             ->with(['activeChildren' => fn ($q) => $q->orderBy('name')])
             ->get()
             ->keyBy('id');
@@ -509,7 +509,7 @@ PROMPT;
             $child = Category::query()->active()->whereKey($childId)->first();
             if ($child && $child->parent_id) {
                 $parentOfChild = Category::query()->find($child->parent_id);
-                if ($parentOfChild && $parentOfChild->code === 'INCOME') {
+                if ($parentOfChild && $this->isNonExpenseRoot($parentOfChild)) {
                     return $this->fallbackExpenseLeaf($expenseParents);
                 }
 
@@ -546,9 +546,8 @@ PROMPT;
     {
         $other = Category::query()
             ->active()
-            ->parent()
+            ->expenseParent()
             ->where('name', 'Other')
-            ->whereNotIn('code', ['INCOME', 'ACCOUNTTR'])
             ->with(['activeChildren' => fn ($q) => $q->orderBy('name')])
             ->first();
 
@@ -570,7 +569,7 @@ PROMPT;
         $anyChild = Category::query()
             ->active()
             ->whereNotNull('parent_id')
-            ->whereHas('parent', fn ($q) => $q->whereNull('parent_id')->whereNotIn('code', ['INCOME', 'ACCOUNTTR']))
+            ->whereHas('parent', fn ($q) => $q->expenseParent())
             ->orderBy('id')
             ->first();
 
@@ -582,5 +581,14 @@ PROMPT;
         }
 
         return null;
+    }
+
+    private function isNonExpenseRoot(Category $category): bool
+    {
+        $code = strtolower((string) $category->code);
+        $name = strtolower((string) $category->name);
+
+        return in_array($code, ['income', 'accounttr', 'account_transfer'], true)
+            || in_array($name, ['income', 'account transfer'], true);
     }
 }
