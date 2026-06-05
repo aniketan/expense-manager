@@ -1,0 +1,82 @@
+name: Bug Report
+description: Report something that is broken or behaving unexpectedly.
+title: "Bug: "
+labels: ["type:task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Keep examples synthetic and do not attach private financial data.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is broken?
+      placeholder: "Example: Transaction filter loses the selected account after pagination."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What happens instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps To Reproduce
+      description: List the smallest set of steps that reproduces the issue.
+      placeholder: |
+        1. Go to Transactions
+        2. Filter by account
+        3. Click page 2
+        4. Observe the filter state
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected Area
+      options:
+        - Transactions
+        - Accounts
+        - Categories
+        - Budgets
+        - Dashboard
+        - Sync
+        - Statement import
+        - Chat / AI
+        - Documentation / workflow
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - P0 - blocks safe use or corrupts data
+        - P1 - core workflow broken
+        - P2 - important but has workaround
+        - P3 - polish or minor issue
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser, OS, PHP/Node versions, or deployment target if relevant.
+      placeholder: "Local WSL Ubuntu, PHP 8.4, Node 22, Chrome"
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots / Logs
+      description: Add screenshots, console output, or logs. Remove private paths, tokens, and real account data first.

@@ -288,6 +288,7 @@ class TransactionController extends Controller
     {
         // Load the transaction with its relationships
         $transaction->load(['category.parent', 'account']);
+        $transaction->transaction_time = $this->timeInputValue($transaction->transaction_time);
 
         $categories = Category::all();
         $accounts = Account::all();
@@ -297,6 +298,25 @@ class TransactionController extends Controller
             'categories' => $categories,
             'accounts' => $accounts,
         ]);
+    }
+
+    private function timeInputValue($value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        $stringValue = (string) $value;
+
+        if (preg_match('/^(\\d{2}:\\d{2})(?::\\d{2})?$/', $stringValue, $matches)) {
+            return $matches[1];
+        }
+
+        if (preg_match('/(?:T|\\s)(\\d{2}:\\d{2})(?::\\d{2})?/', $stringValue, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
     }
 
     /**

@@ -162,13 +162,14 @@ class SyncExpenseData extends Command
     private function displayConfiguration(?string $dbPath, bool $dryRun, bool $fresh = false): void
     {
         $actualDbPath = $dbPath ?: config('sync.external_db_path');
+        $displayPath = $actualDbPath ?: 'Not configured';
 
         $this->info('📋 Configuration:');
         $this->table(
             ['Setting', 'Value'],
             [
-                ['External DB Path', $actualDbPath],
-                ['File Exists', file_exists($actualDbPath) ? '✅ Yes' : '❌ No'],
+                ['External DB Path', $displayPath],
+                ['File Exists', $actualDbPath && file_exists($actualDbPath) ? '✅ Yes' : '❌ No'],
                 ['Mode', $dryRun ? '🔍 Dry Run (no changes)' : '💾 Live Sync'],
                 ['Fresh (purge EXT_*)', $fresh ? 'Yes' : 'No'],
                 ['Skip Duplicates', config('sync.sync_options.skip_duplicates') ? 'Yes' : 'No'],

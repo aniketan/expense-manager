@@ -254,6 +254,158 @@ export const handleAmountInput = (event, setter, fieldKey = undefined) => {
     }
 };
 
+export const TRANSACTION_ERROR_ORDER = [
+    'transaction_date',
+    'expensed_date',
+    'transaction_time',
+    'amount',
+    'account_id',
+    'transfer_to_account_id',
+    'payment_method',
+    'category',
+    'category_id',
+    'description',
+    'payee_payer',
+    'reference_number',
+    'tax',
+    'status',
+    'tags',
+    'notes',
+    'transfer',
+];
+
+export const getTransactionErrorLabels = (transactionType = 'expense') => ({
+    transaction_date: 'Date',
+    expensed_date: 'Date',
+    transaction_time: 'Time',
+    amount: 'Amount',
+    account_id: transactionType === 'transfer' ? 'From Account' : 'Account',
+    transfer_to_account_id: 'To Account',
+    payment_method: 'Payment Method',
+    category: 'Category',
+    category_id: transactionType === 'income' ? 'Income Category' : 'Subcategory',
+    description: 'Description',
+    payee_payer: 'Payee/Payer',
+    reference_number: 'Reference Number',
+    tax: 'Tax Amount',
+    status: 'Status',
+    tags: 'Tags',
+    notes: 'Notes',
+    transfer: 'Transfer',
+});
+
+export const getErrorEntries = (validationErrors = {}, serverErrors = {}, errorOrder = TRANSACTION_ERROR_ORDER) => {
+    const combinedErrors = { ...validationErrors, ...serverErrors };
+
+    return [
+        ...errorOrder
+            .filter((field) => combinedErrors[field])
+            .map((field) => [field, combinedErrors[field]]),
+        ...Object.entries(combinedErrors)
+            .filter(([field, message]) => message && !errorOrder.includes(field)),
+    ];
+};
+
+export const setValidationFieldError = (setValidationErrors, field, message) => {
+    setValidationErrors((current) => ({ ...current, [field]: message || null }));
+};
+
+export const clearValidationFieldError = (setValidationErrors, field) => {
+    setValidationFieldError(setValidationErrors, field, null);
+};
+
+export const clearValidationFieldErrors = (setValidationErrors, fields) => {
+    setValidationErrors((current) => ({
+        ...current,
+        ...Object.fromEntries(fields.map((field) => [field, null])),
+    }));
+};
+
+export const validateTransactionForm = (data, {
+    transactionType = 'expense',
+    selectedCategory = '',
+    dateField = 'transaction_date',
+    dateAllowFuture = false,
+    includeTimeInDate = false,
+    maxPastYears = 10,
+    maxAmount = 999999999.99,
+    tagsMax = 10,
+    tagMaxLength = 30,
+    validateNotes = false,
+} = {}) => {
+    const nextErrors = {};
+
+    const amountValidation = validateAmount(data.amount, false, maxAmount);
+    if (!amountValidation.isValid) {
+        nextErrors.amount = amountValidation.error;
+    }
+
+    const dateValidation = validateDate(
+        data[dateField],
+        dateAllowFuture,
+        maxPastYears,
+        includeTimeInDate ? data.transaction_time : ''
+    );
+    if (!dateValidation.isValid) {
+        nextErrors[dateField] = dateValidation.error;
+    }
+
+    const timeValidation = validateTime(data.transaction_time);
+    if (!timeValidation.isValid) {
+        nextErrors.transaction_time = timeValidation.error;
+    }
+
+    if (!data.account_id) {
+        nextErrors.account_id = 'Account is required';
+    }
+
+    if (transactionType !== 'transfer') {
+        if (!data.payment_method) {
+            nextErrors.payment_method = 'Payment method is required';
+        }
+        if (transactionType !== 'income' && !selectedCategory) {
+            nextErrors.category = 'Category is required';
+        }
+        if (!data.category_id) {
+            nextErrors.category_id = transactionType === 'income'
+                ? 'Income category is required'
+                : 'Subcategory is required';
+        }
+    }
+
+    if (transactionType === 'transfer') {
+        if (!data.transfer_to_account_id) {
+            nextErrors.transfer_to_account_id = 'Destination account is required';
+        }
+        if (data.account_id && data.account_id === data.transfer_to_account_id) {
+            nextErrors.transfer = 'Source and destination accounts must be different';
+        }
+    }
+
+    if (data.description) {
+        const descValidation = validateDescription(data.description, 1000, false);
+        if (!descValidation.isValid) {
+            nextErrors.description = descValidation.error;
+        }
+    }
+
+    if (data.tags) {
+        const tagsValidation = validateTags(data.tags, tagsMax, tagMaxLength);
+        if (!tagsValidation.isValid) {
+            nextErrors.tags = tagsValidation.error;
+        }
+    }
+
+    if (validateNotes && data.notes) {
+        const notesValidation = validateDescription(data.notes, 2000, false);
+        if (!notesValidation.isValid) {
+            nextErrors.notes = notesValidation.error;
+        }
+    }
+
+    return nextErrors;
+};
+
 /**
  * Get max date (today)
  */
@@ -282,6 +434,13 @@ export default {
     validateIFSC,
     validateTags,
     handleAmountInput,
+    TRANSACTION_ERROR_ORDER,
+    getTransactionErrorLabels,
+    getErrorEntries,
+    setValidationFieldError,
+    clearValidationFieldError,
+    clearValidationFieldErrors,
+    validateTransactionForm,
     getMaxDate,
     getMinDate
 };
