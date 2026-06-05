@@ -38,6 +38,19 @@ database/database.sqlite
 database/expense_manager.db
 *.db:Zone.Identifier
 
+# Python (scripts: smart import, anomaly reconciliation)
+/scripts/.venv/
+/scripts/anomaly.py
+/scripts/requirements.txt
+**/__pycache__/
+*.py[cod]
+
+# Local assistant/runtime context
+AGENTS.md
+.hermes/
+.codex/
+.claude/
+
 # Backup files
 *.backup
 *.bak

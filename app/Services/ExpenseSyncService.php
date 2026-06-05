@@ -5,29 +5,33 @@ namespace App\Services;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Transaction;
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use PDO;
-use Exception;
 
 class ExpenseSyncService
 {
     private PDO $externalDb;
+
     private string $externalDbPath;
+
     private array $accountMapping = [];
+
     private array $categoryMapping = [];
+
     private array $stats = [
         'categories_synced' => 0,
         'accounts_synced' => 0,
         'transactions_synced' => 0,
-        'errors' => 0
+        'errors' => 0,
     ];
 
-    public function __construct(string $externalDbPath = null)
+    public function __construct(?string $externalDbPath = null)
     {
         $configuredPath = $externalDbPath ?: config('sync.external_db_path');
 
-        if (!$configuredPath) {
+        if (! $configuredPath) {
             throw new Exception('External database path is not configured. Pass --db-path or set EXTERNAL_DB_PATH.');
         }
 
@@ -40,7 +44,7 @@ class ExpenseSyncService
      */
     private function initializeExternalDb(): void
     {
-        if (!file_exists($this->externalDbPath)) {
+        if (! file_exists($this->externalDbPath)) {
             throw new Exception("External database not found at: {$this->externalDbPath}");
         }
 
@@ -49,7 +53,7 @@ class ExpenseSyncService
             $this->externalDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             Log::info("Connected to external database: {$this->externalDbPath}");
         } catch (Exception $e) {
-            Log::error("Failed to connect to external database: " . $e->getMessage());
+            Log::error('Failed to connect to external database: '.$e->getMessage());
             throw $e;
         }
     }
@@ -59,7 +63,7 @@ class ExpenseSyncService
      */
     public function sync(bool $dryRun = false): array
     {
-        Log::info("Starting expense sync process", ['dry_run' => $dryRun]);
+        Log::info('Starting expense sync process', ['dry_run' => $dryRun]);
 
         try {
             DB::beginTransaction();
@@ -73,17 +77,17 @@ class ExpenseSyncService
             // Step 3: Sync transactions
             $this->syncTransactions($dryRun);
 
-            if (!$dryRun) {
+            if (! $dryRun) {
                 DB::commit();
-                Log::info("Sync completed successfully", $this->stats);
+                Log::info('Sync completed successfully', $this->stats);
             } else {
                 DB::rollBack();
-                Log::info("Dry run completed", $this->stats);
+                Log::info('Dry run completed', $this->stats);
             }
 
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error("Sync failed: " . $e->getMessage());
+            Log::error('Sync failed: '.$e->getMessage());
             $this->stats['errors']++;
             throw $e;
         }
@@ -96,7 +100,7 @@ class ExpenseSyncService
      */
     private function syncCategories(bool $dryRun): void
     {
-        Log::info("Starting category sync");
+        Log::info('Starting category sync');
 
         // Get categories from actual transaction data instead of expense_category table
         $stmt = $this->externalDb->query("
@@ -112,22 +116,26 @@ class ExpenseSyncService
             $categoryName = trim($categoryData['category']);
             $subcategoryName = trim($categoryData['subcategory'] ?? '');
 
-            if (empty($categoryName)) continue;
+            if (empty($categoryName)) {
+                continue;
+            }
 
             // Create or find parent category
             $parentCategory = $this->findOrCreateCategory($categoryName, null, $dryRun);
 
             // Create or find subcategory if exists
-            if (!empty($subcategoryName)) {
+            if (! empty($subcategoryName)) {
                 $subcategory = $this->findOrCreateCategory($subcategoryName, $parentCategory->id, $dryRun);
-                $this->categoryMapping[$categoryName . '|' . $subcategoryName] = $subcategory->id;
+                $this->categoryMapping[$categoryName.'|'.$subcategoryName] = $subcategory->id;
             } else {
-                $this->categoryMapping[$categoryName . '|'] = $parentCategory->id;
+                $this->categoryMapping[$categoryName.'|'] = $parentCategory->id;
             }
         }
 
-        Log::info("Category sync completed", ['count' => $this->stats['categories_synced']]);
-    }    /**
+        Log::info('Category sync completed', ['count' => $this->stats['categories_synced']]);
+    }
+
+    /**
      * Find or create category
      */
     private function findOrCreateCategory(string $name, ?int $parentId, bool $dryRun): Category
@@ -139,18 +147,18 @@ class ExpenseSyncService
             ->where('parent_id', $parentId)
             ->first();
 
-        if (!$category) {
-            if (!$dryRun) {
+        if (! $category) {
+            if (! $dryRun) {
                 $category = Category::create([
                     'name' => $name,
                     'code' => $code,
                     'parent_id' => $parentId,
-                    'description' => "Synced from external database",
-                    'is_active' => true
+                    'description' => 'Synced from external database',
+                    'is_active' => true,
                 ]);
             } else {
                 // For dry run, create a mock category object
-                $category = new Category();
+                $category = new Category;
                 $category->id = rand(1000, 9999); // Mock ID
                 $category->name = $name;
                 $category->parent_id = $parentId;
@@ -168,7 +176,7 @@ class ExpenseSyncService
      */
     private function syncAccounts(bool $dryRun): void
     {
-        Log::info("Starting account sync");
+        Log::info('Starting account sync');
 
         $stmt = $this->externalDb->query("
             SELECT DISTINCT account
@@ -182,12 +190,14 @@ class ExpenseSyncService
         foreach ($accounts as $accountData) {
             $accountCode = trim($accountData['account']);
 
-            if (empty($accountCode)) continue;
+            if (empty($accountCode)) {
+                continue;
+            }
 
             $account = Account::where('code', $accountCode)->first();
 
-            if (!$account) {
-                if (!$dryRun) {
+            if (! $account) {
+                if (! $dryRun) {
                     $account = Account::create([
                         'code' => $accountCode,
                         'name' => $this->generateAccountName($accountCode),
@@ -195,11 +205,11 @@ class ExpenseSyncService
                         'bank_name' => $this->getBankName($accountCode),
                         'opening_balance' => 0,
                         'current_balance' => 0,
-                        'is_active' => true
+                        'is_active' => true,
                     ]);
                 } else {
                     // For dry run, create a mock account object
-                    $account = new Account();
+                    $account = new Account;
                     $account->id = rand(1000, 9999); // Mock ID
                     $account->code = $accountCode;
                 }
@@ -211,7 +221,7 @@ class ExpenseSyncService
             $this->accountMapping[$accountCode] = $account->id;
         }
 
-        Log::info("Account sync completed", ['count' => $this->stats['accounts_synced']]);
+        Log::info('Account sync completed', ['count' => $this->stats['accounts_synced']]);
     }
 
     /**
@@ -219,7 +229,7 @@ class ExpenseSyncService
      */
     private function syncTransactions(bool $dryRun): void
     {
-        Log::info("Starting transaction sync");
+        Log::info('Starting transaction sync');
 
         $stmt = $this->externalDb->query("
             SELECT _id, account, amount, category, subcategory, payment_method,
@@ -235,15 +245,15 @@ class ExpenseSyncService
             try {
                 $this->syncSingleTransaction($transactionData, $dryRun);
             } catch (Exception $e) {
-                Log::error("Failed to sync transaction ID: " . $transactionData['_id'], [
+                Log::error('Failed to sync transaction ID: '.$transactionData['_id'], [
                     'error' => $e->getMessage(),
-                    'data' => $transactionData
+                    'data' => $transactionData,
                 ]);
                 $this->stats['errors']++;
             }
         }
 
-        Log::info("Transaction sync completed", ['count' => $this->stats['transactions_synced']]);
+        Log::info('Transaction sync completed', ['count' => $this->stats['transactions_synced']]);
     }
 
     /**
@@ -263,14 +273,14 @@ class ExpenseSyncService
         $tags = trim($data['expense_tag'] ?? '');
 
         // Skip if already synced (check by external ID in description or reference)
-        $existingTransaction = Transaction::where('reference_number', 'EXT_' . $externalId)->first();
+        $existingTransaction = Transaction::where('reference_number', 'EXT_'.$externalId)->first();
         if ($existingTransaction) {
             return; // Already synced
         }
 
         // Get account ID
         $accountId = $this->accountMapping[$accountCode] ?? null;
-        if (!$accountId) {
+        if (! $accountId) {
             throw new Exception("Account not found: {$accountCode}");
         }
 
@@ -279,14 +289,14 @@ class ExpenseSyncService
             // Handle empty category - create/use Uncategorized
             $categoryId = $this->getUncategorizedCategory($dryRun);
         } else {
-            $categoryKey = $category . '|' . $subcategory;
+            $categoryKey = $category.'|'.$subcategory;
             $categoryId = $this->categoryMapping[$categoryKey] ?? null;
-            if (!$categoryId) {
+            if (! $categoryId) {
                 // Try without subcategory
-                $categoryKey = $category . '|';
+                $categoryKey = $category.'|';
                 $categoryId = $this->categoryMapping[$categoryKey] ?? null;
             }
-            if (!$categoryId) {
+            if (! $categoryId) {
                 throw new Exception("Category not found: {$category} -> {$subcategory}");
             }
         }
@@ -297,17 +307,17 @@ class ExpenseSyncService
         // Convert timestamp
         $transactionDate = $this->convertTimestamp($expensed);
 
-        if (!$dryRun) {
+        if (! $dryRun) {
             Transaction::create([
                 'account_id' => $accountId,
                 'category_id' => $categoryId,
                 'transaction_type' => $transactionType,
                 'amount' => abs($amount), // Store as positive amount
-                'description' => $description ?: "Synced from external DB",
+                'description' => $description ?: 'Synced from external DB',
                 'transaction_date' => $transactionDate,
                 'payment_method' => $paymentMethod ?: 'unknown',
-                'reference_number' => 'EXT_' . $externalId, // Mark as external sync
-                'tags' => $tags
+                'reference_number' => 'EXT_'.$externalId, // Mark as external sync
+                'tags' => $tags,
             ]);
         }
 
@@ -321,7 +331,7 @@ class ExpenseSyncService
     {
         $mappings = config('sync.account_mappings', []);
 
-        return $mappings[$code]['name'] ?? ucfirst(strtolower($code)) . ' Account';
+        return $mappings[$code]['name'] ?? ucfirst(strtolower($code)).' Account';
     }
 
     /**
@@ -342,7 +352,9 @@ class ExpenseSyncService
         $mappings = config('sync.account_mappings', []);
 
         return $mappings[$code]['type'] ?? 'savings';
-    }    /**
+    }
+
+    /**
      * Determine transaction type based on category and amount
      */
     private function determineTransactionType(string $category, float $amount): string
@@ -407,7 +419,7 @@ class ExpenseSyncService
             'categories_synced' => 0,
             'accounts_synced' => 0,
             'transactions_synced' => 0,
-            'errors' => 0
+            'errors' => 0,
         ];
     }
 }

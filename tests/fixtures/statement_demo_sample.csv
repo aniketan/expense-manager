@@ -1,0 +1,11 @@
+Name,DEMO STATEMENT USER
+Account Number,100036608561
+IFSC,TEST0001234
+Account Type,Savings
+Transaction From,Mar 2026
+
+Transaction List
+
+Sr.No.,Date,Type, Description, Debit ,Credit ,Balance
+1,Mar 22  2026,Transfer Credit,UPI/900000000001/CR/DEMO/TEST/demo@okbank/Mar,-,23250.00,252758.24
+2,Mar 22  2026,Transfer Debit,DEMO CREDIT CARD PAYMENT/XXXXXXXXXXXX0000,624.29,-,252133.95

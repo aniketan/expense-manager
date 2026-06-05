@@ -134,6 +134,20 @@ export default function Index({ transactions = {}, categories = [], accounts = [
         });
     };
 
+    const exportCsv = () => {
+        const form = document.getElementById('transaction-filter-form');
+        if (!form) return;
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+        for (const [key, value] of formData.entries()) {
+            if (key === 'sort_by' || key === 'per_page') continue;
+            if (value != null && String(value).trim() !== '') {
+                params.append(key, value);
+            }
+        }
+        window.location.assign(`/transactions/export?${params.toString()}`);
+    };
+
     const deleteSelected = () => {
         if (selectedTransactions.length === 0) {
             alert('Please select transactions to delete.');
@@ -171,7 +185,14 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                 <span className="badge bg-secondary me-1">₹5K+</span>
                             </small>
                         </div>
-                        <div>
+                        <div className="d-flex flex-wrap gap-2 align-items-center">
+                            <button
+                                type="button"
+                                className="btn btn-outline-primary"
+                                onClick={exportCsv}
+                            >
+                                <i className="fas fa-file-csv me-2"></i>Export CSV
+                            </button>
                             <Link href="/transactions/create" className="btn btn-success">
                                 <i className="fas fa-plus me-2"></i>Add Transaction
                             </Link>
@@ -205,21 +226,32 @@ export default function Index({ transactions = {}, categories = [], accounts = [
             <div className="row mb-4">
                 <div className="col-12">
                     <div className="card">
-                        <div className="card-header">
+                        <div className="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                             <h5 className="mb-0">
                                 <i className="fas fa-filter me-2"></i>Search & Filters
+                            </h5>
+                            <div className="d-flex align-items-center gap-2">
                                 <button
-                                    className="btn btn-sm btn-outline-secondary float-end"
+                                    type="button"
+                                    className="btn btn-sm btn-outline-primary"
+                                    onClick={exportCsv}
+                                    title="Download CSV using filters below"
+                                >
+                                    <i className="fas fa-file-csv me-1"></i>Export CSV
+                                </button>
+                                <button
+                                    className="btn btn-sm btn-outline-secondary"
                                     type="button"
                                     onClick={() => setFiltersCollapsed(!filtersCollapsed)}
+                                    title={filtersCollapsed ? 'Expand filters' : 'Collapse filters'}
                                 >
                                     <i className={`fas fa-chevron-${filtersCollapsed ? 'down' : 'up'}`}></i>
                                 </button>
-                            </h5>
+                            </div>
                         </div>
                         <div className={`collapse ${!filtersCollapsed ? 'show' : ''}`}>
                             <div className="card-body">
-                                <form onSubmit={handleFilterSubmit}>
+                                <form id="transaction-filter-form" onSubmit={handleFilterSubmit}>
                                     <div className="row">
                                         <div className="col-md-3">
                                             <label htmlFor="search" className="form-label">Search Description/Notes/Payee</label>
@@ -312,6 +344,19 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                 name="date_to"
                                                 defaultValue={filters.date_to || ''}
                                             />
+                                        </div>
+                                        <div className="col-md-2">
+                                            <label htmlFor="cash_flow" className="form-label">Cash flow</label>
+                                            <select
+                                                className="form-select"
+                                                id="cash_flow"
+                                                name="cash_flow"
+                                                defaultValue={filters.cash_flow || ''}
+                                            >
+                                                <option value="">All</option>
+                                                <option value="credit">Credit (income)</option>
+                                                <option value="debit">Debit (expense + transfer)</option>
+                                            </select>
                                         </div>
                                         <div className="col-md-2">
                                             <label htmlFor="payment_method" className="form-label">Payment Method</label>
