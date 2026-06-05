@@ -11,9 +11,12 @@ export default function Edit({ account, accountTypes }) {
         bank_name: account.bank_name || '',
         account_number: account.account_number || '',
         ifsc_code: account.ifsc_code || '',
-        opening_balance: account.opening_balance || '0.00',
-        current_balance: account.current_balance || '0.00',
-        credit_limit: account.credit_limit || '0.00',
+        opening_balance:
+            account.opening_balance != null && account.opening_balance !== '' ? String(account.opening_balance) : '0.00',
+        current_balance:
+            account.current_balance != null && account.current_balance !== '' ? String(account.current_balance) : '0.00',
+        credit_limit:
+            account.credit_limit != null && account.credit_limit !== '' ? String(account.credit_limit) : '0.00',
         is_active: account.is_active ?? true,
     });
 

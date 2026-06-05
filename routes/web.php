@@ -1,15 +1,19 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AiController;
+use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Api\StatsController;
+use App\Http\Controllers\StatementController;
+use App\Http\Controllers\TransactionController;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
-    $transactionController = new \App\Http\Controllers\TransactionController();
+    $transactionController = new TransactionController;
 
     // Get dashboard statistics
     $stats = $transactionController->getDashboardStats();
@@ -17,9 +21,9 @@ Route::get('/', function () {
     // Get recent transactions
     $recentTransactions = $transactionController->getRecentTransactions(10);
 
-    return \Inertia\Inertia::render('Welcome', [
+    return Inertia::render('Welcome', [
         'stats' => $stats,
-        'recentTransactions' => $recentTransactions
+        'recentTransactions' => $recentTransactions,
     ]);
 });
 
@@ -37,6 +41,7 @@ Route::get('api/categories/{category}/children', [CategoryController::class, 'ge
 Route::get('api/categories/with-totals', [CategoryController::class, 'getCategoriesWithTotals'])->name('api.categories.with-totals');
 
 // Transaction routes
+Route::get('transactions/export', [TransactionController::class, 'export'])->name('transactions.export');
 Route::resource('transactions', TransactionController::class);
 Route::post('transactions/bulk-destroy', [TransactionController::class, 'bulkDestroy'])->name('transactions.bulk-destroy');
 Route::get('api/transactions', [TransactionController::class, 'getTransactions'])->name('api.transactions');
@@ -59,3 +64,26 @@ Route::prefix('api/stats')->name('api.stats.')->group(function () {
     Route::get('dashboard', [StatsController::class, 'dashboard'])->name('dashboard');
     Route::get('date-range', [StatsController::class, 'dateRange'])->name('date-range');
 });
+
+// Chatbot routes (SSE + history)
+Route::post('/chat/stream', [ChatController::class, 'stream'])->name('chat.stream');
+Route::get('/chat/history', [ChatController::class, 'history'])->name('chat.history');
+Route::post('/chat/reset', [ChatController::class, 'reset'])->name('chat.reset');
+
+// AI categorization (statement review table)
+Route::post('/ai/categorize', [AiController::class, 'categorize'])->name('ai.categorize');
+
+// Bank statement import
+Route::get('/statements/upload', [StatementController::class, 'uploadPage'])->name('statements.upload');
+Route::get('/statements/review', [StatementController::class, 'review'])->name('statements.review');
+Route::get('/statements/process', function () {
+    if (session()->has('statement_review_snapshot')) {
+        return redirect()->route('statements.review');
+    }
+
+    return redirect()->route('statements.upload');
+});
+Route::post('/statements/process', [StatementController::class, 'process'])->name('statements.process');
+Route::post('/statements/import', [StatementController::class, 'importTransactions'])->name('statements.import');
+Route::post('/statements/enrich', [StatementController::class, 'enrichTransactions'])->name('statements.enrich');
+Route::post('/statements/bundle-link', [StatementController::class, 'bundleLink'])->name('statements.bundle-link');

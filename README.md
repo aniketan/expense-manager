@@ -1,8 +1,6 @@
 # Expense Manager
 
-Expense Manager is a single-user personal finance app built with Laravel, Inertia, and React. The long-term product direction is chat-first money management: fast expense capture, reliable category mapping, statement import cleanup, and auditable balances.
-
-The public `main` branch currently contains the foundation: accounts, categories, transactions, budgets, dashboard analytics, external SQLite sync, CI, and the portfolio/docs workflow. Chat entry, AI-assisted categorization, and statement import reconciliation are active product lanes and should be treated as roadmap/WIP until merged.
+Expense Manager is a single-user personal finance app built with Laravel, Inertia, and React. The product direction is chat-first money management: fast expense capture, reliable category mapping, statement import cleanup, and auditable balances.
 
 ## Stack
 
@@ -14,15 +12,16 @@ The public `main` branch currently contains the foundation: accounts, categories
 - Tailwind CSS 4
 - Bootstrap 5
 - SQLite by default for local development and CI
-- Prism PHP is available for future AI integration work
+- Prism PHP for AI-assisted chat and categorization workflows
 
 ## Core Workflows
 
 - Manage accounts with opening and current balances.
 - Manage parent and child categories for income and expense tracking.
-- Create, edit, filter, and review transactions.
+- Create, edit, filter, export, and review transactions.
 - Track budgets by category and period.
-- View dashboard and analytics summaries.
+- Import and reconcile bank statement rows.
+- Use AI-assisted categorization and chat-first money workflows as active product lanes.
 - Sync data from a private external SQLite database with `php artisan expense:sync`.
 
 ## Local Setup
@@ -45,6 +44,24 @@ Run the backend, queue worker, and Vite dev server together:
 ```bash
 composer run dev
 ```
+
+For front-end hot reload only:
+
+```bash
+npm run dev
+```
+
+## Build
+
+Install PHP dependencies, install JS dependencies, then compile the Vite/React front end:
+
+```bash
+composer install --no-dev --optimize-autoloader
+npm ci
+npm run build
+```
+
+Use `npm run build` any time you change files under `resources/js` or related assets before deploying. The compiled assets are written to `public/build`.
 
 ## Verification
 

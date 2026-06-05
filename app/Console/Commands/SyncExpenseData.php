@@ -2,9 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Transaction;
 use App\Services\ExpenseSyncService;
-use Illuminate\Console\Command;
 use Exception;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class SyncExpenseData extends Command
 {
@@ -16,7 +18,8 @@ class SyncExpenseData extends Command
     protected $signature = 'expense:sync
                           {--dry-run : Run without making changes to the database}
                           {--db-path= : Path to external database file}
-                          {--force : Skip confirmation prompt}';
+                          {--force : Skip confirmation prompt}
+                          {--fresh : Preview and delete transactions previously synced from external DB (reference_number EXT_*) before syncing}';
 
     /**
      * The console command description.
@@ -33,24 +36,46 @@ class SyncExpenseData extends Command
         $dryRun = $this->option('dry-run');
         $dbPath = $this->option('db-path');
         $force = $this->option('force');
+        $fresh = $this->option('fresh');
 
         $this->info('🚀 Starting Expense Data Sync');
         $this->newLine();
 
         // Show configuration
-        $this->displayConfiguration($dbPath, $dryRun);
+        $this->displayConfiguration($dbPath, $dryRun, $fresh);
 
-        // Confirmation prompt (unless force is used)
-        if (!$force && !$dryRun) {
-            if (!$this->confirm('Do you want to proceed with the sync?')) {
+        $freshTransactions = collect();
+
+        if ($fresh) {
+            $freshTransactions = $this->freshSyncTransactions();
+            $this->displayFreshPreview($freshTransactions);
+        }
+
+        if ($fresh && ! $dryRun && $freshTransactions->isNotEmpty() && ! $force) {
+            if (! $this->confirm("Delete {$freshTransactions->count()} EXT_* transaction(s) using model deletes, then continue sync?")) {
+                $this->info('Fresh sync cancelled before deleting any transactions.');
+
+                return Command::SUCCESS;
+            }
+        }
+
+        if (! $fresh && ! $force && ! $dryRun) {
+            if (! $this->confirm('Do you want to proceed with the sync?')) {
                 $this->info('Sync cancelled.');
+
                 return Command::SUCCESS;
             }
         }
 
         try {
+            if ($fresh && ! $dryRun) {
+                DB::beginTransaction();
+                $deleted = $this->deleteFreshTransactions($freshTransactions);
+                $this->info("Removed {$deleted} previously synced transaction(s) (reference EXT_*) via model deletes.");
+                $this->newLine();
+            }
             // Initialize sync service
-            $syncService = new ExpenseSyncService($dbPath);
+            $syncService = $this->makeSyncService($dbPath);
 
             // Create progress bar
             $this->info('Initializing sync process...');
@@ -61,23 +86,80 @@ class SyncExpenseData extends Command
             // Display results
             $this->displayResults($stats, $dryRun);
 
+            if ($fresh && ! $dryRun) {
+                DB::commit();
+            }
+
             return Command::SUCCESS;
 
         } catch (Exception $e) {
-            $this->error('❌ Sync failed: ' . $e->getMessage());
-
-            if ($this->output->isVerbose()) {
-                $this->error('Stack trace: ' . $e->getTraceAsString());
+            if ($fresh && ! $dryRun && DB::transactionLevel() > 0) {
+                DB::rollBack();
             }
+            $this->error('❌ Sync failed: '.$e->getMessage());
+            $this->error('Stack trace: '.$e->getTraceAsString());
 
             return Command::FAILURE;
         }
     }
 
+    protected function makeSyncService(?string $dbPath): ExpenseSyncService
+    {
+        return new ExpenseSyncService($dbPath);
+    }
+
+    private function freshSyncTransactions()
+    {
+        return Transaction::query()
+            ->where('reference_number', 'like', 'EXT_%')
+            ->orderBy('id')
+            ->get(['id', 'account_id', 'transaction_date', 'transaction_type', 'amount', 'reference_number', 'description']);
+    }
+
+    private function displayFreshPreview($transactions): void
+    {
+        $count = $transactions->count();
+        if ($count === 0) {
+            $this->info('Fresh sync preview: no EXT_* transactions found for deletion.');
+            $this->newLine();
+
+            return;
+        }
+        $this->warn("Fresh sync preview: {$count} EXT_* transaction(s) will be deleted before syncing.");
+        $this->line('Affected transaction IDs: '.$transactions->pluck('id')->implode(', '));
+        $this->table(
+            ['ID', 'Date', 'Type', 'Amount', 'Reference', 'Description'],
+            $transactions->take(25)->map(fn (Transaction $transaction) => [
+                $transaction->id,
+                optional($transaction->transaction_date)->toDateString(),
+                $transaction->transaction_type,
+                $transaction->amount,
+                $transaction->reference_number,
+                str($transaction->description)->limit(60)->toString(),
+            ])->all()
+        );
+        if ($count > 25) {
+            $this->line('Preview limited to first 25 rows; full affected ID list is shown above.');
+        }
+        $this->newLine();
+    }
+
+    private function deleteFreshTransactions($transactions): int
+    {
+        $deleted = 0;
+        foreach ($transactions as $transaction) {
+            if ($transaction->delete()) {
+                $deleted++;
+            }
+        }
+
+        return $deleted;
+    }
+
     /**
      * Display configuration information
      */
-    private function displayConfiguration(?string $dbPath, bool $dryRun): void
+    private function displayConfiguration(?string $dbPath, bool $dryRun, bool $fresh = false): void
     {
         $actualDbPath = $dbPath ?: config('sync.external_db_path');
         $displayPath = $actualDbPath ?: 'Not configured';
@@ -89,6 +171,7 @@ class SyncExpenseData extends Command
                 ['External DB Path', $displayPath],
                 ['File Exists', $actualDbPath && file_exists($actualDbPath) ? '✅ Yes' : '❌ No'],
                 ['Mode', $dryRun ? '🔍 Dry Run (no changes)' : '💾 Live Sync'],
+                ['Fresh (purge EXT_*)', $fresh ? 'Yes' : 'No'],
                 ['Skip Duplicates', config('sync.sync_options.skip_duplicates') ? 'Yes' : 'No'],
                 ['Batch Size', config('sync.sync_options.batch_size')],
             ]

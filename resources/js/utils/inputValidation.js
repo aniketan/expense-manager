@@ -226,7 +226,8 @@ export const validateTags = (tags, maxTags = 10, maxTagLength = 30) => {
 };
 
 /**
- * Real-time amount input handler
+ * Real-time amount input handler.
+ * Either: handleAmountInput(e, (value) => { ... })  OR  handleAmountInput(e, setData, 'fieldKey') for useForm.setData.
  */
 export const handleAmountInput = (event, setter, fieldKey = undefined) => {
     let value = event.target.value;
