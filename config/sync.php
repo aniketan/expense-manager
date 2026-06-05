@@ -11,7 +11,7 @@ return [
     |
     */
 
-    'external_db_path' => env('EXTERNAL_DB_PATH', '/mnt/c/Users/rohit/Dropbox/ExpenseManager/Database/personal_finance.db'),
+    'external_db_path' => env('EXTERNAL_DB_PATH'),
 
     /*
     |--------------------------------------------------------------------------
@@ -45,43 +45,43 @@ return [
         'INDB' => [
             'name' => 'IndusInd Bank Savings',
             'type' => 'savings',
-            'bank_name' => 'IndusInd Bank'
+            'bank_name' => 'IndusInd Bank',
         ],
         'ICIC' => [
             'name' => 'ICICI Bank Savings',
             'type' => 'savings',
-            'bank_name' => 'ICICI Bank'
+            'bank_name' => 'ICICI Bank',
         ],
         'HDFC' => [
             'name' => 'HDFC Bank Savings',
             'type' => 'savings',
-            'bank_name' => 'HDFC Bank'
+            'bank_name' => 'HDFC Bank',
         ],
         'SBI' => [
             'name' => 'State Bank of India',
             'type' => 'savings',
-            'bank_name' => 'State Bank of India'
+            'bank_name' => 'State Bank of India',
         ],
         'AXIS' => [
             'name' => 'Axis Bank Savings',
             'type' => 'savings',
-            'bank_name' => 'Axis Bank'
+            'bank_name' => 'Axis Bank',
         ],
         'CASH' => [
             'name' => 'Cash Account',
             'type' => 'cash',
-            'bank_name' => null
+            'bank_name' => null,
         ],
         'PAYTM' => [
             'name' => 'Paytm Wallet',
             'type' => 'cash',
-            'bank_name' => 'Paytm'
+            'bank_name' => 'Paytm',
         ],
         'GPAY' => [
             'name' => 'Google Pay',
             'type' => 'cash',
-            'bank_name' => 'Google'
-        ]
+            'bank_name' => 'Google',
+        ],
     ],
 
     /*
@@ -100,15 +100,15 @@ return [
             'Interest',
             'Refund',
             'Cashback',
-            'Investment Returns'
+            'Investment Returns',
         ],
         'transfer_categories' => [
             'Account Transfer',
-            'Transfer'
+            'Transfer',
         ],
         'expense_categories' => [
             // All other categories are considered expenses
-        ]
+        ],
     ],
 
     /*
@@ -131,8 +131,8 @@ return [
             'date' => 'expensed',
             'reference_number' => 'reference_number',
             'tags' => 'expense_tag',
-            'status' => 'status'
-        ]
+            'status' => 'status',
+        ],
     ],
 
     /*
@@ -143,6 +143,6 @@ return [
     'logging' => [
         'enabled' => true,
         'level' => 'info', // debug, info, warning, error
-        'log_file' => 'sync.log'
-    ]
+        'log_file' => 'sync.log',
+    ],
 ];
