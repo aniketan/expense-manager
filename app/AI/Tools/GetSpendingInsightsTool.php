@@ -3,7 +3,6 @@
 namespace App\AI\Tools;
 
 use App\Models\Budget;
-use App\Models\Category;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Prism\Prism\Tool;
@@ -15,11 +14,11 @@ class GetSpendingInsightsTool extends Tool
         $this
             ->as('get_spending_insights')
             ->for(
-                'Analyse financial data. Use query_type to choose what to retrieve: ' .
-                '"spending_summary" for income/expense overview, ' .
-                '"budget_status" to check budgets (over/under), ' .
-                '"payment_breakdown" to see UPI vs cash vs card totals, ' .
-                '"tag_summary" to see spending by tag, ' .
+                'Analyse financial data. Use query_type to choose what to retrieve: '.
+                '"spending_summary" for income/expense overview, '.
+                '"budget_status" to check budgets (over/under), '.
+                '"payment_breakdown" to see UPI vs cash vs card totals, '.
+                '"tag_summary" to see spending by tag, '.
                 '"day_breakdown" to find the busiest spending day of the week.'
             )
             ->withEnumParameter(
@@ -42,23 +41,23 @@ class GetSpendingInsightsTool extends Tool
     }
 
     public function execute(
-        string  $query_type,
-        ?string $period       = 'this_month',
+        string $query_type,
+        ?string $period = 'this_month',
         ?string $category_name = null,
     ): string {
         try {
             return match ($query_type) {
-                'spending_summary'   => $this->spendingSummary($period ?? 'this_month'),
-                'budget_status'      => $this->budgetStatus($category_name),
-                'payment_breakdown'  => $this->paymentBreakdown($period ?? 'this_month'),
-                'tag_summary'        => $this->tagSummary($period ?? 'all'),
-                'day_breakdown'      => $this->dayBreakdown($period ?? 'this_month'),
-                default              => json_encode(['success' => false, 'error' => 'Unknown query_type.']),
+                'spending_summary' => $this->spendingSummary($period ?? 'this_month'),
+                'budget_status' => $this->budgetStatus($category_name),
+                'payment_breakdown' => $this->paymentBreakdown($period ?? 'this_month'),
+                'tag_summary' => $this->tagSummary($period ?? 'all'),
+                'day_breakdown' => $this->dayBreakdown($period ?? 'this_month'),
+                default => json_encode(['success' => false, 'error' => 'Unknown query_type.']),
             };
         } catch (\Throwable $e) {
             return json_encode([
                 'success' => false,
-                'error'   => 'Insight query failed: ' . $e->getMessage(),
+                'error' => 'Insight query failed: '.$e->getMessage(),
             ]);
         }
     }
@@ -68,8 +67,8 @@ class GetSpendingInsightsTool extends Tool
     private function applyPeriod($query, string $period)
     {
         match ($period) {
-            'today'      => $query->whereDate('transaction_date', Carbon::today()),
-            'this_week'  => $query->whereBetween('transaction_date', [
+            'today' => $query->whereDate('transaction_date', Carbon::today()),
+            'this_week' => $query->whereBetween('transaction_date', [
                 Carbon::now()->startOfWeek(),
                 Carbon::now()->endOfWeek(),
             ]),
@@ -77,7 +76,7 @@ class GetSpendingInsightsTool extends Tool
                 ->whereMonth('transaction_date', Carbon::now()->month),
             'last_month' => $query->whereYear('transaction_date', Carbon::now()->subMonth()->year)
                 ->whereMonth('transaction_date', Carbon::now()->subMonth()->month),
-            default      => null, // 'all' — no filter
+            default => null, // 'all' — no filter
         };
 
         return $query;
@@ -87,9 +86,9 @@ class GetSpendingInsightsTool extends Tool
     {
         $base = $this->applyPeriod(Transaction::query(), $period);
 
-        $income  = (clone $base)->where('transaction_type', 'income')->sum('amount');
+        $income = (clone $base)->where('transaction_type', 'income')->sum('amount');
         $expense = (clone $base)->where('transaction_type', 'expense')->sum('amount');
-        $net     = $income - $expense;
+        $net = $income - $expense;
         $savings = $income > 0 ? round(($net / $income) * 100, 1) : 0;
 
         $topCategories = (clone $base)
@@ -102,18 +101,18 @@ class GetSpendingInsightsTool extends Tool
             ->get()
             ->map(fn ($r) => [
                 'category' => $r->category?->name ?? 'Uncategorized',
-                'total'    => round((float) $r->total, 2),
-                'count'    => (int) $r->cnt,
+                'total' => round((float) $r->total, 2),
+                'count' => (int) $r->cnt,
             ])->values()->all();
 
         return json_encode([
-            'success'        => true,
-            'query_type'     => 'spending_summary',
-            'period'         => $period,
-            'income'         => round((float) $income, 2),
-            'expense'        => round((float) $expense, 2),
-            'net'            => round((float) $net, 2),
-            'savings_rate'   => $savings . '%',
+            'success' => true,
+            'query_type' => 'spending_summary',
+            'period' => $period,
+            'income' => round((float) $income, 2),
+            'expense' => round((float) $expense, 2),
+            'net' => round((float) $net, 2),
+            'savings_rate' => $savings.'%',
             'top_categories' => $topCategories,
         ]);
     }
@@ -124,9 +123,8 @@ class GetSpendingInsightsTool extends Tool
             ->active()
             ->current();
 
-        if (!empty($categoryName)) {
-            $query->whereHas('category', fn ($q) =>
-                $q->where('name', 'like', '%' . $categoryName . '%')
+        if (! empty($categoryName)) {
+            $query->whereHas('category', fn ($q) => $q->where('name', 'like', '%'.$categoryName.'%')
             );
         }
 
@@ -137,34 +135,34 @@ class GetSpendingInsightsTool extends Tool
                 'success' => true,
                 'query_type' => 'budget_status',
                 'budgets' => [],
-                'message' => 'No active budgets found' . ($categoryName ? " for \"{$categoryName}\"" : '') . '.',
+                'message' => 'No active budgets found'.($categoryName ? " for \"{$categoryName}\"" : '').'.',
             ]);
         }
 
         $result = $budgets->map(fn (Budget $b) => [
-            'name'           => $b->name,
-            'category'       => $b->category?->name,
-            'limit'          => round((float) $b->amount, 2),
-            'spent'          => round((float) $b->spent_amount, 2),
-            'remaining'      => round((float) $b->remaining_amount, 2),
-            'percent_used'   => $b->percentage_used . '%',
-            'status'         => $b->status, // success / warning / danger
-            'period_type'    => $b->period_type,
-            'start_date'     => $b->start_date->format('Y-m-d'),
-            'end_date'       => $b->end_date->format('Y-m-d'),
+            'name' => $b->name,
+            'category' => $b->category?->name,
+            'limit' => round((float) $b->amount, 2),
+            'spent' => round((float) $b->spent_amount, 2),
+            'remaining' => round((float) $b->remaining_amount, 2),
+            'percent_used' => $b->percentage_used.'%',
+            'status' => $b->status, // success / warning / danger
+            'period_type' => $b->period_type,
+            'start_date' => $b->start_date->format('Y-m-d'),
+            'end_date' => $b->end_date->format('Y-m-d'),
         ])->values()->all();
 
         $exceeded = collect($result)->where('status', 'danger')->count();
-        $warning  = collect($result)->where('status', 'warning')->count();
+        $warning = collect($result)->where('status', 'warning')->count();
 
         return json_encode([
-            'success'          => true,
-            'query_type'       => 'budget_status',
-            'total_budgets'    => count($result),
-            'exceeded'         => $exceeded,
-            'warning'          => $warning,
-            'on_track'         => count($result) - $exceeded - $warning,
-            'budgets'          => $result,
+            'success' => true,
+            'query_type' => 'budget_status',
+            'total_budgets' => count($result),
+            'exceeded' => $exceeded,
+            'warning' => $warning,
+            'on_track' => count($result) - $exceeded - $warning,
+            'budgets' => $result,
         ]);
     }
 
@@ -183,15 +181,15 @@ class GetSpendingInsightsTool extends Tool
 
         $breakdown = $rows->map(fn ($r) => [
             'method' => $r->method,
-            'total'  => round((float) $r->total, 2),
-            'count'  => (int) $r->cnt,
+            'total' => round((float) $r->total, 2),
+            'count' => (int) $r->cnt,
         ])->values()->all();
 
         return json_encode([
-            'success'    => true,
+            'success' => true,
             'query_type' => 'payment_breakdown',
-            'period'     => $period,
-            'breakdown'  => $breakdown,
+            'period' => $period,
+            'breakdown' => $breakdown,
         ]);
     }
 
@@ -209,7 +207,7 @@ class GetSpendingInsightsTool extends Tool
         foreach ($rows as $row) {
             $tags = array_filter(array_map('trim', explode(',', $row->tags)));
             foreach ($tags as $tag) {
-                if (!isset($tagMap[$tag])) {
+                if (! isset($tagMap[$tag])) {
                     $tagMap[$tag] = ['tag' => $tag, 'total' => 0.0, 'count' => 0];
                 }
                 $tagMap[$tag]['total'] += (float) $row->amount;
@@ -219,17 +217,17 @@ class GetSpendingInsightsTool extends Tool
 
         usort($tagMap, fn ($a, $b) => $b['total'] <=> $a['total']);
         $tagMap = array_values(array_map(fn ($t) => [
-            'tag'   => $t['tag'],
+            'tag' => $t['tag'],
             'total' => round($t['total'], 2),
             'count' => $t['count'],
         ], $tagMap));
 
         return json_encode([
-            'success'    => true,
+            'success' => true,
             'query_type' => 'tag_summary',
-            'period'     => $period,
+            'period' => $period,
             'total_tags' => count($tagMap),
-            'tags'       => $tagMap,
+            'tags' => $tagMap,
         ]);
     }
 
@@ -248,11 +246,11 @@ class GetSpendingInsightsTool extends Tool
 
         foreach ($rows as $row) {
             $dow = (int) $row->transaction_date->dayOfWeek; // 0=Sun
-            if (!isset($dayMap[$dow])) {
-                $dayMap[$dow]   = 0.0;
+            if (! isset($dayMap[$dow])) {
+                $dayMap[$dow] = 0.0;
                 $dayCounts[$dow] = 0;
             }
-            $dayMap[$dow]   += (float) $row->amount;
+            $dayMap[$dow] += (float) $row->amount;
             $dayCounts[$dow]++;
         }
 
@@ -261,9 +259,9 @@ class GetSpendingInsightsTool extends Tool
             $total = $dayMap[$idx] ?? 0.0;
             $count = $dayCounts[$idx] ?? 0;
             $breakdown[] = [
-                'day'     => $name,
-                'total'   => round($total, 2),
-                'count'   => $count,
+                'day' => $name,
+                'total' => round($total, 2),
+                'count' => $count,
                 'average' => $count > 0 ? round($total / $count, 2) : 0,
             ];
         }
@@ -272,11 +270,11 @@ class GetSpendingInsightsTool extends Tool
         $busiest = $breakdown[0]['day'] ?? 'N/A';
 
         return json_encode([
-            'success'      => true,
-            'query_type'   => 'day_breakdown',
-            'period'       => $period,
-            'busiest_day'  => $busiest,
-            'breakdown'    => $breakdown,
+            'success' => true,
+            'query_type' => 'day_breakdown',
+            'period' => $period,
+            'busiest_day' => $busiest,
+            'breakdown' => $breakdown,
         ]);
     }
 }

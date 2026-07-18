@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\LlmLog;
 use Illuminate\Support\Facades\Log;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 class LlmLoggingService
@@ -16,7 +17,7 @@ class LlmLoggingService
         ];
     }
 
-    protected function llmLog(): \Psr\Log\LoggerInterface
+    protected function llmLog(): LoggerInterface
     {
         return Log::channel('llm');
     }
@@ -28,19 +29,19 @@ class LlmLoggingService
     {
         // Database log
         LlmLog::create([
-            'session_id'   => $sessionId,
-            'provider'     => $provider,
-            'model'        => $model,
+            'session_id' => $sessionId,
+            'provider' => $provider,
+            'model' => $model,
             'message_type' => 'request',
-            'content'      => $payload,
-            'status'       => 'success',
+            'content' => $payload,
+            'status' => 'success',
         ]);
 
         // File log
         $this->llmLog()->info("REQUEST [{$sessionId}]", [
             'provider' => $provider,
-            'model'    => $model,
-            'payload'  => $payload,
+            'model' => $model,
+            'payload' => $payload,
         ]);
     }
 
@@ -53,19 +54,19 @@ class LlmLoggingService
 
         // Database log
         LlmLog::create([
-            'session_id'   => $sessionId,
+            'session_id' => $sessionId,
             ...$meta,
             'message_type' => 'response',
-            'content'      => $payload,
-            'duration_ms'  => $durationMs,
-            'status'       => 'success',
+            'content' => $payload,
+            'duration_ms' => $durationMs,
+            'status' => 'success',
         ]);
 
         // File log
         $this->llmLog()->info("RESPONSE [{$sessionId}] ({$durationMs}ms)", [
             'provider' => $meta['provider'],
-            'model'    => $meta['model'],
-            'payload'  => $payload,
+            'model' => $meta['model'],
+            'payload' => $payload,
         ]);
     }
 
@@ -78,21 +79,21 @@ class LlmLoggingService
 
         // Database log
         LlmLog::create([
-            'session_id'   => $sessionId,
+            'session_id' => $sessionId,
             ...$meta,
             'message_type' => 'tool_call',
-            'content'      => [
-                'tool'      => $toolName,
+            'content' => [
+                'tool' => $toolName,
                 'arguments' => $arguments,
-                'result'    => $result,
+                'result' => $result,
             ],
-            'status'       => 'success',
+            'status' => 'success',
         ]);
 
         // File log
         $this->llmLog()->info("TOOL_CALL [{$sessionId}] {$toolName}", [
             'arguments' => $arguments,
-            'result'    => $result,
+            'result' => $result,
         ]);
     }
 
@@ -105,19 +106,19 @@ class LlmLoggingService
 
         // Database log
         LlmLog::create([
-            'session_id'    => $sessionId,
+            'session_id' => $sessionId,
             ...$meta,
-            'message_type'  => 'error',
-            'content'       => ['type' => class_basename($exception)],
-            'status'        => $errorStatus,
+            'message_type' => 'error',
+            'content' => ['type' => class_basename($exception)],
+            'status' => $errorStatus,
             'error_message' => $exception->getMessage(),
         ]);
 
         // File log
         $this->llmLog()->error("ERROR [{$sessionId}] {$errorStatus}", [
             'exception' => class_basename($exception),
-            'message'   => $exception->getMessage(),
-            'trace'     => $exception->getTraceAsString(),
+            'message' => $exception->getMessage(),
+            'trace' => $exception->getTraceAsString(),
         ]);
     }
 
@@ -136,20 +137,22 @@ class LlmLoggingService
                 } elseif (method_exists($msg, 'text')) {
                     $content = $msg->text();
                 }
+
                 return [
-                    'role'    => class_basename($msg),
+                    'role' => class_basename($msg),
                     'content' => $content,
                 ];
             }
+
             return $msg;
         }, $messages);
 
         // File log only (detailed)
         $this->llmLog()->debug("MESSAGES [{$sessionId}]", [
-            'provider'      => $meta['provider'],
-            'model'         => $meta['model'],
-            'system_prompt' => mb_substr($systemPrompt, 0, 500) . (mb_strlen($systemPrompt) > 500 ? '...' : ''),
-            'messages'      => $formatted,
+            'provider' => $meta['provider'],
+            'model' => $meta['model'],
+            'system_prompt' => mb_substr($systemPrompt, 0, 500).(mb_strlen($systemPrompt) > 500 ? '...' : ''),
+            'messages' => $formatted,
         ]);
     }
 
@@ -159,7 +162,7 @@ class LlmLoggingService
     public function logAssistantResponse(string $sessionId, string $text, array $toolCalls = []): void
     {
         $this->llmLog()->info("ASSISTANT [{$sessionId}]", [
-            'text'       => $text,
+            'text' => $text,
             'tool_calls' => $toolCalls,
         ]);
     }

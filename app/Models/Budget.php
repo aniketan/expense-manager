@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Budget extends Model
 {
@@ -30,7 +29,9 @@ class Budget extends Model
 
     // Period types
     public const PERIOD_MONTHLY = 'monthly';
+
     public const PERIOD_YEARLY = 'yearly';
+
     public const PERIOD_CUSTOM = 'custom';
 
     public static function getPeriodTypes(): array
@@ -58,8 +59,9 @@ class Budget extends Model
     public function scopeCurrent($query)
     {
         $today = now();
+
         return $query->where('start_date', '<=', $today)
-                     ->where('end_date', '>=', $today);
+            ->where('end_date', '>=', $today);
     }
 
     // Get spent amount for this budget (includes child categories)
@@ -91,6 +93,7 @@ class Budget extends Model
         if ($this->amount <= 0) {
             return 0;
         }
+
         return min(100, round(($this->spent_amount / $this->amount) * 100, 1));
     }
 
@@ -118,6 +121,7 @@ class Budget extends Model
     public function isCurrent()
     {
         $today = now();
+
         return $today->between($this->start_date, $this->end_date);
     }
 }

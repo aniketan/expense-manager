@@ -25,9 +25,9 @@ return new class extends Migration
 
             // Foreign key constraint
             $table->foreign('category_id')
-                  ->references('id')
-                  ->on('categories')
-                  ->onDelete('cascade');
+                ->references('id')
+                ->on('categories')
+                ->onDelete('cascade');
         });
     }
 

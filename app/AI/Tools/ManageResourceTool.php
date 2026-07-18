@@ -16,10 +16,10 @@ class ManageResourceTool extends Tool
         $this
             ->as('manage_resource')
             ->for(
-                'Create, update, or delete a budget, category, or transaction. ' .
-                'action=create: creates the resource. ' .
-                'action=update: patches a transaction (resource_id required). ' .
-                'action=delete: removes a transaction or deactivates a budget (resource_id + confirmed required). ' .
+                'Create, update, or delete a budget, category, or transaction. '.
+                'action=create: creates the resource. '.
+                'action=update: patches a transaction (resource_id required). '.
+                'action=delete: removes a transaction or deactivates a budget (resource_id + confirmed required). '.
                 'For deletes, always call with confirmed=no first so the user can review, then confirmed=yes only after they say yes.'
             )
             ->withEnumParameter('action', 'What to do: create, update, or delete', ['create', 'update', 'delete'])
@@ -42,38 +42,38 @@ class ManageResourceTool extends Tool
     }
 
     public function execute(
-        string  $action,
-        string  $resource,
-        ?float  $resource_id        = null,
-        ?string $confirmed          = null,
-        ?string $name               = null,
-        ?float  $amount             = null,
-        ?string $category_name      = null,
+        string $action,
+        string $resource,
+        ?float $resource_id = null,
+        ?string $confirmed = null,
+        ?string $name = null,
+        ?float $amount = null,
+        ?string $category_name = null,
         ?string $parent_category_name = null,
-        ?string $description        = null,
-        ?string $period_type        = null,
-        ?string $start_date         = null,
-        ?string $end_date           = null,
-        ?string $transaction_type   = null,
-        ?string $date               = null,
-        ?string $notes              = null,
+        ?string $description = null,
+        ?string $period_type = null,
+        ?string $start_date = null,
+        ?string $end_date = null,
+        ?string $transaction_type = null,
+        ?string $date = null,
+        ?string $notes = null,
     ): string {
         try {
             return match (true) {
-                $action === 'create' && $resource === 'budget'      => $this->createBudget($name, $amount, $category_name, $period_type, $start_date, $end_date, $notes),
-                $action === 'create' && $resource === 'category'    => $this->createCategory($name, $parent_category_name, $description),
+                $action === 'create' && $resource === 'budget' => $this->createBudget($name, $amount, $category_name, $period_type, $start_date, $end_date, $notes),
+                $action === 'create' && $resource === 'category' => $this->createCategory($name, $parent_category_name, $description),
                 $action === 'update' && $resource === 'transaction' => $this->updateTransaction((int) $resource_id, $amount, $description, $date, $category_name, $transaction_type),
                 $action === 'delete' && $resource === 'transaction' => $this->deleteTransaction((int) $resource_id, $confirmed),
-                $action === 'delete' && $resource === 'budget'      => $this->deleteBudget((int) $resource_id, $confirmed),
+                $action === 'delete' && $resource === 'budget' => $this->deleteBudget((int) $resource_id, $confirmed),
                 default => json_encode([
                     'success' => false,
-                    'error'   => "Unsupported combination: action={$action}, resource={$resource}.",
+                    'error' => "Unsupported combination: action={$action}, resource={$resource}.",
                 ]),
             };
         } catch (\Throwable $e) {
             return json_encode([
                 'success' => false,
-                'error'   => 'manage_resource failed: ' . $e->getMessage(),
+                'error' => 'manage_resource failed: '.$e->getMessage(),
             ]);
         }
     }
@@ -84,25 +84,25 @@ class ManageResourceTool extends Tool
 
     private function createBudget(
         ?string $name,
-        ?float  $amount,
+        ?float $amount,
         ?string $categoryName,
         ?string $periodType,
         ?string $startDate,
         ?string $endDate,
         ?string $notes,
     ): string {
-        if (!$amount || $amount <= 0) {
+        if (! $amount || $amount <= 0) {
             return json_encode(['success' => false, 'error' => 'amount is required and must be > 0 to create a budget.']);
         }
         if (empty($categoryName)) {
             return json_encode(['success' => false, 'error' => 'category_name is required to create a budget.']);
         }
 
-        $category = Category::where('name', 'like', '%' . $categoryName . '%')
+        $category = Category::where('name', 'like', '%'.$categoryName.'%')
             ->where('is_active', true)
             ->first();
 
-        if (!$category) {
+        if (! $category) {
             return json_encode(['success' => false, 'error' => "Category \"{$categoryName}\" not found. Use list_categories to see available options."]);
         }
 
@@ -115,7 +115,7 @@ class ManageResourceTool extends Tool
             ],
             'custom' => [
                 $startDate ?? Carbon::today()->toDateString(),
-                $endDate   ?? Carbon::today()->addMonthNoOverflow()->toDateString(),
+                $endDate ?? Carbon::today()->addMonthNoOverflow()->toDateString(),
             ],
             default => [ // monthly
                 Carbon::now()->startOfMonth()->toDateString(),
@@ -125,43 +125,43 @@ class ManageResourceTool extends Tool
 
         $budget = Budget::create([
             'category_id' => $category->id,
-            'name'        => $name ?: $category->name . ' Budget',
-            'amount'      => $amount,
+            'name' => $name ?: $category->name.' Budget',
+            'amount' => $amount,
             'period_type' => $period,
-            'start_date'  => $start,
-            'end_date'    => $end,
-            'is_active'   => true,
-            'notes'       => $notes,
+            'start_date' => $start,
+            'end_date' => $end,
+            'is_active' => true,
+            'notes' => $notes,
         ]);
 
         return json_encode([
-            'success'     => true,
-            'id'          => $budget->id,
-            'message'     => "Budget \"{$budget->name}\" created: ₹{$amount} for {$category->name} ({$period}, {$start} → {$end}).",
-            'category'    => $category->name,
+            'success' => true,
+            'id' => $budget->id,
+            'message' => "Budget \"{$budget->name}\" created: ₹{$amount} for {$category->name} ({$period}, {$start} → {$end}).",
+            'category' => $category->name,
             'period_type' => $period,
-            'start_date'  => $start,
-            'end_date'    => $end,
+            'start_date' => $start,
+            'end_date' => $end,
         ]);
     }
 
     private function deleteBudget(int $id, ?string $confirmed): string
     {
         $budget = Budget::with('category')->find($id);
-        if (!$budget) {
+        if (! $budget) {
             return json_encode(['success' => false, 'error' => "Budget ID {$id} not found."]);
         }
 
         if ($confirmed !== 'yes') {
             return json_encode([
-                'success'  => false,
+                'success' => false,
                 'pending_confirmation' => true,
-                'message'  => "Please confirm: deactivate budget \"{$budget->name}\" (₹{$budget->amount} for {$budget->category?->name})? Reply yes to confirm.",
-                'budget'   => [
-                    'id'       => $budget->id,
-                    'name'     => $budget->name,
+                'message' => "Please confirm: deactivate budget \"{$budget->name}\" (₹{$budget->amount} for {$budget->category?->name})? Reply yes to confirm.",
+                'budget' => [
+                    'id' => $budget->id,
+                    'name' => $budget->name,
                     'category' => $budget->category?->name,
-                    'amount'   => (float) $budget->amount,
+                    'amount' => (float) $budget->amount,
                 ],
             ]);
         }
@@ -189,34 +189,34 @@ class ManageResourceTool extends Tool
         if ($existing) {
             return json_encode([
                 'success' => false,
-                'error'   => "Category \"{$name}\" already exists (ID: {$existing->id}).",
+                'error' => "Category \"{$name}\" already exists (ID: {$existing->id}).",
             ]);
         }
 
         $parentId = null;
-        if (!empty($parentName)) {
-            $parent = Category::where('name', 'like', '%' . $parentName . '%')
+        if (! empty($parentName)) {
+            $parent = Category::where('name', 'like', '%'.$parentName.'%')
                 ->whereNull('parent_id')
                 ->first();
-            if (!$parent) {
+            if (! $parent) {
                 return json_encode(['success' => false, 'error' => "Parent category \"{$parentName}\" not found."]);
             }
             $parentId = $parent->id;
         }
 
         $category = Category::create([
-            'name'        => $name,
-            'parent_id'   => $parentId,
+            'name' => $name,
+            'parent_id' => $parentId,
             'description' => $description,
-            'is_active'   => true,
+            'is_active' => true,
         ]);
 
         return json_encode([
-            'success'  => true,
-            'id'       => $category->id,
-            'name'     => $category->name,
-            'parent'   => $parentId ? Category::find($parentId)?->name : null,
-            'message'  => "Category \"{$name}\" created successfully.",
+            'success' => true,
+            'id' => $category->id,
+            'name' => $category->name,
+            'parent' => $parentId ? Category::find($parentId)?->name : null,
+            'message' => "Category \"{$name}\" created successfully.",
         ]);
     }
 
@@ -225,19 +225,19 @@ class ManageResourceTool extends Tool
     // -------------------------------------------------------------------------
 
     private function updateTransaction(
-        int     $id,
-        ?float  $amount,
+        int $id,
+        ?float $amount,
         ?string $description,
         ?string $date,
         ?string $categoryName,
         ?string $transactionType,
     ): string {
-        if (!$id) {
+        if (! $id) {
             return json_encode(['success' => false, 'error' => 'resource_id is required to update a transaction.']);
         }
 
         $transaction = Transaction::find($id);
-        if (!$transaction) {
+        if (! $transaction) {
             return json_encode(['success' => false, 'error' => "Transaction ID {$id} not found."]);
         }
 
@@ -246,21 +246,21 @@ class ManageResourceTool extends Tool
         if ($amount !== null && $amount > 0) {
             $updates['amount'] = $amount;
         }
-        if (!empty($description)) {
+        if (! empty($description)) {
             $updates['description'] = $description;
         }
-        if (!empty($date)) {
+        if (! empty($date)) {
             try {
                 $updates['transaction_date'] = Carbon::parse($date)->toDateString();
             } catch (\Throwable) {
                 return json_encode(['success' => false, 'error' => "Invalid date format: {$date}. Use YYYY-MM-DD."]);
             }
         }
-        if (!empty($transactionType)) {
+        if (! empty($transactionType)) {
             $updates['transaction_type'] = $transactionType;
         }
-        if (!empty($categoryName)) {
-            $category = Category::where('name', 'like', '%' . $categoryName . '%')
+        if (! empty($categoryName)) {
+            $category = Category::where('name', 'like', '%'.$categoryName.'%')
                 ->whereNotNull('parent_id')
                 ->first();
             if ($category) {
@@ -276,44 +276,44 @@ class ManageResourceTool extends Tool
         $transaction->refresh();
 
         return json_encode([
-            'success'     => true,
-            'message'     => "Transaction ID {$id} updated successfully.",
+            'success' => true,
+            'message' => "Transaction ID {$id} updated successfully.",
             'transaction' => [
-                'id'          => $transaction->id,
-                'date'        => $transaction->transaction_date->format('Y-m-d'),
+                'id' => $transaction->id,
+                'date' => $transaction->transaction_date->format('Y-m-d'),
                 'description' => $transaction->description,
-                'amount'      => (float) $transaction->amount,
-                'type'        => $transaction->transaction_type,
-                'category'    => $transaction->category?->name,
-                'account'     => $transaction->account?->name,
+                'amount' => (float) $transaction->amount,
+                'type' => $transaction->transaction_type,
+                'category' => $transaction->category?->name,
+                'account' => $transaction->account?->name,
             ],
         ]);
     }
 
     private function deleteTransaction(int $id, ?string $confirmed): string
     {
-        if (!$id) {
+        if (! $id) {
             return json_encode(['success' => false, 'error' => 'resource_id is required to delete a transaction.']);
         }
 
         $transaction = Transaction::with(['category', 'account'])->find($id);
-        if (!$transaction) {
+        if (! $transaction) {
             return json_encode(['success' => false, 'error' => "Transaction ID {$id} not found."]);
         }
 
         if ($confirmed !== 'yes') {
             return json_encode([
-                'success'              => false,
+                'success' => false,
                 'pending_confirmation' => true,
-                'message'              => "Please confirm deletion of: ₹{$transaction->amount} — \"{$transaction->description}\" on {$transaction->transaction_date->format('Y-m-d')}. Reply yes to confirm.",
-                'transaction'          => [
-                    'id'          => $transaction->id,
-                    'date'        => $transaction->transaction_date->format('Y-m-d'),
+                'message' => "Please confirm deletion of: ₹{$transaction->amount} — \"{$transaction->description}\" on {$transaction->transaction_date->format('Y-m-d')}. Reply yes to confirm.",
+                'transaction' => [
+                    'id' => $transaction->id,
+                    'date' => $transaction->transaction_date->format('Y-m-d'),
                     'description' => $transaction->description,
-                    'amount'      => (float) $transaction->amount,
-                    'type'        => $transaction->transaction_type,
-                    'category'    => $transaction->category?->name,
-                    'account'     => $transaction->account?->name,
+                    'amount' => (float) $transaction->amount,
+                    'type' => $transaction->transaction_type,
+                    'category' => $transaction->category?->name,
+                    'account' => $transaction->account?->name,
                 ],
             ]);
         }

@@ -1,8 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
@@ -208,7 +206,7 @@ return new class extends Migration
             34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 96, 45, 46, 47, 48, 49, 50, 51, 52, 97,
             53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 98, 99, 100, 64, 65, 66, 67, 101,
             68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 102,
-            103, 104, 105, 106, 107, 108, 109, 110
+            103, 104, 105, 106, 107, 108, 109, 110,
         ];
 
         // Reset main categories

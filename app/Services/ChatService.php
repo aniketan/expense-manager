@@ -9,14 +9,14 @@ use App\AI\Tools\ListCategoriesTool;
 use App\AI\Tools\ManageResourceTool;
 use App\AI\Tools\QueryExpensesTool;
 use App\AI\Tools\SearchTransactionsTool;
-use App\Models\ChatSession;
 use App\Models\ChatMessage;
+use App\Models\ChatSession;
+use Carbon\Carbon;
 use Prism\Prism\Facades\Prism;
-use Prism\Prism\ValueObjects\Messages\UserMessage;
-use Prism\Prism\ValueObjects\Messages\AssistantMessage;
 use Prism\Prism\Streaming\Events\TextDeltaEvent;
 use Prism\Prism\Streaming\Events\ToolCallEvent;
-use Carbon\Carbon;
+use Prism\Prism\ValueObjects\Messages\AssistantMessage;
+use Prism\Prism\ValueObjects\Messages\UserMessage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ChatService
@@ -42,8 +42,8 @@ class ChatService
         // Save user message immediately
         ChatMessage::create([
             'chat_session_id' => $session->id,
-            'role'            => 'user',
-            'content'         => $userMessage,
+            'role' => 'user',
+            'content' => $userMessage,
         ]);
 
         // Load conversation history (last 20 messages)
@@ -69,9 +69,9 @@ class ChatService
             config('ai.provider'),
             config('ai.model'),
             [
-                'user_message'   => $userMessage,
+                'user_message' => $userMessage,
                 'messages_count' => count($history),
-                'tools_count'    => 7,
+                'tools_count' => 7,
             ]
         );
 
@@ -87,13 +87,13 @@ class ChatService
                 ->withSystemPrompt($systemPrompt)
                 ->withMessages($history)
                 ->withTools([
-                    new CreateTransactionTool(),
-                    new QueryExpensesTool(),
-                    new ListCategoriesTool(),
-                    new SearchTransactionsTool(),
-                    new GetAccountBalancesTool(),
-                    new GetSpendingInsightsTool(),
-                    new ManageResourceTool(),
+                    new CreateTransactionTool,
+                    new QueryExpensesTool,
+                    new ListCategoriesTool,
+                    new SearchTransactionsTool,
+                    new GetAccountBalancesTool,
+                    new GetSpendingInsightsTool,
+                    new ManageResourceTool,
                 ])
                 ->withMaxSteps(config('ai.max_steps'))
                 ->withMaxTokens(config('ai.max_tokens', 4096))
@@ -118,10 +118,10 @@ class ChatService
             // Return error as SSE stream
             return new StreamedResponse(function () use ($e) {
                 echo "event: error\n";
-                echo "data: " . json_encode([
-                    'error'  => $e->getMessage(),
+                echo 'data: '.json_encode([
+                    'error' => $e->getMessage(),
                     'status' => 'error',
-                ]) . "\n\n";
+                ])."\n\n";
                 echo "event: stream-end\n";
                 echo "data: {}\n\n";
             }, 200, [
@@ -146,19 +146,19 @@ class ChatService
                 $finalText .= $event->delta;
             } elseif ($event instanceof ToolCallEvent) {
                 $toolCalls[] = [
-                    'name'      => $event->toolCall->name,
+                    'name' => $event->toolCall->name,
                     'arguments' => $event->toolCall->arguments,
                 ];
             }
         }
 
         // Save assistant message
-        if (!empty($finalText)) {
+        if (! empty($finalText)) {
             ChatMessage::create([
                 'chat_session_id' => $session->id,
-                'role'            => 'assistant',
-                'content'         => $finalText,
-                'tool_calls'      => !empty($toolCalls) ? $toolCalls : null,
+                'role' => 'assistant',
+                'content' => $finalText,
+                'tool_calls' => ! empty($toolCalls) ? $toolCalls : null,
             ]);
         }
 
@@ -167,7 +167,7 @@ class ChatService
             $session->session_id,
             $durationMs,
             [
-                'text_length'      => strlen($finalText),
+                'text_length' => strlen($finalText),
                 'tool_calls_count' => count($toolCalls),
             ]
         );

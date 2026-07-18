@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Transaction;
 use App\Models\Account;
+use App\Models\Transaction;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class StatsController extends Controller
@@ -13,7 +14,7 @@ class StatsController extends Controller
     /**
      * Get today's income and expense statistics
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function today()
     {
@@ -41,7 +42,7 @@ class StatsController extends Controller
     /**
      * Get current week's income and expense statistics
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function weekly()
     {
@@ -93,7 +94,7 @@ class StatsController extends Controller
     /**
      * Get current month's income and expense statistics
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function monthly()
     {
@@ -125,7 +126,7 @@ class StatsController extends Controller
     /**
      * Get total current balance across all active accounts
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function balance()
     {
@@ -154,7 +155,7 @@ class StatsController extends Controller
     /**
      * Get comprehensive dashboard statistics
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function dashboard()
     {
@@ -231,8 +232,7 @@ class StatsController extends Controller
     /**
      * Get custom date range statistics
      *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function dateRange(Request $request)
     {

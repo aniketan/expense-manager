@@ -21,8 +21,8 @@ class GetAccountBalancesTool extends Tool
         try {
             $query = Account::where('is_active', true)->orderBy('name');
 
-            if (!empty($account_name)) {
-                $query->where('name', 'like', '%' . $account_name . '%');
+            if (! empty($account_name)) {
+                $query->where('name', 'like', '%'.$account_name.'%');
             }
 
             $accounts = $query->get();
@@ -30,23 +30,23 @@ class GetAccountBalancesTool extends Tool
             if ($accounts->isEmpty()) {
                 return json_encode([
                     'success' => false,
-                    'error'   => 'No active accounts found' . ($account_name ? " matching \"{$account_name}\"" : '') . '.',
+                    'error' => 'No active accounts found'.($account_name ? " matching \"{$account_name}\"" : '').'.',
                 ]);
             }
 
             $totalLiquid = 0;
             $result = $accounts->map(function (Account $acc) use (&$totalLiquid) {
                 $row = [
-                    'name'            => $acc->name,
-                    'type'            => $acc->getTypeLabel(),
-                    'bank_name'       => $acc->bank_name,
+                    'name' => $acc->name,
+                    'type' => $acc->getTypeLabel(),
+                    'bank_name' => $acc->bank_name,
                     'current_balance' => (float) $acc->current_balance,
                 ];
 
                 if ($acc->isCreditCard()) {
                     $used = max(0, -1 * (float) $acc->current_balance); // balance goes negative as credit is used
-                    $row['credit_limit']     = (float) $acc->credit_limit;
-                    $row['credit_used']      = $used;
+                    $row['credit_limit'] = (float) $acc->credit_limit;
+                    $row['credit_used'] = $used;
                     $row['credit_available'] = max(0, (float) $acc->credit_limit - $used);
                 } else {
                     $totalLiquid += (float) $acc->current_balance;
@@ -56,16 +56,16 @@ class GetAccountBalancesTool extends Tool
             })->values()->all();
 
             return json_encode([
-                'success'             => true,
-                'accounts'            => $result,
-                'total_liquid_balance'=> round($totalLiquid, 2),
-                'account_count'       => count($result),
+                'success' => true,
+                'accounts' => $result,
+                'total_liquid_balance' => round($totalLiquid, 2),
+                'account_count' => count($result),
             ]);
 
         } catch (\Throwable $e) {
             return json_encode([
                 'success' => false,
-                'error'   => 'Failed to fetch balances: ' . $e->getMessage(),
+                'error' => 'Failed to fetch balances: '.$e->getMessage(),
             ]);
         }
     }

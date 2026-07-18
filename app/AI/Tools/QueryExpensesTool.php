@@ -53,8 +53,7 @@ class QueryExpensesTool extends Tool
                 ->limit(3)
                 ->get();
 
-            $categoryBreakdown = $topCategories->map(fn ($t) =>
-                ($t->category?->name ?? 'Uncategorized').': ₹'.number_format($t->total, 2).' ('.$t->count.' txn)'
+            $categoryBreakdown = $topCategories->map(fn ($t) => ($t->category?->name ?? 'Uncategorized').': ₹'.number_format($t->total, 2).' ('.$t->count.' txn)'
             )->join(', ');
 
             $incomeTotal = 0;
