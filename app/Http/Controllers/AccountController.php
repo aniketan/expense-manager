@@ -40,7 +40,7 @@ class AccountController extends Controller
         $validated = $request->validate([
             'code' => 'required|string|max:20|unique:accounts,code',
             'name' => 'required|string|max:100',
-            'type' => 'required|string|max:20|in:' . implode(',', array_keys(Account::getTypes())),
+            'type' => 'required|string|max:20|in:'.implode(',', array_keys(Account::getTypes())),
             'bank_name' => 'nullable|string|max:100',
             'account_number' => 'nullable|string|max:50',
             'ifsc_code' => 'nullable|string|max:20',
@@ -89,9 +89,9 @@ class AccountController extends Controller
     public function update(Request $request, Account $account)
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:20|unique:accounts,code,' . $account->id,
+            'code' => 'required|string|max:20|unique:accounts,code,'.$account->id,
             'name' => 'required|string|max:100',
-            'type' => 'required|string|max:20|in:' . implode(',', array_keys(Account::getTypes())),
+            'type' => 'required|string|max:20|in:'.implode(',', array_keys(Account::getTypes())),
             'bank_name' => 'nullable|string|max:100',
             'account_number' => 'nullable|string|max:50',
             'ifsc_code' => 'nullable|string|max:20',
@@ -128,7 +128,7 @@ class AccountController extends Controller
      */
     public function toggleStatus(Account $account)
     {
-        $account->update(['is_active' => !$account->is_active]);
+        $account->update(['is_active' => ! $account->is_active]);
 
         $status = $account->is_active ? 'activated' : 'deactivated';
 
@@ -142,7 +142,7 @@ class AccountController extends Controller
     public function getAccounts()
     {
         return response()->json([
-            'accounts' => Account::active()->orderBy('name')->get()
+            'accounts' => Account::active()->orderBy('name')->get(),
         ]);
     }
 }

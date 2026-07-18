@@ -529,8 +529,7 @@ class StatementReconcileTest extends TestCase
 
         Log::shouldHaveReceived('info')
             ->once()
-            ->withArgs(fn (string $message, array $context): bool =>
-                $message === 'Statement reconciliation row needs detail'
+            ->withArgs(fn (string $message, array $context): bool => $message === 'Statement reconciliation row needs detail'
                 && $context['row_index'] === 0
                 && $context['statement_sequence'] === 2
                 && $context['account_id'] === $account->id

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
@@ -16,9 +17,9 @@ class CategoryController extends Controller
     {
         $perPage = $request->get('per_page', 5); // Changed to 5 parent categories per page
         $page = $request->get('page', 1);
-        
+
         // Validate per_page parameter
-        if (!in_array($perPage, [5, 10, 15, 20])) {
+        if (! in_array($perPage, [5, 10, 15, 20])) {
             $perPage = 5;
         }
 
@@ -28,45 +29,46 @@ class CategoryController extends Controller
             ->get();
 
         // Load transaction counts separately for efficiency
-        $categoriesWithTransactionTotals = $allCategories->map(function($category) {
+        $categoriesWithTransactionTotals = $allCategories->map(function ($category) {
             // Calculate totals
             if ($category->isParent()) {
                 // For parent categories, get sum of all children + parent
                 $childrenIds = $category->children->pluck('id')->toArray();
                 $allIds = array_merge($childrenIds, [$category->id]);
-                
+
                 // Set the main total properties (sum of all subcategories)
-                $totalAmount = \App\Models\Transaction::whereIn('category_id', $allIds)->sum('amount');
-                $transactionCount = \App\Models\Transaction::whereIn('category_id', $allIds)->count();
-                
+                $totalAmount = Transaction::whereIn('category_id', $allIds)->sum('amount');
+                $transactionCount = Transaction::whereIn('category_id', $allIds)->count();
+
                 $category->total_amount = $totalAmount;
                 $category->transactions_count = $transactionCount;
-                
+
                 // Also set the _with_children properties for API compatibility
                 $category->total_amount_with_children = $totalAmount;
                 $category->transaction_count_with_children = $transactionCount;
             } else {
                 // For children, just get their individual totals
-                $totalAmount = \App\Models\Transaction::where('category_id', $category->id)->sum('amount');
-                $transactionCount = \App\Models\Transaction::where('category_id', $category->id)->count();
-                
+                $totalAmount = Transaction::where('category_id', $category->id)->sum('amount');
+                $transactionCount = Transaction::where('category_id', $category->id)->count();
+
                 $category->total_amount = $totalAmount;
                 $category->transactions_count = $transactionCount;
             }
-            
+
             return $category;
         });
 
         // Group into parent categories with their children
-        $parentCategories = $categoriesWithTransactionTotals->filter(function($category) {
+        $parentCategories = $categoriesWithTransactionTotals->filter(function ($category) {
             return $category->parent_id === null;
         });
 
         // Add children to each parent
-        $groupedCategories = $parentCategories->map(function($parent) use ($categoriesWithTransactionTotals) {
-            $parent->children = $categoriesWithTransactionTotals->filter(function($category) use ($parent) {
+        $groupedCategories = $parentCategories->map(function ($parent) use ($categoriesWithTransactionTotals) {
+            $parent->children = $categoriesWithTransactionTotals->filter(function ($category) use ($parent) {
                 return $category->parent_id === $parent->id;
             })->values();
+
             return $parent;
         });
 
@@ -151,7 +153,7 @@ class CategoryController extends Controller
     {
         // Load relationships
         $category->load(['parent', 'children']);
-        
+
         // Get transactions for this category
         $transactions = $category->transactions()
             ->with(['account'])
@@ -159,21 +161,21 @@ class CategoryController extends Controller
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
-        
+
         // Calculate statistics
         if ($category->parent_id === null) {
             // For parent categories, include children's transactions
             $childrenIds = $category->children->pluck('id')->toArray();
             $allIds = array_merge($childrenIds, [$category->id]);
-            
-            $totalAmount = \App\Models\Transaction::whereIn('category_id', $allIds)->sum('amount');
-            $transactionCount = \App\Models\Transaction::whereIn('category_id', $allIds)->count();
-            
+
+            $totalAmount = Transaction::whereIn('category_id', $allIds)->sum('amount');
+            $transactionCount = Transaction::whereIn('category_id', $allIds)->count();
+
             // Get breakdown by child
-            $childrenStats = $category->children->map(function($child) {
-                $childAmount = \App\Models\Transaction::where('category_id', $child->id)->sum('amount');
-                $childCount = \App\Models\Transaction::where('category_id', $child->id)->count();
-                
+            $childrenStats = $category->children->map(function ($child) {
+                $childAmount = Transaction::where('category_id', $child->id)->sum('amount');
+                $childCount = Transaction::where('category_id', $child->id)->count();
+
                 return [
                     'id' => $child->id,
                     'name' => $child->name,
@@ -185,11 +187,11 @@ class CategoryController extends Controller
             });
         } else {
             // For child categories
-            $totalAmount = \App\Models\Transaction::where('category_id', $category->id)->sum('amount');
-            $transactionCount = \App\Models\Transaction::where('category_id', $category->id)->count();
+            $totalAmount = Transaction::where('category_id', $category->id)->sum('amount');
+            $transactionCount = Transaction::where('category_id', $category->id)->count();
             $childrenStats = collect([]);
         }
-        
+
         return Inertia::render('Categories/Show', [
             'category' => $category,
             'transactions' => $transactions,
@@ -226,7 +228,7 @@ class CategoryController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
-            'code' => 'required|string|max:50|unique:categories,code,' . $category->id,
+            'code' => 'required|string|max:50|unique:categories,code,'.$category->id,
             'parent_id' => 'nullable|exists:categories,id',
             'description' => 'nullable|string|max:1000',
             'icon' => 'nullable|string|max:50',
@@ -266,7 +268,7 @@ class CategoryController extends Controller
             }
 
             $category->delete();
-            
+
             return Redirect::route('categories.index')
                 ->with('success', 'Category deleted successfully.');
         } catch (\Exception $e) {
@@ -280,10 +282,10 @@ class CategoryController extends Controller
      */
     public function toggleStatus(Category $category)
     {
-        $category->update(['is_active' => !$category->is_active]);
-        
+        $category->update(['is_active' => ! $category->is_active]);
+
         $status = $category->is_active ? 'activated' : 'deactivated';
-        
+
         return Redirect::route('categories.index')
             ->with('success', "Category {$status} successfully.");
     }
@@ -294,7 +296,7 @@ class CategoryController extends Controller
     public function getCategories()
     {
         return response()->json([
-            'categories' => Category::active()->orderBy('name')->get()
+            'categories' => Category::active()->orderBy('name')->get(),
         ]);
     }
 
@@ -304,7 +306,7 @@ class CategoryController extends Controller
     public function getParentCategories()
     {
         return response()->json([
-            'categories' => Category::active()->parent()->orderBy('name')->get()
+            'categories' => Category::active()->parent()->orderBy('name')->get(),
         ]);
     }
 
@@ -314,7 +316,7 @@ class CategoryController extends Controller
     public function getChildCategories(Category $category)
     {
         return response()->json([
-            'categories' => $category->activeChildren()->orderBy('name')->get()
+            'categories' => $category->activeChildren()->orderBy('name')->get(),
         ]);
     }
 
@@ -332,10 +334,10 @@ class CategoryController extends Controller
             // Calculate totals for parent category
             $childrenIds = $category->children->pluck('id')->toArray();
             $allIds = array_merge($childrenIds, [$category->id]);
-            
-            $totalAmount = \App\Models\Transaction::whereIn('category_id', $allIds)->sum('amount');
-            $transactionCount = \App\Models\Transaction::whereIn('category_id', $allIds)->count();
-            
+
+            $totalAmount = Transaction::whereIn('category_id', $allIds)->sum('amount');
+            $transactionCount = Transaction::whereIn('category_id', $allIds)->count();
+
             return [
                 'id' => $category->id,
                 'name' => $category->name,
@@ -345,9 +347,9 @@ class CategoryController extends Controller
                 'total_amount' => $totalAmount,
                 'transaction_count' => $transactionCount,
                 'children' => $category->children->map(function ($child) {
-                    $childAmount = \App\Models\Transaction::where('category_id', $child->id)->sum('amount');
-                    $childCount = \App\Models\Transaction::where('category_id', $child->id)->count();
-                    
+                    $childAmount = Transaction::where('category_id', $child->id)->sum('amount');
+                    $childCount = Transaction::where('category_id', $child->id)->count();
+
                     return [
                         'id' => $child->id,
                         'name' => $child->name,
@@ -355,12 +357,12 @@ class CategoryController extends Controller
                         'total_amount' => $childAmount,
                         'transaction_count' => $childCount,
                     ];
-                })
+                }),
             ];
         });
 
         return response()->json([
-            'categories' => $categoriesWithTotals
+            'categories' => $categoriesWithTotals,
         ]);
     }
 }

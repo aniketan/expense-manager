@@ -5,9 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Budget;
 use App\Models\Category;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Redirect;
-use Carbon\Carbon;
+use Inertia\Inertia;
 
 class BudgetController extends Controller
 {
@@ -40,8 +39,8 @@ class BudgetController extends Controller
         }
 
         $budgets = $query->orderBy('start_date', 'desc')
-                        ->paginate($perPage)
-                        ->appends($request->query());
+            ->paginate($perPage)
+            ->appends($request->query());
 
         // Add computed attributes to each budget
         $budgets->getCollection()->transform(function ($budget) {
@@ -49,6 +48,7 @@ class BudgetController extends Controller
             $budget->remaining_amount = $budget->remaining_amount;
             $budget->percentage_used = $budget->percentage_used;
             $budget->status = $budget->status;
+
             return $budget;
         });
 
@@ -95,13 +95,13 @@ class BudgetController extends Controller
         // Check for overlapping budgets for the same category
         $overlapping = Budget::where('category_id', $validated['category_id'])
             ->where('is_active', true)
-            ->where(function($query) use ($validated) {
+            ->where(function ($query) use ($validated) {
                 $query->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
-                      ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
-                      ->orWhere(function($q) use ($validated) {
-                          $q->where('start_date', '<=', $validated['start_date'])
+                    ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
+                    ->orWhere(function ($q) use ($validated) {
+                        $q->where('start_date', '<=', $validated['start_date'])
                             ->where('end_date', '>=', $validated['end_date']);
-                      });
+                    });
             })
             ->exists();
 
@@ -176,13 +176,13 @@ class BudgetController extends Controller
         $overlapping = Budget::where('category_id', $validated['category_id'])
             ->where('id', '!=', $budget->id)
             ->where('is_active', true)
-            ->where(function($query) use ($validated) {
+            ->where(function ($query) use ($validated) {
                 $query->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
-                      ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
-                      ->orWhere(function($q) use ($validated) {
-                          $q->where('start_date', '<=', $validated['start_date'])
+                    ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
+                    ->orWhere(function ($q) use ($validated) {
+                        $q->where('start_date', '<=', $validated['start_date'])
                             ->where('end_date', '>=', $validated['end_date']);
-                      });
+                    });
             })
             ->exists();
 
@@ -214,7 +214,7 @@ class BudgetController extends Controller
      */
     public function toggleStatus(Budget $budget)
     {
-        $budget->update(['is_active' => !$budget->is_active]);
+        $budget->update(['is_active' => ! $budget->is_active]);
 
         $status = $budget->is_active ? 'activated' : 'deactivated';
 
