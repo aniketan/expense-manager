@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -20,9 +19,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $root = (string) config('app.url');
-        if ($root !== '') {
-            URL::forceRootUrl(rtrim($root, '/'));
-        }
+        // Use the active HTTP request origin for browser redirects.
     }
 }

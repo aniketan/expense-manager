@@ -427,11 +427,15 @@ export default function Welcome({ stats, recentTransactions }) {
                                                         </td>
                                                         <td>
                                                             <span className={`fw-bold ${
-                                                                transaction.transaction_type === 'expense' || transaction.amount < 0
+                                                                transaction.transaction_type === 'expense'
+                                                                    || transaction.category?.code === 'TRANSFER_OUTGOING'
+                                                                    || transaction.amount < 0
                                                                     ? 'text-danger'
                                                                     : 'text-success'
                                                             }`}>
-                                                                {transaction.transaction_type === 'expense' || transaction.amount < 0 ? '-' : '+'}
+                                                                {transaction.transaction_type === 'expense'
+                                                                    || transaction.category?.code === 'TRANSFER_OUTGOING'
+                                                                    || transaction.amount < 0 ? '-' : '+'}
                                                                 ₹{Math.abs(transaction.amount).toFixed(2)}
                                                             </span>
                                                         </td>

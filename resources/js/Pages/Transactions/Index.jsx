@@ -10,6 +10,10 @@ export default function Index({ transactions = {}, categories = [], accounts = [
     const [selectedCategory, setSelectedCategory] = useState(filters.category || '');
     const [subcategories, setSubcategories] = useState([]);
 
+    const isIncoming = (transaction) =>
+        transaction.transaction_type === 'income'
+        || transaction.category?.code === 'TRANSFER_INCOMING';
+
     // Function to get color class based on amount value
     const getAmountColorClass = (amount, transactionType) => {
         const value = parseFloat(amount || 0);
@@ -538,14 +542,18 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                     <td>{new Date(transaction.transaction_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
                                                     <td>{transaction.description}</td>
                                                     <td>
-                                                        <span className={`badge ${transaction.transaction_type === 'income' ? 'bg-success' : 'bg-danger'}`}>
+                                                        <span className={`badge ${
+                                                            transaction.transaction_type === 'transfer'
+                                                                ? 'bg-info text-dark'
+                                                                : transaction.transaction_type === 'income' ? 'bg-success' : 'bg-danger'
+                                                        }`}>
                                                             {transaction.category?.name || 'N/A'}
                                                         </span>
                                                     </td>
                                                     <td>{transaction.account?.name || 'N/A'}</td>
                                                     <td>
                                                         <span className={`fw-bold ${getAmountColorClass(transaction.amount, transaction.transaction_type)}`}>
-                                                            {transaction.transaction_type === 'income' ? '+' : '-'}₹{parseFloat(transaction.amount || 0).toFixed(2)}
+                                                            {isIncoming(transaction) ? '+' : '-'}₹{parseFloat(transaction.amount || 0).toFixed(2)}
                                                         </span>
                                                     </td>
                                                     <td>

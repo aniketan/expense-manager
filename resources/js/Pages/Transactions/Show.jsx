@@ -4,6 +4,9 @@ import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
 export default function Show({ transaction }) {
 
+    const isIncoming = transaction.transaction_type === 'income'
+        || transaction.category?.code === 'TRANSFER_INCOMING';
+
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
@@ -85,11 +88,11 @@ export default function Show({ transaction }) {
                                             <label className="form-label text-muted">Amount</label>
                                             <div>
                                                 <h4 className={`mb-0 ${
-                                                    transaction.transaction_type === 'expense' || transaction.amount < 0
+                                                    !isIncoming
                                                         ? 'text-danger'
                                                         : 'text-success'
                                                 }`}>
-                                                    {formatCurrency(Math.abs(transaction.amount))}
+                                                    {isIncoming ? '+' : '-'}{formatCurrency(Math.abs(transaction.amount))}
                                                 </h4>
                                             </div>
                                         </div>
