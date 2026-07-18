@@ -44,7 +44,6 @@ Route::get('api/categories/with-totals', [CategoryController::class, 'getCategor
 Route::get('transactions/export', [TransactionController::class, 'export'])->name('transactions.export');
 Route::resource('transactions', TransactionController::class);
 Route::post('transactions/bulk-destroy', [TransactionController::class, 'bulkDestroy'])->name('transactions.bulk-destroy');
-Route::get('api/transactions', [TransactionController::class, 'getTransactions'])->name('api.transactions');
 
 // Budget routes
 Route::resource('budgets', BudgetController::class);
@@ -52,7 +51,7 @@ Route::patch('budgets/{budget}/toggle-status', [BudgetController::class, 'toggle
 Route::get('api/budgets/summary', [BudgetController::class, 'getSummary'])->name('api.budgets.summary');
 
 // Dashboard routes
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+Route::redirect('/dashboard', '/')->name('dashboard.index');
 Route::get('/dashboard/analytics', [DashboardController::class, 'analytics'])->name('dashboard.analytics');
 
 // API Routes for Statistics (useful for mobile apps)
