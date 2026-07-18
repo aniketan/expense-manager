@@ -39,6 +39,9 @@ jobs:
     - name: Install PHP dependencies
       run: composer install --no-ansi --no-interaction --no-progress --prefer-dist
 
+    - name: Check PHP formatting
+      run: ./vendor/bin/pint --test
+
     - name: Install frontend dependencies
       run: npm install --no-audit --no-fund
 

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Transaction;
-use App\Models\Category;
 use App\Models\Account;
+use App\Models\Category;
+use App\Models\Transaction;
 use Carbon\Carbon;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
@@ -220,7 +220,7 @@ class DashboardController extends Controller
             ->map(function ($item) {
                 $categoryName = $item->category
                     ? ($item->category->parent
-                        ? $item->category->parent->name . ' > ' . $item->category->name
+                        ? $item->category->parent->name.' > '.$item->category->name
                         : $item->category->name)
                     : 'Uncategorized';
 

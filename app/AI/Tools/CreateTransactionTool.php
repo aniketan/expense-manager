@@ -2,11 +2,11 @@
 
 namespace App\AI\Tools;
 
-use Prism\Prism\Tool;
-use App\Models\Transaction;
 use App\Models\Account;
 use App\Models\Category;
+use App\Models\Transaction;
 use Carbon\Carbon;
+use Prism\Prism\Tool;
 
 class CreateTransactionTool extends Tool
 {
@@ -40,14 +40,14 @@ class CreateTransactionTool extends Tool
                     ->where('is_active', true)
                     ->first();
             }
-            if (!$account) {
+            if (! $account) {
                 $account = Account::where('is_active', true)->first();
             }
 
-            if (!$account) {
+            if (! $account) {
                 return json_encode([
                     'success' => false,
-                    'error'   => 'No active account found. Please create an account first.',
+                    'error' => 'No active account found. Please create an account first.',
                 ]);
             }
 
@@ -56,55 +56,55 @@ class CreateTransactionTool extends Tool
                 ->whereNotNull('parent_id')
                 ->first();
 
-            if (!$category) {
+            if (! $category) {
                 $category = Category::where('name', 'Other')
                     ->whereNotNull('parent_id')
                     ->first();
             }
 
-            if (!$category) {
+            if (! $category) {
                 $category = Category::whereNotNull('parent_id')->first();
             }
 
-            if (!$category) {
+            if (! $category) {
                 return json_encode([
                     'success' => false,
-                    'error'   => 'No categories found. Please set up expense categories first.',
+                    'error' => 'No categories found. Please set up expense categories first.',
                 ]);
             }
 
             // Validate transaction type
-            if (!in_array($transaction_type, ['income', 'expense', 'transfer'])) {
+            if (! in_array($transaction_type, ['income', 'expense', 'transfer'])) {
                 return json_encode([
                     'success' => false,
-                    'error'   => 'Invalid transaction type. Must be "income" or "expense".',
+                    'error' => 'Invalid transaction type. Must be "income" or "expense".',
                 ]);
             }
 
             // Create transaction
             $transaction = Transaction::create([
-                'account_id'       => $account->id,
-                'category_id'      => $category->id,
+                'account_id' => $account->id,
+                'category_id' => $category->id,
                 'transaction_type' => $transaction_type,
-                'amount'           => abs($amount),
-                'description'      => $description,
+                'amount' => abs($amount),
+                'description' => $description,
                 'transaction_date' => $date ? Carbon::createFromFormat('Y-m-d', $date)->toDateString() : Carbon::today()->toDateString(),
-                'payment_method'   => 'Other',
+                'payment_method' => 'Other',
             ]);
 
             return json_encode([
-                'success'    => true,
-                'id'         => $transaction->id,
-                'message'    => "✅ Created {$transaction_type} of ₹{$amount} for \"{$description}\"",
-                'account'    => $account->name,
-                'category'   => $category->name,
-                'date'       => $transaction->transaction_date->format('Y-m-d'),
+                'success' => true,
+                'id' => $transaction->id,
+                'message' => "✅ Created {$transaction_type} of ₹{$amount} for \"{$description}\"",
+                'account' => $account->name,
+                'category' => $category->name,
+                'date' => $transaction->transaction_date->format('Y-m-d'),
             ]);
 
         } catch (\Throwable $e) {
             return json_encode([
                 'success' => false,
-                'error'   => 'Failed to create transaction: ' . $e->getMessage(),
+                'error' => 'Failed to create transaction: '.$e->getMessage(),
             ]);
         }
     }
