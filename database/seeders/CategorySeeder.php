@@ -118,10 +118,11 @@ class CategorySeeder extends Seeder
             ['id' => 107, 'parent_id' => 90, 'name' => 'Personal Savings', 'code' => 'PERSONAL_SAVINGS', 'description' => null, 'icon' => null, 'color' => null],
             ['id' => 108, 'parent_id' => 90, 'name' => 'Other', 'code' => 'OTHER', 'description' => null, 'icon' => null, 'color' => null],
             ['id' => 109, 'parent_id' => 90, 'name' => 'Snack', 'code' => 'SNACK', 'description' => null, 'icon' => null, 'color' => null],
-            ['id' => 110, 'parent_id' => 90, 'name' => 'Account Transfer', 'code' => 'ACCOUNT_TRANSFER', 'description' => null, 'icon' => null, 'color' => null],
             ['id' => 111, 'parent_id' => null, 'name' => 'Loan', 'code' => 'loan', 'description' => null, 'icon' => null, 'color' => null],
             ['id' => 91, 'parent_id' => null, 'name' => 'Account Transfer', 'code' => 'ACCOUNT_TRANSFER', 'description' => 'Transfers between accounts', 'icon' => 'fas fa-exchange-alt', 'color' => '#6c757d'],
-           ];
+            ['id' => 112, 'parent_id' => 91, 'name' => 'Transfer Incoming', 'code' => 'TRANSFER_INCOMING', 'description' => null, 'icon' => 'fas fa-exchange-alt', 'color' => '#6c757d'],
+            ['id' => 113, 'parent_id' => 91, 'name' => 'Transfer Outgoing', 'code' => 'TRANSFER_OUTGOING', 'description' => null, 'icon' => 'fas fa-exchange-alt', 'color' => '#6c757d'],
+        ];
 
         DB::table('categories')->insert($categories);
     }

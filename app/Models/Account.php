@@ -31,9 +31,13 @@ class Account extends Model
 
     // Account types as constants
     public const TYPE_SAVINGS = 'savings';
+
     public const TYPE_CURRENT = 'current';
+
     public const TYPE_CREDIT_CARD = 'credit_card';
+
     public const TYPE_CASH = 'cash';
+
     public const TYPE_INVESTMENT = 'investment';
 
     // Get all available account types
@@ -87,7 +91,7 @@ class Account extends Model
     // Relationship with transactions
     public function transactions()
     {
-        return $this->hasMany(\App\Models\Transaction::class);
+        return $this->hasMany(Transaction::class);
     }
 
     /**
@@ -97,17 +101,14 @@ class Account extends Model
     public function recalculateBalance()
     {
         $transactions = $this->transactions()
-            ->select('transaction_type', 'amount')
+            ->with('category:id,code')
+            ->select('id', 'category_id', 'transaction_type', 'amount')
             ->get();
 
-        $balance = $this->opening_balance;
+        $balance = (float) $this->opening_balance;
 
         foreach ($transactions as $transaction) {
-            if ($transaction->transaction_type === 'income') {
-                $balance += $transaction->amount;
-            } else {
-                $balance -= $transaction->amount;
-            }
+            $balance += $transaction->getBalanceImpact();
         }
 
         $this->current_balance = $balance;

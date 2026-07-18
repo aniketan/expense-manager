@@ -292,7 +292,7 @@ export default function Review({
         () =>
             categories.filter((c) => {
                 const code = String(c.code ?? '').toUpperCase();
-                return code !== 'INCOME' && code !== 'ACCOUNTTR';
+                return code !== 'INCOME' && code !== 'ACCOUNT_TRANSFER';
             }),
         [categories],
     );

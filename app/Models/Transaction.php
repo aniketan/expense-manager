@@ -2,12 +2,24 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
 class Transaction extends Model
 {
-    protected $table = 'transactions';
     use HasFactory;
+
+    public const TYPE_INCOME = 'income';
+
+    public const TYPE_EXPENSE = 'expense';
+
+    public const TYPE_TRANSFER = 'transfer';
+
+    public const CATEGORY_TRANSFER_INCOMING = 'TRANSFER_INCOMING';
+
+    public const CATEGORY_TRANSFER_OUTGOING = 'TRANSFER_OUTGOING';
+
+    protected $table = 'transactions';
 
     /**
      * The relationships that should always be loaded.
@@ -20,6 +32,7 @@ class Transaction extends Model
         'account_id',
         'category_id',
         'transaction_type',
+        'transfer_group_id',
         'amount',
         'description',
         'transaction_date',
@@ -74,60 +87,72 @@ class Transaction extends Model
     /**
      * Update the account balance based on the transaction
      *
-     * @param string $operation 'add', 'subtract', or 'update'
+     * @param  string  $operation  'add', 'subtract', or 'update'
      */
+    public static function balanceImpact(string $type, float|int|string $amount, ?string $categoryCode = null): float
+    {
+        $amount = (float) $amount;
+
+        if ($type === self::TYPE_INCOME || $categoryCode === self::CATEGORY_TRANSFER_INCOMING) {
+            return $amount;
+        }
+
+        return -$amount;
+    }
+
+    public function getBalanceImpact(): float
+    {
+        return self::balanceImpact(
+            $this->transaction_type,
+            $this->amount,
+            $this->category?->code
+        );
+    }
+
     public function updateAccountBalance($operation = 'add')
     {
-        $account = $this->account;
+        // Resolve by the current foreign key instead of a potentially stale loaded relation.
+        $account = Account::find($this->account_id);
 
-        if (!$account) {
+        if (! $account) {
             return;
         }
 
-        // Calculate the amount impact based on transaction type
-        // For income: add to balance
-        // For expense: subtract from balance
-        $amountImpact = $this->transaction_type === 'income' ? $this->amount : -$this->amount;
+        $amountImpact = $this->getBalanceImpact();
 
         switch ($operation) {
             case 'add':
-                // Adding a new transaction
                 $account->current_balance += $amountImpact;
                 break;
 
             case 'subtract':
-                // Removing a transaction (revert its effect)
                 $account->current_balance -= $amountImpact;
                 break;
 
             case 'update':
-                // Get the original values before the update
                 $originalAccountId = $this->getOriginal('account_id');
-                $originalAmount = $this->getOriginal('amount');
-                $originalType = $this->getOriginal('transaction_type');
+                $originalCategoryCode = Category::find($this->getOriginal('category_id'))?->code;
+                $oldAmountImpact = self::balanceImpact(
+                    $this->getOriginal('transaction_type'),
+                    $this->getOriginal('amount'),
+                    $originalCategoryCode
+                );
 
-                // If the account changed, we need to update both accounts
                 if ($originalAccountId != $this->account_id) {
-                    // Revert the old account
                     $oldAccount = Account::find($originalAccountId);
                     if ($oldAccount) {
-                        $oldAmountImpact = $originalType === 'income' ? $originalAmount : -$originalAmount;
                         $oldAccount->current_balance -= $oldAmountImpact;
                         $oldAccount->save();
                     }
 
-                    // Add to new account
                     $account->current_balance += $amountImpact;
                 } else {
-                    // Same account, just adjust the difference
-                    $oldAmountImpact = $originalType === 'income' ? $originalAmount : -$originalAmount;
-                    $account->current_balance -= $oldAmountImpact; // Revert old impact
-                    $account->current_balance += $amountImpact;     // Apply new impact
+                    $account->current_balance -= $oldAmountImpact;
+                    $account->current_balance += $amountImpact;
                 }
                 break;
         }
 
         $account->save();
     }
-
 }

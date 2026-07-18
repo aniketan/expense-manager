@@ -59,12 +59,13 @@ export default function Create({ categories, accounts }) {
     const parentCategories = categories.filter(cat => cat.parent_id === null);
 
     // Get income category
-    const incomeCategory = parentCategories.find(cat => cat.code === 'INCOME');
+    const incomeCategory = parentCategories.find(cat => String(cat.code).toUpperCase() === 'INCOME');
 
     // Get expense categories (excluding income and account transfer)
-    const expenseCategories = parentCategories.filter(cat =>
-        cat.code !== 'INCOME' && cat.code !== 'ACCOUNTTR'
-    );
+    const expenseCategories = parentCategories.filter(cat => {
+        const code = String(cat.code).toUpperCase();
+        return code !== 'INCOME' && code !== 'ACCOUNT_TRANSFER';
+    });
 
     // Function to get subcategories for a parent category
     const getSubcategories = (parentCategoryId) => {

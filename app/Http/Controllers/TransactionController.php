@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Services\AccountTransferService;
 use App\Services\TransactionFilterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
@@ -28,8 +29,8 @@ class TransactionController extends Controller
 
         $filteredQuery = clone $query;
 
-        $totalIncome = $filteredQuery->where('transaction_type', 'income')->sum('amount');
-        $totalExpenses = (clone $query)->where('transaction_type', '!=', 'income')->sum('amount');
+        $totalIncome = $filteredQuery->where('transaction_type', Transaction::TYPE_INCOME)->sum('amount');
+        $totalExpenses = (clone $query)->where('transaction_type', Transaction::TYPE_EXPENSE)->sum('amount');
         $netBalance = $totalIncome - $totalExpenses;
 
         $totals = [
@@ -133,7 +134,7 @@ class TransactionController extends Controller
         $amount = (string) $transaction->amount;
         $debit = '';
         $credit = '';
-        if ($transaction->transaction_type === 'income') {
+        if ($transaction->getBalanceImpact() > 0) {
             $credit = $amount;
         } else {
             $debit = $amount;
@@ -176,88 +177,34 @@ class TransactionController extends Controller
      * - Expense transactions: Subtract from account balance
      * - Transfer transactions: Creates two entries (outgoing + incoming)
      */
-    public function store(Request $request)
+    public function store(Request $request, AccountTransferService $transferService)
     {
         $validated = $request->validate([
             'account_id' => 'required|exists:accounts,id',
-            'category_id' => 'nullable|exists:categories,id',
-            'transaction_type' => 'required|string|max:20',
-            'amount' => 'required|numeric',
+            'category_id' => 'nullable|required_unless:transaction_type,transfer|exists:categories,id',
+            'transaction_type' => 'required|in:income,expense,transfer',
+            'amount' => 'required|numeric|gt:0',
             'description' => 'nullable|string',
             'transaction_date' => 'required|date',
             'transaction_time' => 'nullable|date_format:H:i',
-            'payment_method' => 'required_unless:transaction_type,transfer|string|max:50',
+            'payment_method' => 'nullable|required_unless:transaction_type,transfer|string|max:50',
             'reference_number' => 'nullable|string|max:100',
             'tags' => 'nullable|string',
             'location' => 'nullable|string',
-            'transfer_to_account_id' => 'nullable|required_if:transaction_type,transfer|exists:accounts,id',
+            'transfer_to_account_id' => 'nullable|required_if:transaction_type,transfer|different:account_id|exists:accounts,id',
         ]);
 
-        // Handle account transfer - create two transactions
-        if ($validated['transaction_type'] === 'transfer') {
-            // Get the account transfer category
-            $transferCategory = Category::where('code', 'ACCOUNTTR')->first();
-
-            if (! $transferCategory) {
-                return Redirect::back()
-                    ->withErrors(['transfer' => 'Account transfer category not found. Please contact administrator.']);
-            }
-
-            // Get a subcategory under ACCOUNTTR or use the parent if no subcategories exist
-            $transferSubcategory = Category::where('parent_id', $transferCategory->id)->first();
-            $categoryId = $transferSubcategory ? $transferSubcategory->id : $transferCategory->id;
-
-            // Create outgoing transaction (from source account)
-            Transaction::create([
-                'account_id' => $validated['account_id'],
-                'category_id' => $categoryId,
-                'transaction_type' => 'transfer',
-                'amount' => $validated['amount'],
-                'description' => $validated['description'] ?? 'Transfer to account',
-                'transaction_date' => $validated['transaction_date'],
-                'transaction_time' => $validated['transaction_time'] ?? null,
-                'payment_method' => $validated['payment_method'] ?? null,
-                'reference_number' => $validated['reference_number'] ?? null,
-                'tags' => $validated['tags'] ?? null,
-                'location' => $validated['location'] ?? null,
-            ]);
-
-            // Get income category for the incoming transaction
-            $incomeCategory = Category::where('code', 'INCOME')->first();
-
-            if (! $incomeCategory) {
-                return Redirect::back()
-                    ->withErrors(['transfer' => 'Income category not found. Please contact administrator.']);
-            }
-
-            // Get a subcategory under INCOME or use the parent if no subcategories exist
-            $incomeSubcategory = Category::where('parent_id', $incomeCategory->id)->first();
-            $incomeCategoryId = $incomeSubcategory ? $incomeSubcategory->id : $incomeCategory->id;
-
-            // Create incoming transaction (to destination account)
-            Transaction::create([
-                'account_id' => $validated['transfer_to_account_id'],
-                'category_id' => $incomeCategoryId,
-                'transaction_type' => 'income',
-                'amount' => $validated['amount'],
-                'description' => $validated['description'] ?? 'Transfer from account',
-                'transaction_date' => $validated['transaction_date'],
-                'transaction_time' => $validated['transaction_time'] ?? null,
-                'payment_method' => $validated['payment_method'] ?? null,
-                'reference_number' => $validated['reference_number'] ?? null,
-                'tags' => $validated['tags'] ?? null,
-                'location' => $validated['location'] ?? null,
-            ]);
+        if ($validated['transaction_type'] === Transaction::TYPE_TRANSFER) {
+            $transferService->create($validated);
 
             return Redirect::route('transactions.index')
                 ->with('success', 'Account transfer completed successfully.');
         }
 
-        // Regular transaction (income or expense)
-        $transaction = Transaction::create($validated);
+        unset($validated['transfer_to_account_id']);
+        Transaction::create($validated);
 
-        // Check budget alerts for expense transactions
-        if ($validated['transaction_type'] === 'expense' && isset($validated['category_id'])) {
+        if ($validated['transaction_type'] === Transaction::TYPE_EXPENSE && isset($validated['category_id'])) {
             $budgetAlerts = $this->checkBudgetAlerts($validated['category_id'], $validated['transaction_date']);
 
             if (! empty($budgetAlerts)) {
@@ -284,8 +231,14 @@ class TransactionController extends Controller
     /**
      * Show the form for editing the specified transaction.
      */
-    public function edit(Transaction $transaction)
+    public function edit(Transaction $transaction, AccountTransferService $transferService)
     {
+        if ($transaction->transaction_type === Transaction::TYPE_TRANSFER) {
+            $legs = $transferService->pair($transaction);
+            $transaction = $legs['outgoing'];
+            $transaction->setAttribute('transfer_to_account_id', $legs['incoming']->account_id);
+        }
+
         // Load the transaction with its relationships
         $transaction->load(['category.parent', 'account']);
         $transaction->transaction_time = $this->timeInputValue($transaction->transaction_time);
@@ -326,24 +279,32 @@ class TransactionController extends Controller
      * - If account changes: Old account is reverted, new account is updated
      * - If amount/type changes: Balance is recalculated accordingly
      */
-    public function update(Request $request, Transaction $transaction)
+    public function update(Request $request, Transaction $transaction, AccountTransferService $transferService)
     {
         $validated = $request->validate([
             'account_id' => 'required|exists:accounts,id',
-            'category_id' => 'required|exists:categories,id',
-            'transaction_type' => 'nullable|string|max:20',
-            'amount' => 'required|numeric',
+            'category_id' => 'nullable|required_unless:transaction_type,transfer|exists:categories,id',
+            'transaction_type' => 'required|in:income,expense,transfer',
+            'amount' => 'required|numeric|gt:0',
             'description' => 'nullable|string',
             'expensed_date' => 'required|date',
             'transaction_time' => 'nullable|date_format:H:i',
-            'payment_method' => 'required_unless:transaction_type,transfer|string|max:50',
+            'payment_method' => 'nullable|required_unless:transaction_type,transfer|string|max:50',
             'reference_number' => 'nullable|string|max:100',
             'tags' => 'nullable|string',
             'payee_payer' => 'nullable|string',
             'tax' => 'nullable|numeric',
             'status' => 'nullable|string',
             'notes' => 'nullable|string',
+            'transfer_to_account_id' => 'nullable|required_if:transaction_type,transfer|different:account_id|exists:accounts,id',
         ]);
+
+        $isExistingTransfer = $transaction->transaction_type === Transaction::TYPE_TRANSFER;
+        if ($isExistingTransfer !== ($validated['transaction_type'] === Transaction::TYPE_TRANSFER)) {
+            throw ValidationException::withMessages([
+                'transaction_type' => 'Converting between transfers and regular transactions is not supported.',
+            ]);
+        }
 
         // Map expensed_date to transaction_date for database compatibility
         if (isset($validated['expensed_date'])) {
@@ -351,7 +312,12 @@ class TransactionController extends Controller
             unset($validated['expensed_date']);
         }
 
-        $transaction->update($validated);
+        if ($isExistingTransfer) {
+            $transferService->update($transaction, $validated);
+        } else {
+            unset($validated['transfer_to_account_id']);
+            $transaction->update($validated);
+        }
 
         return Redirect::route('transactions.index')
             ->with('success', 'Transaction updated successfully.');
@@ -363,9 +329,13 @@ class TransactionController extends Controller
      * Note: Account balance is automatically reverted via Transaction model events
      * - The transaction's impact on the account balance is reversed
      */
-    public function destroy(Transaction $transaction)
+    public function destroy(Transaction $transaction, AccountTransferService $transferService)
     {
-        $transaction->delete();
+        if ($transaction->transaction_type === Transaction::TYPE_TRANSFER) {
+            $transferService->delete($transaction);
+        } else {
+            $transaction->delete();
+        }
 
         return Redirect::route('transactions.index')
             ->with('success', 'Transaction deleted successfully.');
@@ -377,7 +347,7 @@ class TransactionController extends Controller
      * Note: Account balances are automatically reverted via Transaction model events
      * - Each transaction is deleted individually to trigger the model's deleted event
      */
-    public function bulkDestroy(Request $request)
+    public function bulkDestroy(Request $request, AccountTransferService $transferService)
     {
         $validated = $request->validate([
             'ids' => 'required|array',
@@ -388,8 +358,18 @@ class TransactionController extends Controller
         $transactions = Transaction::whereIn('id', $validated['ids'])->get();
         $count = 0;
 
+        $processedGroups = [];
         foreach ($transactions as $transaction) {
-            $transaction->delete();
+            if ($transaction->transaction_type === Transaction::TYPE_TRANSFER) {
+                if (isset($processedGroups[$transaction->transfer_group_id])) {
+                    continue;
+                }
+
+                $transferService->delete($transaction);
+                $processedGroups[$transaction->transfer_group_id] = true;
+            } else {
+                $transaction->delete();
+            }
             $count++;
         }
 
@@ -403,11 +383,11 @@ class TransactionController extends Controller
     public function getDashboardStats()
     {
         // Get total income (where transaction_type is 'income')
-        $totalIncome = Transaction::where('transaction_type', 'income')
+        $totalIncome = Transaction::where('transaction_type', Transaction::TYPE_INCOME)
             ->sum('amount');
 
-        // Get total expenses (where transaction_type is not 'income')
-        $totalExpenses = Transaction::where('transaction_type', '!=', 'income')
+        // Transfers only move money between accounts and are not expenses.
+        $totalExpenses = Transaction::where('transaction_type', Transaction::TYPE_EXPENSE)
             ->sum('amount');
 
         // Convert negative expenses to positive for display

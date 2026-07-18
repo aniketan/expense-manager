@@ -30,6 +30,7 @@ const toTimeInputValue = (value) => {
 };
 
 export default function Edit({ transaction, categories, accounts }) {
+    const isGroupedTransfer = transaction.transaction_type === 'transfer' && Boolean(transaction.transfer_group_id);
     const [selectedCategory, setSelectedCategory] = useState('');
     const [subcategories, setSubcategories] = useState([]);
     const [transactionType, setTransactionType] = useState(transaction.transaction_type || 'expense');
@@ -40,7 +41,7 @@ export default function Edit({ transaction, categories, accounts }) {
         transaction_time: toTimeInputValue(transaction.transaction_time),
         amount: transaction.amount || '',
         account_id: transaction.account_id || '',
-        transfer_to_account_id: '',
+        transfer_to_account_id: transaction.transfer_to_account_id || '',
         payment_method: transaction.payment_method || '',
         description: transaction.description || '',
         category_id: transaction.category_id || '',
@@ -68,15 +69,13 @@ export default function Edit({ transaction, categories, accounts }) {
     const parentCategories = categories.filter(cat => cat.parent_id === null);
 
     // Get income category
-    const incomeCategory = parentCategories.find(cat => cat.code === 'INCOME');
-
-    // Get account transfer category
-    const accountTransferCategory = parentCategories.find(cat => cat.code === 'ACCOUNTTR');
+    const incomeCategory = parentCategories.find(cat => String(cat.code).toUpperCase() === 'INCOME');
 
     // Get expense categories (excluding income and account transfer)
-    const expenseCategories = parentCategories.filter(cat =>
-        cat.code !== 'INCOME' && cat.code !== 'ACCOUNTTR'
-    );
+    const expenseCategories = parentCategories.filter(cat => {
+        const code = String(cat.code).toUpperCase();
+        return code !== 'INCOME' && code !== 'ACCOUNT_TRANSFER';
+    });
 
     // Function to get subcategories for a parent category
     const getSubcategories = (parentCategoryId) => {
@@ -304,6 +303,7 @@ export default function Edit({ transaction, categories, accounts }) {
                                             value="income"
                                             checked={transactionType === 'income'}
                                             onChange={() => handleTransactionTypeChange('income')}
+                                            disabled={isGroupedTransfer}
                                         />
                                         <label className="btn btn-outline-success" htmlFor="type_income">
                                             <i className="fas fa-arrow-down me-2"></i>Income
@@ -317,6 +317,7 @@ export default function Edit({ transaction, categories, accounts }) {
                                             value="expense"
                                             checked={transactionType === 'expense'}
                                             onChange={() => handleTransactionTypeChange('expense')}
+                                            disabled={isGroupedTransfer}
                                         />
                                         <label className="btn btn-outline-danger" htmlFor="type_expense">
                                             <i className="fas fa-arrow-up me-2"></i>Expense
@@ -330,6 +331,7 @@ export default function Edit({ transaction, categories, accounts }) {
                                             value="transfer"
                                             checked={transactionType === 'transfer'}
                                             onChange={() => handleTransactionTypeChange('transfer')}
+                                            disabled={isGroupedTransfer}
                                         />
                                         <label className="btn btn-outline-primary" htmlFor="type_transfer">
                                             <i className="fas fa-exchange-alt me-2"></i>Account Transfer
