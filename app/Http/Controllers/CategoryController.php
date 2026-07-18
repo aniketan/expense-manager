@@ -258,6 +258,13 @@ class CategoryController extends Controller
                     ->with('error', 'Cannot delete category. It has sub-categories.');
             }
 
+            // Database cascades bypass Transaction model events and can leave
+            // account balances stale, so transactions must be handled first.
+            if ($category->transactions()->exists()) {
+                return Redirect::route('categories.index')
+                    ->with('error', 'Cannot delete category. Reassign or delete its transactions first.');
+            }
+
             $category->delete();
             
             return Redirect::route('categories.index')
