@@ -98,6 +98,9 @@ export default function Create({ categories, accounts }) {
         setSelectedCategory('');
         setSubcategories([]);
         setData('category_id', '');
+        if (type === 'transfer') {
+            setData('payee_payer', '');
+        }
         clearValidationFieldErrors(setValidationErrors, [
             'category',
             'category_id',
@@ -172,13 +175,13 @@ export default function Create({ categories, accounts }) {
 
     // Handle payee/payer with sanitization
     const handlePayeePayerChange = (e) => {
-        const sanitized = sanitizeText(e.target.value, 100);
+        const sanitized = sanitizeText(e.target.value, 255);
         setData('payee_payer', sanitized);
     };
 
     // Handle reference with sanitization
     const handleReferenceChange = (e) => {
-        const sanitized = sanitizeText(e.target.value, 50);
+        const sanitized = sanitizeText(e.target.value, 100);
         setData('reference_number', sanitized);
     };
 
@@ -434,6 +437,7 @@ export default function Create({ categories, accounts }) {
                                                 <option value="Bank Transfer">Bank Transfer</option>
                                                 <option value="Credit Card">Credit Card</option>
                                                 <option value="Debit Card">Debit Card</option>
+                                                <option value="Cash">Cash</option>
                                                 <option value="Cheque">Cheque</option>
                                             </select>
                                             {(errors.payment_method || validationErrors.payment_method) && (
@@ -559,21 +563,21 @@ export default function Create({ categories, accounts }) {
                                                 </div>
                                             </div>
                                         )}
+
+                                        <div className="mb-3">
+                                            <label htmlFor="payee_payer" className="form-label">Payee/Payer</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                id="payee_payer"
+                                                value={data.payee_payer}
+                                                onChange={handlePayeePayerChange}
+                                                placeholder="Who did you pay or who paid you?"
+                                                maxLength="255"
+                                            />
+                                        </div>
                                     </>
                                 )}
-
-                                <div className="mb-3">
-                                    <label htmlFor="payee_payer" className="form-label">Payee/Payer</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="payee_payer"
-                                        value={data.payee_payer}
-                                        onChange={handlePayeePayerChange}
-                                        placeholder="Who did you pay or who paid you?"
-                                        maxLength="100"
-                                    />
-                                </div>
 
                                 <div className="row mb-4">
                                     <div className="col-12">
@@ -594,7 +598,7 @@ export default function Create({ categories, accounts }) {
                                             value={data.reference_number}
                                             onChange={handleReferenceChange}
                                             placeholder="Receipt number, transaction ID, etc."
-                                            maxLength="50"
+                                            maxLength="100"
                                         />
                                     </div>
                                     <div className="col-md-6">

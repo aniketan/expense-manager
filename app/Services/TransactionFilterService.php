@@ -24,11 +24,17 @@ class TransactionFilterService
             $filters['search'] = $search;
             $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%")
+                    ->orWhere('payee_payer', 'like', "%{$search}%")
                     ->orWhere('reference_number', 'like', "%{$search}%")
                     ->orWhereHas('category', function ($subQ) use ($search) {
                         $subQ->where('name', 'like', "%{$search}%");
                     });
             });
+        }
+
+        if ($request->filled('category')) {
+            $filters['category'] = $request->get('category');
         }
 
         if ($request->filled('subcategory')) {
@@ -37,7 +43,6 @@ class TransactionFilterService
             $query->where('category_id', $subcategoryId);
         } elseif ($request->filled('category')) {
             $categoryId = $request->get('category');
-            $filters['category'] = $categoryId;
 
             $subcategoryIds = Category::where('parent_id', $categoryId)->pluck('id')->toArray();
 
@@ -72,19 +77,38 @@ class TransactionFilterService
             $query->where('payment_method', $paymentMethod);
         }
 
-        if ($request->filled('status')) {
+        if ($request->filled('status') && in_array($request->get('status'), Transaction::STATUSES, true)) {
             $status = $request->get('status');
             $filters['status'] = $status;
             $query->where('status', $status);
+        }
+
+        if ($request->filled('tags')) {
+            $tags = $request->get('tags');
+            $filters['tags'] = $tags;
+            $query->where('tags', 'like', "%{$tags}%");
         }
 
         $cashFlow = $request->get('cash_flow', 'all');
         if (in_array($cashFlow, ['credit', 'debit'], true)) {
             $filters['cash_flow'] = $cashFlow;
             if ($cashFlow === 'credit') {
-                $query->where('transaction_type', 'income');
+                $query->where(function ($cashFlowQuery) {
+                    $cashFlowQuery->where('transaction_type', Transaction::TYPE_INCOME)
+                        ->orWhereHas('category', function ($categoryQuery) {
+                            $categoryQuery->where('code', Transaction::CATEGORY_TRANSFER_INCOMING);
+                        });
+                });
             } else {
-                $query->whereIn('transaction_type', ['expense', 'transfer']);
+                $query->where(function ($cashFlowQuery) {
+                    $cashFlowQuery->where('transaction_type', Transaction::TYPE_EXPENSE)
+                        ->orWhere(function ($transferQuery) {
+                            $transferQuery->where('transaction_type', Transaction::TYPE_TRANSFER)
+                                ->whereDoesntHave('category', function ($categoryQuery) {
+                                    $categoryQuery->where('code', Transaction::CATEGORY_TRANSFER_INCOMING);
+                                });
+                        });
+                });
             }
         } elseif ($request->filled('transaction_type')) {
             $transactionType = $request->get('transaction_type');

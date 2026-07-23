@@ -19,7 +19,23 @@ class Transaction extends Model
 
     public const CATEGORY_TRANSFER_OUTGOING = 'TRANSFER_OUTGOING';
 
+    public const STATUS_PENDING = 'Pending';
+
+    public const STATUS_CLEARED = 'Cleared';
+
+    public const STATUS_CANCELLED = 'Cancelled';
+
+    public const STATUSES = [
+        self::STATUS_PENDING,
+        self::STATUS_CLEARED,
+        self::STATUS_CANCELLED,
+    ];
+
     protected $table = 'transactions';
+
+    protected $attributes = [
+        'status' => self::STATUS_CLEARED,
+    ];
 
     /**
      * The relationships that should always be loaded.
@@ -34,9 +50,13 @@ class Transaction extends Model
         'transaction_type',
         'transfer_group_id',
         'amount',
+        'tax',
         'description',
+        'payee_payer',
+        'notes',
         'transaction_date',
         'transaction_time',
+        'status',
         'payment_method',
         'reference_number',
         'tags',
@@ -50,6 +70,7 @@ class Transaction extends Model
      */
     protected $casts = [
         'amount' => 'decimal:2',
+        'tax' => 'decimal:2',
         'transaction_date' => 'date',
     ];
 

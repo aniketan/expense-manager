@@ -256,7 +256,6 @@ export const handleAmountInput = (event, setter, fieldKey = undefined) => {
 
 export const TRANSACTION_ERROR_ORDER = [
     'transaction_date',
-    'expensed_date',
     'transaction_time',
     'amount',
     'account_id',
@@ -276,7 +275,6 @@ export const TRANSACTION_ERROR_ORDER = [
 
 export const getTransactionErrorLabels = (transactionType = 'expense') => ({
     transaction_date: 'Date',
-    expensed_date: 'Date',
     transaction_time: 'Time',
     amount: 'Amount',
     account_id: transactionType === 'transfer' ? 'From Account' : 'Account',

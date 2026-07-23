@@ -94,8 +94,15 @@ export default function Index({ transactions = {}, categories = [], accounts = [
         to: transactions.to || 0
     };
 
-    const paymentMethods = ['UPI', 'Bank Transfer', 'Credit Card', 'Debit Card', 'Cheque'];
-    const statuses = ['Cleared', 'Pending', 'Imported'];
+    const paymentMethods = ['UPI', 'Bank Transfer', 'Credit Card', 'Debit Card', 'Cash', 'Cheque'];
+    const statuses = ['Cleared', 'Pending', 'Cancelled'];
+
+    const getStatusBadgeClass = (status) => {
+        if (status === 'Pending') return 'bg-warning text-dark';
+        if (status === 'Cancelled') return 'bg-secondary';
+
+        return 'bg-success';
+    };
 
     const handleSelectAll = () => {
         if (selectAll) {
@@ -557,8 +564,8 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <span className="badge bg-success">
-                                                            {transaction.status || 'Cleared'}
+                                                        <span className={`badge ${getStatusBadgeClass(transaction.status)}`}>
+                                                            {transaction.status}
                                                         </span>
                                                     </td>
                                                     <td>

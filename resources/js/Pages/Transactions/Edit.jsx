@@ -29,6 +29,12 @@ const toTimeInputValue = (value) => {
     return timeMatch ? timeMatch[1] : stringValue.slice(0, 5);
 };
 
+const toDateInputValue = (value) => {
+    if (!value) return '';
+
+    return String(value).slice(0, 10);
+};
+
 export default function Edit({ transaction, categories, accounts }) {
     const isGroupedTransfer = transaction.transaction_type === 'transfer' && Boolean(transaction.transfer_group_id);
     const [selectedCategory, setSelectedCategory] = useState('');
@@ -37,7 +43,7 @@ export default function Edit({ transaction, categories, accounts }) {
     const [validationErrors, setValidationErrors] = useState({});
 
     const { data, setData, put, processing, errors } = useForm({
-        expensed_date: transaction.transaction_date || '',
+        transaction_date: toDateInputValue(transaction.transaction_date),
         transaction_time: toTimeInputValue(transaction.transaction_time),
         amount: transaction.amount || '',
         account_id: transaction.account_id || '',
@@ -45,10 +51,10 @@ export default function Edit({ transaction, categories, accounts }) {
         payment_method: transaction.payment_method || '',
         description: transaction.description || '',
         category_id: transaction.category_id || '',
-        payee_payer: transaction.payee_payer || '',
+        payee_payer: transaction.transaction_type === 'transfer' ? '' : transaction.payee_payer || '',
         reference_number: transaction.reference_number || '',
         tax: transaction.tax || '0',
-        status: transaction.status || 'Pending',
+        status: transaction.status || 'Cleared',
         tags: transaction.tags || '',
         notes: transaction.notes || '',
         transaction_type: transaction.transaction_type || 'expense'
@@ -135,6 +141,9 @@ export default function Edit({ transaction, categories, accounts }) {
         setSelectedCategory('');
         setSubcategories([]);
         setData('category_id', '');
+        if (type === 'transfer') {
+            setData('payee_payer', '');
+        }
         clearValidationFieldErrors(setValidationErrors, [
             'category',
             'category_id',
@@ -164,12 +173,12 @@ export default function Edit({ transaction, categories, accounts }) {
 
     // Handle date with validation
     const handleDateChange = (e) => {
-        setData('expensed_date', e.target.value);
+        setData('transaction_date', e.target.value);
         const validation = validateDate(e.target.value);
         if (!validation.isValid) {
-            setFieldError('expensed_date', validation.error);
+            setFieldError('transaction_date', validation.error);
         } else {
-            clearFieldError('expensed_date');
+            clearFieldError('transaction_date');
         }
     };
 
@@ -235,7 +244,7 @@ export default function Edit({ transaction, categories, accounts }) {
         const nextErrors = validateTransactionForm(data, {
             transactionType,
             selectedCategory,
-            dateField: 'expensed_date',
+            dateField: 'transaction_date',
             validateNotes: true,
         });
 
@@ -350,21 +359,21 @@ export default function Edit({ transaction, categories, accounts }) {
 
                                 <div className="row mb-3">
                                     <div className="col-md-4">
-                                        <label htmlFor="expensed_date" className="form-label">
+                                        <label htmlFor="transaction_date" className="form-label">
                                             Date <span className="text-danger">*</span>
                                         </label>
                                         <input
                                             type="date"
-                                            className={`form-control ${errors.expensed_date || validationErrors.expensed_date ? 'is-invalid' : ''}`}
-                                            id="expensed_date"
-                                            value={data.expensed_date}
+                                            className={`form-control ${errors.transaction_date || validationErrors.transaction_date ? 'is-invalid' : ''}`}
+                                            id="transaction_date"
+                                            value={data.transaction_date}
                                             onChange={handleDateChange}
                                             max={getMaxDate()}
                                             min={getMinDate()}
                                             required
                                         />
-                                        {validationErrors.expensed_date && <div className="invalid-feedback">{validationErrors.expensed_date}</div>}
-                                        {errors.expensed_date && <div className="invalid-feedback">{errors.expensed_date}</div>}
+                                        {validationErrors.transaction_date && <div className="invalid-feedback">{validationErrors.transaction_date}</div>}
+                                        {errors.transaction_date && <div className="invalid-feedback">{errors.transaction_date}</div>}
                                     </div>
                                     <div className="col-md-4">
                                         <label htmlFor="transaction_time" className="form-label">Time</label>
@@ -603,22 +612,22 @@ export default function Edit({ transaction, categories, accounts }) {
                                                 </div>
                                             </div>
                                         )}
+
+                                        <div className="mb-3">
+                                            <label htmlFor="payee_payer" className="form-label">Payee/Payer</label>
+                                            <input
+                                                type="text"
+                                                className={`form-control ${errors.payee_payer ? 'is-invalid' : ''}`}
+                                                id="payee_payer"
+                                                value={data.payee_payer}
+                                                onChange={handlePayeePayerChange}
+                                                maxLength={255}
+                                                placeholder="Who did you pay or who paid you?"
+                                            />
+                                            {errors.payee_payer && <div className="invalid-feedback">{errors.payee_payer}</div>}
+                                        </div>
                                     </>
                                 )}
-
-                                <div className="mb-3">
-                                    <label htmlFor="payee_payer" className="form-label">Payee/Payer</label>
-                                    <input
-                                        type="text"
-                                        className={`form-control ${errors.payee_payer ? 'is-invalid' : ''}`}
-                                        id="payee_payer"
-                                        value={data.payee_payer}
-                                        onChange={handlePayeePayerChange}
-                                        maxLength={255}
-                                        placeholder="Who did you pay or who paid you?"
-                                    />
-                                    {errors.payee_payer && <div className="invalid-feedback">{errors.payee_payer}</div>}
-                                </div>
 
                                 <div className="row mb-4">
                                     <div className="col-12">

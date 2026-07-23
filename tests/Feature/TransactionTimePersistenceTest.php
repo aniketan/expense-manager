@@ -57,7 +57,7 @@ class TransactionTimePersistenceTest extends TestCase
             'transaction_type' => 'expense',
             'amount' => '75.00',
             'description' => 'Updated lunch',
-            'expensed_date' => '2026-06-03',
+            'transaction_date' => '2026-06-03',
             'transaction_time' => '13:25',
             'payment_method' => 'Cash',
         ]);

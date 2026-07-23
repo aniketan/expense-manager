@@ -10,6 +10,7 @@ use App\Services\AccountTransferService;
 use App\Services\TransactionFilterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use League\Csv\Writer;
@@ -103,7 +104,8 @@ class TransactionController extends Controller
             $writer = Writer::createFromStream($handle);
             $writer->insertOne([
                 'Date', 'Account', 'Category', 'Subcategory', 'Type', 'Debit', 'Credit',
-                'Description', 'Reference', 'Payment method', 'Tags',
+                'Description', 'Reference', 'Payment method', 'Tags', 'Payee/Payer',
+                'Status', 'Tax', 'Notes', 'Location',
             ]);
 
             foreach ($query->lazy(500) as $transaction) {
@@ -152,6 +154,11 @@ class TransactionController extends Controller
             $transaction->reference_number ?? '',
             $transaction->payment_method ?? '',
             $transaction->tags ?? '',
+            $transaction->payee_payer ?? '',
+            $transaction->status ?? '',
+            $transaction->tax ?? '',
+            $transaction->notes ?? '',
+            $transaction->location ?? '',
         ];
     }
 
@@ -182,17 +189,23 @@ class TransactionController extends Controller
         $validated = $request->validate([
             'account_id' => 'required|exists:accounts,id',
             'category_id' => 'nullable|required_unless:transaction_type,transfer|exists:categories,id',
-            'transaction_type' => 'required|in:income,expense,transfer',
+            'transaction_type' => ['required', Rule::in([Transaction::TYPE_INCOME, Transaction::TYPE_EXPENSE, Transaction::TYPE_TRANSFER])],
             'amount' => 'required|numeric|gt:0',
+            'tax' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
+            'payee_payer' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
             'transaction_date' => 'required|date',
             'transaction_time' => 'nullable|date_format:H:i',
+            'status' => ['nullable', Rule::in(Transaction::STATUSES)],
             'payment_method' => 'nullable|required_unless:transaction_type,transfer|string|max:50',
             'reference_number' => 'nullable|string|max:100',
             'tags' => 'nullable|string',
             'location' => 'nullable|string',
             'transfer_to_account_id' => 'nullable|required_if:transaction_type,transfer|different:account_id|exists:accounts,id',
         ]);
+
+        $validated['status'] ??= Transaction::STATUS_CLEARED;
 
         if ($validated['transaction_type'] === Transaction::TYPE_TRANSFER) {
             $transferService->create($validated);
@@ -284,32 +297,29 @@ class TransactionController extends Controller
         $validated = $request->validate([
             'account_id' => 'required|exists:accounts,id',
             'category_id' => 'nullable|required_unless:transaction_type,transfer|exists:categories,id',
-            'transaction_type' => 'required|in:income,expense,transfer',
+            'transaction_type' => ['required', Rule::in([Transaction::TYPE_INCOME, Transaction::TYPE_EXPENSE, Transaction::TYPE_TRANSFER])],
             'amount' => 'required|numeric|gt:0',
+            'tax' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
-            'expensed_date' => 'required|date',
+            'payee_payer' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+            'transaction_date' => 'required|date',
             'transaction_time' => 'nullable|date_format:H:i',
+            'status' => ['nullable', Rule::in(Transaction::STATUSES)],
             'payment_method' => 'nullable|required_unless:transaction_type,transfer|string|max:50',
             'reference_number' => 'nullable|string|max:100',
             'tags' => 'nullable|string',
-            'payee_payer' => 'nullable|string',
-            'tax' => 'nullable|numeric',
-            'status' => 'nullable|string',
-            'notes' => 'nullable|string',
+            'location' => 'nullable|string',
             'transfer_to_account_id' => 'nullable|required_if:transaction_type,transfer|different:account_id|exists:accounts,id',
         ]);
+
+        $validated['status'] ??= Transaction::STATUS_CLEARED;
 
         $isExistingTransfer = $transaction->transaction_type === Transaction::TYPE_TRANSFER;
         if ($isExistingTransfer !== ($validated['transaction_type'] === Transaction::TYPE_TRANSFER)) {
             throw ValidationException::withMessages([
                 'transaction_type' => 'Converting between transfers and regular transactions is not supported.',
             ]);
-        }
-
-        // Map expensed_date to transaction_date for database compatibility
-        if (isset($validated['expensed_date'])) {
-            $validated['transaction_date'] = $validated['expensed_date'];
-            unset($validated['expensed_date']);
         }
 
         if ($isExistingTransfer) {

@@ -127,7 +127,11 @@ class SearchTransactionsTool extends Tool
 
             // Description keyword search
             if (! empty($description_search)) {
-                $query->where('description', 'like', '%'.$description_search.'%');
+                $query->where(function ($subQuery) use ($description_search) {
+                    $subQuery->where('description', 'like', '%'.$description_search.'%')
+                        ->orWhere('notes', 'like', '%'.$description_search.'%')
+                        ->orWhere('payee_payer', 'like', '%'.$description_search.'%');
+                });
             }
 
             // Account name filter
