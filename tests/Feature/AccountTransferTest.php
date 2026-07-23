@@ -176,7 +176,7 @@ class AccountTransferTest extends TestCase
             $this->transferData($source, $destination, 750),
             [
                 'transaction_type' => Transaction::TYPE_TRANSFER,
-                'expensed_date' => '2026-07-18',
+                'transaction_date' => '2026-07-18',
             ]
         ))->assertRedirect(route('transactions.index'))->assertSessionHasNoErrors();
 

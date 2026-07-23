@@ -105,6 +105,20 @@ export default function Show({ transaction }) {
                                             </div>
                                         </div>
 
+                                        {transaction.status && (
+                                            <div className="mb-3">
+                                                <label className="form-label text-muted">Status</label>
+                                                <div>
+                                                    <span className={`badge ${
+                                                        transaction.status === 'Pending' ? 'bg-warning text-dark' :
+                                                        transaction.status === 'Cancelled' ? 'bg-secondary' : 'bg-success'
+                                                    }`}>
+                                                        {transaction.status}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="mb-3">
                                             <label className="form-label text-muted">Account</label>
                                             <div>
@@ -156,6 +170,26 @@ export default function Show({ transaction }) {
                                             </div>
                                         )}
 
+                                        {transaction.payee_payer && (
+                                            <div className="mb-3">
+                                                <label className="form-label text-muted">Payee/Payer</label>
+                                                <div>
+                                                    <i className="fas fa-user me-2"></i>
+                                                    {transaction.payee_payer}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {transaction.tax && (
+                                            <div className="mb-3">
+                                                <label className="form-label text-muted">Tax Amount</label>
+                                                <div>
+                                                    <i className="fas fa-receipt me-2"></i>
+                                                    {formatCurrency(transaction.tax)}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {transaction.location && (
                                             <div className="mb-3">
                                                 <label className="form-label text-muted">Location</label>
@@ -174,6 +208,16 @@ export default function Show({ transaction }) {
                                         <div className="p-3 bg-light rounded">
                                             <i className="fas fa-comment me-2"></i>
                                             {transaction.description}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {transaction.notes && (
+                                    <div className="mb-3">
+                                        <label className="form-label text-muted">Notes</label>
+                                        <div className="p-3 bg-light rounded">
+                                            <i className="fas fa-sticky-note me-2"></i>
+                                            {transaction.notes}
                                         </div>
                                     </div>
                                 )}
