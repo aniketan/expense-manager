@@ -51,7 +51,7 @@ export default function Edit({ transaction, categories, accounts }) {
         payment_method: transaction.payment_method || '',
         description: transaction.description || '',
         category_id: transaction.category_id || '',
-        payee_payer: transaction.payee_payer || '',
+        payee_payer: transaction.transaction_type === 'transfer' ? '' : transaction.payee_payer || '',
         reference_number: transaction.reference_number || '',
         tax: transaction.tax || '0',
         status: transaction.status || 'Cleared',
@@ -141,6 +141,9 @@ export default function Edit({ transaction, categories, accounts }) {
         setSelectedCategory('');
         setSubcategories([]);
         setData('category_id', '');
+        if (type === 'transfer') {
+            setData('payee_payer', '');
+        }
         clearValidationFieldErrors(setValidationErrors, [
             'category',
             'category_id',
@@ -612,19 +615,21 @@ export default function Edit({ transaction, categories, accounts }) {
                                     </>
                                 )}
 
-                                <div className="mb-3">
-                                    <label htmlFor="payee_payer" className="form-label">Payee/Payer</label>
-                                    <input
-                                        type="text"
-                                        className={`form-control ${errors.payee_payer ? 'is-invalid' : ''}`}
-                                        id="payee_payer"
-                                        value={data.payee_payer}
-                                        onChange={handlePayeePayerChange}
-                                        maxLength={255}
-                                        placeholder="Who did you pay or who paid you?"
-                                    />
-                                    {errors.payee_payer && <div className="invalid-feedback">{errors.payee_payer}</div>}
-                                </div>
+                                {transactionType !== 'transfer' && (
+                                    <div className="mb-3">
+                                        <label htmlFor="payee_payer" className="form-label">Payee/Payer</label>
+                                        <input
+                                            type="text"
+                                            className={`form-control ${errors.payee_payer ? 'is-invalid' : ''}`}
+                                            id="payee_payer"
+                                            value={data.payee_payer}
+                                            onChange={handlePayeePayerChange}
+                                            maxLength={255}
+                                            placeholder="Who did you pay or who paid you?"
+                                        />
+                                        {errors.payee_payer && <div className="invalid-feedback">{errors.payee_payer}</div>}
+                                    </div>
+                                )}
 
                                 <div className="row mb-4">
                                     <div className="col-12">

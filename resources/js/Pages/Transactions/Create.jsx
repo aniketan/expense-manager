@@ -98,6 +98,9 @@ export default function Create({ categories, accounts }) {
         setSelectedCategory('');
         setSubcategories([]);
         setData('category_id', '');
+        if (type === 'transfer') {
+            setData('payee_payer', '');
+        }
         clearValidationFieldErrors(setValidationErrors, [
             'category',
             'category_id',
@@ -563,18 +566,20 @@ export default function Create({ categories, accounts }) {
                                     </>
                                 )}
 
-                                <div className="mb-3">
-                                    <label htmlFor="payee_payer" className="form-label">Payee/Payer</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        id="payee_payer"
-                                        value={data.payee_payer}
-                                        onChange={handlePayeePayerChange}
-                                        placeholder="Who did you pay or who paid you?"
-                                        maxLength="255"
-                                    />
-                                </div>
+                                {transactionType !== 'transfer' && (
+                                    <div className="mb-3">
+                                        <label htmlFor="payee_payer" className="form-label">Payee/Payer</label>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            id="payee_payer"
+                                            value={data.payee_payer}
+                                            onChange={handlePayeePayerChange}
+                                            placeholder="Who did you pay or who paid you?"
+                                            maxLength="255"
+                                        />
+                                    </div>
+                                )}
 
                                 <div className="row mb-4">
                                     <div className="col-12">
