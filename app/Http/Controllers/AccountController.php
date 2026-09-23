@@ -143,14 +143,4 @@ class AccountController extends Controller
         return Redirect::route('accounts.index')
             ->with('success', "Account {$status} successfully.");
     }
-
-    /**
-     * Get accounts for API/AJAX requests.
-     */
-    public function getAccounts()
-    {
-        return response()->json([
-            'accounts' => Account::active()->orderBy('name')->get(),
-        ]);
-    }
 }

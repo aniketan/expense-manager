@@ -14,6 +14,21 @@ class BrokenApplicationRoutesTest extends TestCase
         $this->getJson('/api/transactions')->assertNotFound();
     }
 
+    public function test_unused_json_endpoints_are_removed(): void
+    {
+        foreach ([
+            '/api/accounts',
+            '/api/categories',
+            '/api/categories/parents',
+            '/api/categories/with-totals',
+            '/api/budgets/summary',
+            '/api/stats/dashboard',
+            '/api/stats/today',
+        ] as $uri) {
+            $this->getJson($uri)->assertNotFound();
+        }
+    }
+
     public function test_dashboard_redirects_to_homepage(): void
     {
         $this->get('/dashboard')->assertRedirect('/');

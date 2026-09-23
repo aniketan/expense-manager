@@ -12,18 +12,13 @@ use Inertia\Inertia;
 class DashboardController extends Controller
 {
     /**
-     * Show the main dashboard
+     * Home page: headline totals and the latest transactions.
      */
     public function index()
     {
-        $stats = $this->getDashboardStats();
-        $recentTransactions = $this->getRecentTransactions();
-        $chartData = $this->getChartData();
-
-        return Inertia::render('Dashboard/Index', [
-            'stats' => $stats,
-            'recentTransactions' => $recentTransactions,
-            'chartData' => $chartData,
+        return Inertia::render('Welcome', [
+            'stats' => $this->getDashboardStats(),
+            'recentTransactions' => $this->getRecentTransactions(10),
         ]);
     }
 
@@ -44,79 +39,28 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get dashboard statistics
+     * Transfers only move money between accounts, so they are excluded from income and expenses.
      */
-    private function getDashboardStats()
+    private function getDashboardStats(): array
     {
-        // Get total income (where transaction_type is 'income')
-        $totalIncome = Transaction::where('transaction_type', 'income')
-            ->sum('amount');
-
-        // Get total expenses (where transaction_type is 'expense')
-        $totalExpenses = Transaction::where('transaction_type', 'expense')
-            ->sum('amount');
-
-        // Calculate net balance
-        $netBalance = $totalIncome - $totalExpenses;
-
-        // Get total transaction count
-        $totalTransactions = Transaction::count();
-
-        // Get total accounts
-        $totalAccounts = Account::active()->count();
-
-        // Get current month income and expenses
-        $currentMonth = Carbon::now();
-        $monthlyIncome = Transaction::where('transaction_type', 'income')
-            ->whereYear('transaction_date', $currentMonth->year)
-            ->whereMonth('transaction_date', $currentMonth->month)
-            ->sum('amount');
-
-        $monthlyExpenses = Transaction::where('transaction_type', 'expense')
-            ->whereYear('transaction_date', $currentMonth->year)
-            ->whereMonth('transaction_date', $currentMonth->month)
-            ->sum('amount');
+        $totalIncome = Transaction::where('transaction_type', Transaction::TYPE_INCOME)->sum('amount');
+        $totalExpenses = Transaction::where('transaction_type', Transaction::TYPE_EXPENSE)->sum('amount');
 
         return [
-            'totalIncome' => (float) $totalIncome,
-            'totalExpenses' => (float) $totalExpenses,
-            'netBalance' => (float) $netBalance,
-            'totalTransactions' => $totalTransactions,
-            'totalAccounts' => $totalAccounts,
-            'monthlyIncome' => (float) $monthlyIncome,
-            'monthlyExpenses' => (float) $monthlyExpenses,
-            'monthlyNetBalance' => (float) ($monthlyIncome - $monthlyExpenses),
+            'totalIncome' => $totalIncome,
+            'totalExpenses' => $totalExpenses,
+            'netBalance' => $totalIncome - $totalExpenses,
+            'totalTransactions' => Transaction::count(),
         ];
     }
 
-    /**
-     * Get recent transactions for the dashboard
-     */
-    private function getRecentTransactions($limit = 10)
+    private function getRecentTransactions(int $limit)
     {
         return Transaction::with(['category.parent', 'account'])
             ->orderBy('transaction_date', 'desc')
             ->orderBy('created_at', 'desc')
             ->limit($limit)
-            ->get()
-            ->map(function ($transaction) {
-                return [
-                    'id' => $transaction->id,
-                    'description' => $transaction->description,
-                    'amount' => (float) $transaction->amount,
-                    'type' => $transaction->transaction_type,
-                    'date' => $transaction->transaction_date->format('Y-m-d'),
-                    'category' => $transaction->category ? [
-                        'id' => $transaction->category->id,
-                        'name' => $transaction->category->name,
-                        'full_name' => $transaction->category->full_name,
-                    ] : null,
-                    'account' => $transaction->account ? [
-                        'id' => $transaction->account->id,
-                        'name' => $transaction->account->name,
-                    ] : null,
-                ];
-            });
+            ->get();
     }
 
     /**
@@ -281,18 +225,6 @@ class DashboardController extends Controller
                 'name' => 'Expense',
                 'value' => (float) $expense,
             ],
-        ];
-    }
-
-    /**
-     * Get all chart data
-     */
-    private function getChartData()
-    {
-        return [
-            'monthlyTrend' => $this->getMonthlyTrendData(),
-            'monthlyComparison' => $this->getMonthlyComparison(),
-            'categoryBreakdown' => $this->getCategoryBreakdown(),
         ];
     }
 }

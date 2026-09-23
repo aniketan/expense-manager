@@ -58,24 +58,6 @@ class Account extends Model
         return $query->where('is_active', true);
     }
 
-    // Get formatted balance
-    public function getFormattedCurrentBalanceAttribute()
-    {
-        return number_format($this->current_balance, 2);
-    }
-
-    // Get formatted opening balance
-    public function getFormattedOpeningBalanceAttribute()
-    {
-        return number_format($this->opening_balance, 2);
-    }
-
-    // Get formatted credit limit
-    public function getFormattedCreditLimitAttribute()
-    {
-        return number_format($this->credit_limit, 2);
-    }
-
     // Check if account is credit card type
     public function isCreditCard()
     {

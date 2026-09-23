@@ -211,29 +211,4 @@ class BudgetController extends Controller
         return Redirect::back()
             ->with('success', "Budget {$status} successfully.");
     }
-
-    /**
-     * Get budget summary for dashboard.
-     */
-    public function getSummary()
-    {
-        $currentBudgets = Budget::with('category')
-            ->active()
-            ->current()
-            ->get()
-            ->map(function ($budget) {
-                return [
-                    'id' => $budget->id,
-                    'name' => $budget->name,
-                    'category' => $budget->category->name,
-                    'amount' => $budget->amount,
-                    'spent_amount' => $budget->spent_amount,
-                    'remaining_amount' => $budget->remaining_amount,
-                    'percentage_used' => $budget->percentage_used,
-                    'status' => $budget->status,
-                ];
-            });
-
-        return response()->json($currentBudgets);
-    }
 }

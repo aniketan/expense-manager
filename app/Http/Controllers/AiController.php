@@ -9,8 +9,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Prism\Prism\Facades\Prism;
-use Prism\Prism\Streaming\Events\TextDeltaEvent;
-use Prism\Prism\Streaming\Events\ToolResultEvent;
 use Prism\Prism\ValueObjects\ToolResult;
 
 class AiController extends Controller
@@ -180,95 +178,6 @@ IMPORTANT WORKFLOW:
 
 If no good match, use first available tree item. Never invent IDs.
 PROMPT;
-    }
-
-    /**
-     * Process categorize events from tool streaming, extract category tool results,
-     * semantically match LLM predictions to DB categories, normalize tree IDs.
-     *
-     * @return array{category_id: int, subcategory_id: int, confidence: string}|null
-     */
-    private function handleCategorizeEvents(array $events, string $type): ?array
-    {
-        $toolResult = null;
-        $finalText = '';
-
-        foreach ($events as $event) {
-            if ($event instanceof ToolResultEvent && $event->toolCall->name === 'list_categories') {
-                $toolResult = json_decode($event->content, true);
-                if (! ($toolResult['success'] ?? false)) {
-                    return null;
-                }
-                break; // Assume single tool call per categorize
-            } elseif ($event instanceof TextDeltaEvent) {
-                $finalText .= $event->delta;
-            }
-        }
-
-        if (! $toolResult || empty($toolResult['tree_structure'])) {
-            return null;
-        }
-
-        $tree = $toolResult['tree_structure'];
-
-        // Parse final text for JSON (LLM final output after tool)
-        $finalJson = $this->decodeJsonResponse($finalText);
-        if ($finalJson && isset($finalJson['category_id'], $finalJson['subcategory_id'])) {
-            // LLM provided ids directly from matching
-            return [
-                'category_id' => (int) $finalJson['category_id'],
-                'subcategory_id' => (int) $finalJson['subcategory_id'],
-                'confidence' => $finalJson['confidence'] ?? 'medium',
-            ];
-        }
-
-        // Fallback: simple first-match normalization using existing logic
-        $categories = $this->fetchCategoriesByType($type);
-
-        return $this->normalizeToTreeIds(null, null, $type); // Uses existing fallbacks
-    }
-
-    private function fetchCategoriesByType(string $type): array
-    {
-        // Reuse query logic from original buildCategoriesForPrompt
-        if ($type === 'income') {
-            $incomeRoot = Category::query()
-                ->active()
-                ->incomeRoot()
-                ->with(['activeChildren' => fn ($q) => $q->orderBy('name')])
-                ->first();
-
-            if (! $incomeRoot || $incomeRoot->activeChildren->isEmpty()) {
-                return [];
-            }
-
-            return [[
-                'id' => (int) $incomeRoot->id,
-                'name' => $incomeRoot->name,
-                'children' => $incomeRoot->activeChildren->map(fn (Category $ch) => [
-                    'id' => $ch->id,
-                    'name' => $ch->name,
-                ])->values()->all(),
-            ]];
-        }
-
-        return Category::query()
-            ->active()
-            ->expenseParent()
-            ->with(['activeChildren' => fn ($q) => $q->orderBy('name')])
-            ->orderBy('name')
-            ->get()
-            ->filter(fn (Category $c) => $c->activeChildren->isNotEmpty())
-            ->map(fn (Category $c) => [
-                'id' => (int) $c->id,
-                'name' => $c->name,
-                'children' => $c->activeChildren->map(fn (Category $ch) => [
-                    'id' => $ch->id,
-                    'name' => $ch->name,
-                ])->values()->all(),
-            ])
-            ->values()
-            ->all();
     }
 
     /**

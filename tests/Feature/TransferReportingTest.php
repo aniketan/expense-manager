@@ -59,12 +59,6 @@ class TransferReportingTest extends TestCase
                 ->where('stats.totalExpenses', 300)
                 ->where('stats.netBalance', 1700)
             );
-
-        $this->getJson(route('api.stats.dashboard'))
-            ->assertOk()
-            ->assertJsonPath('overall.total_income', 2000)
-            ->assertJsonPath('overall.total_expense', 300)
-            ->assertJsonPath('overall.net_balance', 1700);
     }
 
     public function test_csv_maps_incoming_transfer_to_credit_and_outgoing_to_debit(): void
