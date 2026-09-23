@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Single-user login ([#79](https://github.com/aniketan/expense-manager/issues/79)). Every route now requires `APP_LOGIN_PASSWORD` from `.env` (plain text or a bcrypt hash from `php artisan auth:hash-password`). Login attempts are limited to 5 per minute, and there is a Log out button in the navbar. With no password set, nobody can log in.
+
+### Upgrading
+
+- Add `APP_LOGIN_PASSWORD` to `.env`, then run `php artisan config:clear`.
+
 ## [1.0.0] - 2026-09-23
 
 The first stable baseline: account balances can no longer be corrupted through side paths, list and report totals are correct at date boundaries, and builds are reproducible.
