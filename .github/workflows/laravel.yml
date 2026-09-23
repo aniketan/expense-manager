@@ -68,3 +68,27 @@ jobs:
         DB_CONNECTION: sqlite
         DB_DATABASE: database/database.sqlite
       run: composer test
+
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+
+    - name: Build image
+      run: docker build -t expense-manager:ci .
+
+    - name: Boot and check health
+      run: |
+        docker run -d --name em -p 8080:80 -e APP_LOGIN_PASSWORD=ci-check expense-manager:ci
+        for i in $(seq 1 30); do
+          curl -fsS http://localhost:8080/up >/dev/null && break
+          sleep 2
+        done
+        curl -fsS http://localhost:8080/up >/dev/null
+        test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/transactions)" = "302"
+
+    - name: Show container logs on failure
+      if: failure()
+      run: docker logs em
