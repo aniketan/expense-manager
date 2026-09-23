@@ -7,7 +7,7 @@ Expense Manager is a Laravel 13 application with an Inertia/React frontend. The 
 - Laravel routes live in `routes/web.php`.
 - Server-rendered page responses are handled through Inertia.
 - React pages live under `resources/js/Pages`.
-- Shared frontend bootstrapping lives in `resources/js/app.jsx` and `resources/js/bootstrap.js`.
+- Frontend bootstrapping lives in `resources/js/app.jsx`; pages are lazy-loaded, so each page ships as its own chunk.
 - Core domain models are `Account`, `Category`, `Transaction`, and `Budget`.
 - Local development and CI use SQLite by default.
 
@@ -27,9 +27,13 @@ Expense Manager is a Laravel 13 application with an Inertia/React frontend. The 
 
 ## Balance Updates
 
-`Transaction` model events update account balances when transactions are created, updated, or deleted. Income adds to the account balance, expenses subtract from it, and transfer handling creates paired transaction entries through `TransactionController`.
+`Transaction` model events update account balances when transactions are created, updated, or deleted. Income adds to the account balance and expenses subtract from it.
 
-`Account::recalculateBalance()` can rebuild an account balance from its opening balance and related transactions when needed.
+Account transfers are two linked legs (`TRANSFER_OUTGOING` and `TRANSFER_INCOMING`) that share a `transfer_group_id`. They are created, updated, and deleted only as a pair through `AccountTransferService`, whether the change comes from the web, the AI chat tools, or bulk delete. Transfer categories are reserved for transfer legs, and `Transaction::saving` rejects them on regular rows.
+
+Because database cascades bypass model events, deleting a category or an account that still has transactions is refused by the controller and by `restrict` foreign keys.
+
+`Account::recalculateBalance()` (`php artisan accounts:recalculate-balances`) can rebuild an account balance from its opening balance and related transactions when needed.
 
 ## External Sync
 
@@ -37,11 +41,11 @@ Expense Manager is a Laravel 13 application with an Inertia/React frontend. The 
 
 ## CI
 
-GitHub Actions runs on pushes and pull requests to `main`. The workflow installs PHP and Node dependencies, builds frontend assets, prepares SQLite, runs migrations, and executes `composer test`.
+GitHub Actions runs on pushes and pull requests to `main`. The workflow installs PHP and Node dependencies from the committed `composer.lock` and `package-lock.json` (`npm ci`), checks formatting with Pint, builds frontend assets, prepares SQLite, runs migrations, and executes `composer test`. The PHP test suite does not need built assets (`withoutVite()` in `tests/TestCase.php`).
 
 ## Current Limitations
 
-- The public `main` branch does not yet include the active chat-first workflow.
-- Statement import and reconciliation are active WIP lanes and are documented separately as roadmap work.
-- There is no public multi-user/auth workflow in the current branch.
+- **No authentication.** Every route is open to anyone who can reach the server, so run it locally only (see issue #79).
+- The AI chat, the AI categorization, and the `mcp:serve` MCP server are available but still evolving; see [AI Tools](ai-tools.md).
+- Statement import and reconciliation are active lanes; see [Statement Import](statement-import.md).
 - Audit history beyond transaction timestamps is not yet a complete product surface.
