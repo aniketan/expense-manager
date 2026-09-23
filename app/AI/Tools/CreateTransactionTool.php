@@ -28,7 +28,7 @@ class CreateTransactionTool extends Tool
         float $amount,
         string $description,
         string $transaction_type,
-        string $category_hint,
+        string $category_hint = '',
         ?string $date = null,
         ?string $account_hint = null,
     ): string {
@@ -51,33 +51,20 @@ class CreateTransactionTool extends Tool
                 ]);
             }
 
-            // Resolve category: match by name, fallback to "Other", fallback to any child category
-            $category = Category::where('name', 'like', "%{$category_hint}%")
-                ->whereNotNull('parent_id')
-                ->first();
-
-            if (! $category) {
-                $category = Category::where('name', 'Other')
-                    ->whereNotNull('parent_id')
-                    ->first();
-            }
-
-            if (! $category) {
-                $category = Category::whereNotNull('parent_id')->first();
-            }
-
-            if (! $category) {
+            // Transfers need two linked legs, which only AccountTransferService creates.
+            if (! in_array($transaction_type, [Transaction::TYPE_INCOME, Transaction::TYPE_EXPENSE], true)) {
                 return json_encode([
                     'success' => false,
-                    'error' => 'No categories found. Please set up expense categories first.',
+                    'error' => 'Invalid transaction type. Must be "income" or "expense". Record account transfers from the Transactions page.',
                 ]);
             }
 
-            // Validate transaction type
-            if (! in_array($transaction_type, ['income', 'expense', 'transfer'])) {
+            $category = self::resolveCategory($transaction_type, $category_hint);
+
+            if (! $category) {
                 return json_encode([
                     'success' => false,
-                    'error' => 'Invalid transaction type. Must be "income" or "expense".',
+                    'error' => "No {$transaction_type} categories found. Please set up categories first.",
                 ]);
             }
 
@@ -107,5 +94,27 @@ class CreateTransactionTool extends Tool
                 'error' => 'Failed to create transaction: '.$e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Match the hint against categories valid for the type, then fall back to "Other", then any valid leaf.
+     */
+    public static function resolveCategory(string $transactionType, ?string $hint): ?Category
+    {
+        $hint = trim((string) $hint);
+
+        if ($hint !== '') {
+            $match = Category::assignableFor($transactionType)
+                ->where('name', 'like', "%{$hint}%")
+                ->orderBy('id')
+                ->first();
+
+            if ($match) {
+                return $match;
+            }
+        }
+
+        return Category::assignableFor($transactionType)->where('name', 'Other')->orderBy('id')->first()
+            ?? Category::assignableFor($transactionType)->orderBy('id')->first();
     }
 }

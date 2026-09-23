@@ -121,6 +121,9 @@ class StatementController extends Controller
             if (! $category) {
                 return $failRedirect()->withErrors(['rows' => 'Invalid category for one or more rows.'])->withInput();
             }
+            if ($category->isTransferCategory()) {
+                return $failRedirect()->withErrors(['rows' => 'Transfer categories are reserved for account transfers. Choose an income or expense category.'])->withInput();
+            }
             if ($row['type'] === 'income') {
                 if (! $this->categoryIsAssignableIncomeCategory($category)) {
                     return $failRedirect()->withErrors(['rows' => 'Income transactions must use an income subcategory.'])->withInput();

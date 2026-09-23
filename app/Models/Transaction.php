@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use InvalidArgumentException;
 
 class Transaction extends Model
 {
@@ -18,6 +19,11 @@ class Transaction extends Model
     public const CATEGORY_TRANSFER_INCOMING = 'TRANSFER_INCOMING';
 
     public const CATEGORY_TRANSFER_OUTGOING = 'TRANSFER_OUTGOING';
+
+    public const TRANSFER_CATEGORY_CODES = [
+        self::CATEGORY_TRANSFER_INCOMING,
+        self::CATEGORY_TRANSFER_OUTGOING,
+    ];
 
     public const STATUS_PENDING = 'Pending';
 
@@ -79,6 +85,15 @@ class Transaction extends Model
      */
     protected static function booted()
     {
+        // Transfer categories flip the balance sign, so a regular income/expense
+        // row filed under one would silently corrupt the account balance.
+        static::saving(function ($transaction) {
+            if ($transaction->transaction_type !== self::TYPE_TRANSFER
+                && Category::isTransferCategoryId($transaction->category_id)) {
+                throw new InvalidArgumentException('Transfer categories can only be used by account transfers.');
+            }
+        });
+
         // When a transaction is created, update the account balance
         static::created(function ($transaction) {
             $transaction->updateAccountBalance('add');

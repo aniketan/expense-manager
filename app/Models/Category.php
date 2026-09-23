@@ -76,6 +76,30 @@ class Category extends Model
             });
     }
 
+    /**
+     * Active leaf categories a regular income or expense transaction may be filed under.
+     * Excludes the account-transfer tree, whose categories are reserved for transfer legs.
+     */
+    public function scopeAssignableFor($query, string $transactionType)
+    {
+        return $query->active()
+            ->child()
+            ->whereHas('parent', fn ($q) => $transactionType === Transaction::TYPE_INCOME
+                ? $q->incomeRoot()
+                : $q->expenseParent());
+    }
+
+    public function isTransferCategory(): bool
+    {
+        return in_array($this->code, Transaction::TRANSFER_CATEGORY_CODES, true);
+    }
+
+    public static function isTransferCategoryId(mixed $categoryId): bool
+    {
+        return $categoryId !== null
+            && static::query()->whereKey($categoryId)->whereIn('code', Transaction::TRANSFER_CATEGORY_CODES)->exists();
+    }
+
     // Relationship: Parent category
     public function parent()
     {

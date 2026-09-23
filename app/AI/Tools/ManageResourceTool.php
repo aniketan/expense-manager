@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Services\AccountTransferService;
 use Carbon\Carbon;
 use Prism\Prism\Tool;
 
@@ -256,16 +257,27 @@ class ManageResourceTool extends Tool
                 return json_encode(['success' => false, 'error' => "Invalid date format: {$date}. Use YYYY-MM-DD."]);
             }
         }
-        if (! empty($transactionType)) {
-            $updates['transaction_type'] = $transactionType;
+
+        if ($transaction->transaction_type === Transaction::TYPE_TRANSFER) {
+            return $this->updateTransfer($transaction, $updates, $categoryName, $transactionType);
+        }
+
+        $newType = $transactionType ?: $transaction->transaction_type;
+        if ($newType !== $transaction->transaction_type) {
+            $updates['transaction_type'] = $newType;
         }
         if (! empty($categoryName)) {
-            $category = Category::where('name', 'like', '%'.$categoryName.'%')
-                ->whereNotNull('parent_id')
+            $category = Category::assignableFor($newType)
+                ->where('name', 'like', '%'.$categoryName.'%')
+                ->orderBy('id')
                 ->first();
-            if ($category) {
-                $updates['category_id'] = $category->id;
+            if (! $category) {
+                return json_encode(['success' => false, 'error' => "No {$newType} category matches \"{$categoryName}\". Use list_categories to see available options."]);
             }
+            $updates['category_id'] = $category->id;
+        } elseif (isset($updates['transaction_type'])
+            && ! Category::assignableFor($newType)->whereKey($transaction->category_id)->exists()) {
+            return json_encode(['success' => false, 'error' => "The current category does not fit a {$newType} transaction. Provide category_name as well."]);
         }
 
         if (empty($updates)) {
@@ -301,11 +313,15 @@ class ManageResourceTool extends Tool
             return json_encode(['success' => false, 'error' => "Transaction ID {$id} not found."]);
         }
 
+        $isTransfer = $transaction->transaction_type === Transaction::TYPE_TRANSFER;
+
         if ($confirmed !== 'yes') {
+            $what = $isTransfer ? 'account transfer (both legs)' : 'deletion of';
+
             return json_encode([
                 'success' => false,
                 'pending_confirmation' => true,
-                'message' => "Please confirm deletion of: ₹{$transaction->amount} — \"{$transaction->description}\" on {$transaction->transaction_date->format('Y-m-d')}. Reply yes to confirm.",
+                'message' => "Please confirm {$what}: ₹{$transaction->amount} — \"{$transaction->description}\" on {$transaction->transaction_date->format('Y-m-d')}. Reply yes to confirm.",
                 'transaction' => [
                     'id' => $transaction->id,
                     'date' => $transaction->transaction_date->format('Y-m-d'),
@@ -318,11 +334,71 @@ class ManageResourceTool extends Tool
             ]);
         }
 
-        $transaction->delete(); // booted() hook auto-adjusts account balance
+        if ($isTransfer) {
+            // Deleting a single leg would strand its counterpart and skew the other account.
+            app(AccountTransferService::class)->delete($transaction);
+        } else {
+            $transaction->delete(); // booted() hook auto-adjusts account balance
+        }
 
         return json_encode([
             'success' => true,
-            'message' => "Transaction ID {$id} deleted. Account balance updated automatically.",
+            'message' => $isTransfer
+                ? "Transfer ID {$id} deleted along with its linked leg. Both account balances updated automatically."
+                : "Transaction ID {$id} deleted. Account balance updated automatically.",
+        ]);
+    }
+
+    /**
+     * Transfers are edited as a pair so both accounts stay consistent.
+     *
+     * @param  array<string, mixed>  $updates
+     */
+    private function updateTransfer(Transaction $transaction, array $updates, ?string $categoryName, ?string $transactionType): string
+    {
+        $service = app(AccountTransferService::class);
+
+        if ($service->isUnlinked($transaction)) {
+            return json_encode(['success' => false, 'error' => 'This transfer has no linked counterpart and cannot be edited. Delete it and record the transfer again.']);
+        }
+        if (! empty($categoryName) || (! empty($transactionType) && $transactionType !== Transaction::TYPE_TRANSFER)) {
+            return json_encode(['success' => false, 'error' => 'Account transfers cannot change category or type. Only amount, description, and date can be updated.']);
+        }
+        if (empty($updates)) {
+            return json_encode(['success' => false, 'error' => 'No fields to update were provided.']);
+        }
+
+        $legs = $service->pair($transaction);
+        $outgoing = $legs['outgoing'];
+
+        [$outgoing] = $service->update($transaction, array_merge([
+            'account_id' => $outgoing->account_id,
+            'transfer_to_account_id' => $legs['incoming']->account_id,
+            'amount' => $outgoing->amount,
+            'tax' => $outgoing->tax,
+            'description' => $outgoing->description,
+            'payee_payer' => $outgoing->payee_payer,
+            'notes' => $outgoing->notes,
+            'transaction_date' => $outgoing->transaction_date->toDateString(),
+            'transaction_time' => $outgoing->transaction_time,
+            'status' => $outgoing->status,
+            'reference_number' => $outgoing->reference_number,
+            'tags' => $outgoing->tags,
+            'location' => $outgoing->location,
+        ], $updates));
+
+        return json_encode([
+            'success' => true,
+            'message' => "Transfer ID {$transaction->id} updated on both legs.",
+            'transaction' => [
+                'id' => $outgoing->id,
+                'date' => $outgoing->transaction_date->format('Y-m-d'),
+                'description' => $outgoing->description,
+                'amount' => (float) $outgoing->amount,
+                'type' => $outgoing->transaction_type,
+                'from_account' => $outgoing->account?->name,
+                'to_account' => $legs['incoming']->account?->name,
+            ],
         ]);
     }
 }

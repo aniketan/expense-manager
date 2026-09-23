@@ -3,7 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 import Pagination from '../../Components/Pagination';
 
-export default function Index({ transactions = {}, categories = [], accounts = [], success, budget_alerts, filters = {}, totals = {} }) {
+export default function Index({ transactions = {}, categories = [], accounts = [], success, error, budget_alerts, filters = {}, totals = {} }) {
     const [filtersCollapsed, setFiltersCollapsed] = useState(false);
     const [selectedTransactions, setSelectedTransactions] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
@@ -211,6 +211,13 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                     </div>
                 </div>
             </div>
+
+            {error && (
+                <div className="alert alert-danger alert-dismissible fade show" role="alert">
+                    {error}
+                    <button type="button" className="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            )}
 
             {/* Success Message */}
             {success && (

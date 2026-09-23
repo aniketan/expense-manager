@@ -2,7 +2,7 @@ import React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
-export default function Index({ accounts, success }) {
+export default function Index({ accounts, success, error }) {
     const handleDelete = (account) => {
         if (window.confirm(`Are you sure you want to delete ${account.name}?`)) {
             router.delete(`/accounts/${account.id}`);
@@ -57,6 +57,13 @@ export default function Index({ accounts, success }) {
                     </div>
                 </div>
             </div>
+
+            {error && (
+                <div className="alert alert-danger alert-dismissible fade show" role="alert">
+                    {error}
+                    <button type="button" className="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            )}
 
             {/* Success Message */}
             {success && (

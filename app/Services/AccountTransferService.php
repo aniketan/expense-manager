@@ -58,8 +58,24 @@ class AccountTransferService
         });
     }
 
+    /**
+     * Legacy transfer rows (synced or created before transfers were linked) have no counterpart leg.
+     */
+    public function isUnlinked(Transaction $transaction): bool
+    {
+        return $transaction->transaction_type === Transaction::TYPE_TRANSFER
+            && ! $transaction->transfer_group_id;
+    }
+
     public function delete(Transaction $transaction): void
     {
+        if ($this->isUnlinked($transaction)) {
+            // Only this row ever touched a balance, so deleting it alone is safe.
+            $transaction->delete();
+
+            return;
+        }
+
         DB::transaction(function () use ($transaction) {
             foreach ($this->findGroupLegs($transaction) as $leg) {
                 $leg->delete();

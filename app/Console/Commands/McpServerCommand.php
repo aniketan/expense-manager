@@ -2,10 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\AI\Tools\CreateTransactionTool;
 use App\Models\Account;
-use App\Models\Category;
 use App\Models\Transaction;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 /**
  * Minimal stdio MCP server for external agents (e.g. Claude Desktop).
@@ -29,7 +31,8 @@ class McpServerCommand extends Command
 
     public function handle(): int
     {
-        $this->components->warn('MCP server listening on STDIO. Do not run interactively in a TTY for Claude Desktop.');
+        // STDOUT carries the JSON-RPC stream, so diagnostics must go to STDERR.
+        fwrite(STDERR, "MCP server listening on STDIO. Do not run interactively in a TTY for Claude Desktop.\n");
 
         while (true) {
             $line = fgets(STDIN);
@@ -47,7 +50,11 @@ class McpServerCommand extends Command
                 continue;
             }
 
-            $response = $this->dispatch($request);
+            $response = $this->respond($request);
+            if ($response === null) {
+                continue;
+            }
+
             fwrite(STDOUT, json_encode($response)."\n");
             fflush(STDOUT);
         }
@@ -56,16 +63,24 @@ class McpServerCommand extends Command
     }
 
     /**
+     * Build the JSON-RPC response for a request, or null for notifications,
+     * which must never receive a response.
+     *
      * @param  array<string, mixed>  $req
-     * @return array<string, mixed>
+     * @return array<string, mixed>|null
      */
-    private function dispatch(array $req): array
+    public function respond(array $req): ?array
     {
-        $id = $req['id'] ?? null;
+        if (! array_key_exists('id', $req)) {
+            return null;
+        }
+
+        $id = $req['id'];
         $method = $req['method'] ?? '';
 
         return match ($method) {
             'initialize' => $this->handleInitialize($id),
+            'ping' => ['jsonrpc' => '2.0', 'id' => $id, 'result' => new \stdClass],
             'tools/list' => $this->handleToolsList($id),
             'tools/call' => $this->handleToolCall($id, is_array($req['params'] ?? null) ? $req['params'] : []),
             default => $this->errorResponse($id, -32601, 'Method not found'),
@@ -209,27 +224,33 @@ class McpServerCommand extends Command
      */
     private function createTransaction(array $input): array
     {
+        $validator = Validator::make($input, [
+            'amount' => 'required|numeric|gt:0',
+            'description' => 'required|string|max:65535',
+            'type' => ['required', Rule::in([Transaction::TYPE_INCOME, Transaction::TYPE_EXPENSE])],
+            'category' => 'nullable|string|max:100',
+            'date' => 'nullable|date_format:Y-m-d',
+        ]);
+        if ($validator->fails()) {
+            throw new \InvalidArgumentException($validator->errors()->first());
+        }
+
         $account = Account::query()->active()->first();
         if (! $account) {
             throw new \RuntimeException('No active account found.');
         }
 
-        $categoryHint = (string) ($input['category'] ?? '');
-        $category = Category::query()
-            ->where('name', 'like', '%'.$categoryHint.'%')
-            ->whereNotNull('parent_id')
-            ->first()
-            ?? Category::query()->whereNotNull('parent_id')->first();
+        $category = CreateTransactionTool::resolveCategory($input['type'], $input['category'] ?? null);
 
         if (! $category) {
-            throw new \RuntimeException('No category found.');
+            throw new \RuntimeException("No {$input['type']} category found.");
         }
 
         $t = Transaction::create([
             'account_id' => $account->id,
             'category_id' => $category->id,
             'transaction_type' => $input['type'],
-            'amount' => abs((float) $input['amount']),
+            'amount' => (float) $input['amount'],
             'description' => (string) $input['description'],
             'transaction_date' => $input['date'] ?? now()->toDateString(),
             'payment_method' => 'Other',
