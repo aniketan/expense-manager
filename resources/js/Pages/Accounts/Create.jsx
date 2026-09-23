@@ -21,7 +21,6 @@ export default function Create({ accountTypes }) {
         account_number: '',
         ifsc_code: '',
         opening_balance: '0.00',
-        current_balance: '',
         credit_limit: '0.00',
         is_active: true,
     });
@@ -106,13 +105,7 @@ export default function Create({ accountTypes }) {
             }
         }
 
-        // Set current_balance to opening_balance if not provided
-        const submitData = {
-            ...data,
-            current_balance: data.current_balance || data.opening_balance
-        };
-
-        post('/accounts', submitData);
+        post('/accounts');
     };
 
     const isCreditCard = data.type === 'credit_card';
@@ -287,23 +280,6 @@ export default function Create({ accountTypes }) {
                                             <small className="text-muted">Can be negative for liabilities</small>
                                         </div>
 
-                                        <div className="col-md-6">
-                                            <label className="form-label">Current Balance</label>
-                                            <div className="input-group">
-                                                <span className="input-group-text">₹</span>
-                                                <input
-                                                    type="text"
-                                                    inputMode="decimal"
-                                                    value={data.current_balance}
-                                                    onChange={(e) => handleAmountInput(e, (value) => setData('current_balance', value))}
-                                                    onWheel={handleWheel}
-                                                    className={`form-control ${errors.current_balance ? 'is-invalid' : ''}`}
-                                                    placeholder="Leave empty to use opening balance"
-                                                />
-                                                {errors.current_balance && <div className="invalid-feedback">{errors.current_balance}</div>}
-                                            </div>
-                                            <small className="text-muted">Leave empty to use opening balance</small>
-                                        </div>
                                     </div>
 
                                     {/* Credit Limit - Only for credit cards */}

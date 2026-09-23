@@ -45,15 +45,16 @@ class AccountController extends Controller
             'bank_name' => 'nullable|string|max:100',
             'account_number' => 'nullable|string|max:50',
             'ifsc_code' => 'nullable|string|max:20',
-            'opening_balance' => 'nullable|numeric|min:0',
-            'current_balance' => 'nullable|numeric',
+            // Negative openings are valid, e.g. a credit card that already carries dues.
+            'opening_balance' => 'nullable|numeric',
             'credit_limit' => 'nullable|numeric|min:0',
             'is_active' => 'sometimes|boolean',
         ]);
 
         // Set defaults
         $validated['opening_balance'] = $validated['opening_balance'] ?? 0;
-        $validated['current_balance'] = $validated['current_balance'] ?? $validated['opening_balance'];
+        // A new account has no transactions yet, so its balance is its opening balance.
+        $validated['current_balance'] = $validated['opening_balance'];
         $validated['credit_limit'] = $validated['credit_limit'] ?? 0;
         $validated['is_active'] = $validated['is_active'] ?? true;
 
@@ -96,11 +97,17 @@ class AccountController extends Controller
             'bank_name' => 'nullable|string|max:100',
             'account_number' => 'nullable|string|max:50',
             'ifsc_code' => 'nullable|string|max:20',
-            'opening_balance' => 'nullable|numeric|min:0',
-            'current_balance' => 'nullable|numeric',
+            // Negative openings are valid, e.g. a credit card that already carries dues.
+            'opening_balance' => 'nullable|numeric',
             'credit_limit' => 'nullable|numeric|min:0',
             'is_active' => 'sometimes|boolean',
         ]);
+
+        // current_balance is always opening balance + transactions; it is never edited directly,
+        // so moving the opening balance shifts the current balance by the same amount.
+        $validated['opening_balance'] = $validated['opening_balance'] ?? $account->opening_balance;
+        $validated['current_balance'] = (float) $account->current_balance
+            + ((float) $validated['opening_balance'] - (float) $account->opening_balance);
 
         $account->update($validated);
 

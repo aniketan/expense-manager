@@ -271,15 +271,12 @@ export default function Edit({ account, accountTypes }) {
                                                 <span className="input-group-text">₹</span>
                                                 <input
                                                     type="text"
-                                                    inputMode="decimal"
                                                     value={data.current_balance}
-                                                    onChange={(e) => handleAmountInput(e, setData, 'current_balance')}
-                                                    onWheel={handleWheel}
-                                                    className={`form-control ${errors.current_balance ? 'is-invalid' : ''}`}
-                                                    placeholder="0.00"
+                                                    className="form-control"
+                                                    readOnly
                                                 />
-                                                {errors.current_balance && <div className="invalid-feedback">{errors.current_balance}</div>}
                                             </div>
+                                            <small className="text-muted">Opening balance + transactions. Changing the opening balance shifts this by the same amount.</small>
                                         </div>
                                     </div>
 
