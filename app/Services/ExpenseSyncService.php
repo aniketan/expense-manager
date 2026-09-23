@@ -387,14 +387,6 @@ class ExpenseSyncService
     }
 
     /**
-     * Get sync statistics
-     */
-    public function getStats(): array
-    {
-        return $this->stats;
-    }
-
-    /**
      * Get or create Uncategorized category
      */
     private function getUncategorizedCategory(bool $dryRun): int
@@ -408,18 +400,5 @@ class ExpenseSyncService
         }
 
         return $uncategorizedId;
-    }
-
-    /**
-     * Reset sync statistics
-     */
-    public function resetStats(): void
-    {
-        $this->stats = [
-            'categories_synced' => 0,
-            'accounts_synced' => 0,
-            'transactions_synced' => 0,
-            'errors' => 0,
-        ];
     }
 }

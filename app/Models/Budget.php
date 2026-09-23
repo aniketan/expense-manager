@@ -113,18 +113,4 @@ class Budget extends Model
             return 'success'; // Within budget
         }
     }
-
-    // Check if budget is exceeded
-    public function isExceeded()
-    {
-        return $this->spent_amount >= $this->amount;
-    }
-
-    // Check if budget is in current period
-    public function isCurrent()
-    {
-        $today = now();
-
-        return $today->between($this->start_date, $this->end_date);
-    }
 }

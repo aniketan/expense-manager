@@ -738,25 +738,8 @@ export default function Edit({ transaction, categories, accounts }) {
                     <div className="card bg-light">
                         <div className="card-body">
                             <h6 className="mb-3">
-                                <i className="fas fa-lightbulb me-2"></i>Edit Actions & Tips
+                                <i className="fas fa-lightbulb me-2"></i>Tips
                             </h6>
-                            <div className="row">
-                                <div className="col-md-4">
-                                    <button type="button" className="btn btn-outline-primary btn-sm w-100 mb-2">
-                                        <i className="fas fa-copy me-1"></i>Duplicate Transaction
-                                    </button>
-                                </div>
-                                <div className="col-md-4">
-                                    <button type="button" className="btn btn-outline-danger btn-sm w-100 mb-2">
-                                        <i className="fas fa-trash me-1"></i>Delete Transaction
-                                    </button>
-                                </div>
-                                <div className="col-md-4">
-                                    <button type="button" className="btn btn-outline-info btn-sm w-100 mb-2">
-                                        <i className="fas fa-history me-1"></i>View History
-                                    </button>
-                                </div>
-                            </div>
                             <small className="text-muted">
                                 <i className="fas fa-info-circle me-1"></i>
                                 <strong>Tip:</strong> Make sure to update the category if you change the nature of the transaction.

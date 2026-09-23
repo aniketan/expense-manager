@@ -416,48 +416,6 @@ class TransactionController extends Controller
     }
 
     /**
-     * Get dashboard statistics for the home page
-     */
-    public function getDashboardStats()
-    {
-        // Get total income (where transaction_type is 'income')
-        $totalIncome = Transaction::where('transaction_type', Transaction::TYPE_INCOME)
-            ->sum('amount');
-
-        // Transfers only move money between accounts and are not expenses.
-        $totalExpenses = Transaction::where('transaction_type', Transaction::TYPE_EXPENSE)
-            ->sum('amount');
-
-        // Convert negative expenses to positive for display
-        $totalExpenses = abs($totalExpenses);
-
-        // Calculate net balance
-        $netBalance = $totalIncome - $totalExpenses;
-
-        // Get total transaction count
-        $totalTransactions = Transaction::count();
-
-        return [
-            'totalIncome' => $totalIncome,
-            'totalExpenses' => $totalExpenses,
-            'netBalance' => $netBalance,
-            'totalTransactions' => $totalTransactions,
-        ];
-    }
-
-    /**
-     * Get recent transactions for the home page
-     */
-    public function getRecentTransactions($limit = 10)
-    {
-        return Transaction::with(['category.parent', 'account'])
-            ->orderBy('transaction_date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get();
-    }
-
-    /**
      * Check if any budgets are exceeded or approaching limit for the given category
      */
     private function checkBudgetAlerts($categoryId, $transactionDate)

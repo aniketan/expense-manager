@@ -130,82 +130,9 @@ class Category extends Model
         return $this->children()->exists();
     }
 
-    // Get full category name (including parent if exists)
-    public function getFullNameAttribute()
-    {
-        return $this->parent ? $this->parent->name.' > '.$this->name : $this->name;
-    }
-
-    // Get category hierarchy level
-    public function getHierarchyLevelAttribute()
-    {
-        return $this->parent_id ? 1 : 0;
-    }
-
     // Check if category is parent/top-level
     public function isParent()
     {
         return is_null($this->parent_id);
-    }
-
-    // Check if category is child/sub-category
-    public function isChild()
-    {
-        return ! is_null($this->parent_id);
-    }
-
-    // Calculate total transaction amount for this category only
-    public function getTotalAmountAttribute()
-    {
-        return $this->transactions()->sum('amount');
-    }
-
-    // Calculate total transaction amount including subcategories (for parent categories)
-    public function getTotalAmountWithChildrenAttribute()
-    {
-        if ($this->isParent()) {
-            // For parent categories, sum all children's transaction amounts using efficient DB query
-            $childrenIds = $this->children->pluck('id')->toArray();
-
-            // If no children, just return parent's total
-            if (empty($childrenIds)) {
-                return $this->transactions()->sum('amount');
-            }
-
-            // Include parent ID as well (in case parent has direct transactions)
-            $allIds = array_merge($childrenIds, [$this->id]);
-
-            return Transaction::whereIn('category_id', $allIds)->sum('amount');
-        }
-
-        // For child categories, just return their own total
-        return $this->total_amount;
-    }
-
-    // Get transaction count for this category
-    public function getTransactionCountAttribute()
-    {
-        return $this->transactions()->count();
-    }
-
-    // Get transaction count including subcategories (for parent categories)
-    public function getTransactionCountWithChildrenAttribute()
-    {
-        if ($this->isParent()) {
-            // For parent categories, count all children's transactions using efficient DB query
-            $childrenIds = $this->children->pluck('id')->toArray();
-
-            // If no children, just return parent's count
-            if (empty($childrenIds)) {
-                return $this->transactions()->count();
-            }
-
-            // Include parent ID as well (in case parent has direct transactions)
-            $allIds = array_merge($childrenIds, [$this->id]);
-
-            return Transaction::whereIn('category_id', $allIds)->count();
-        }
-
-        return $this->transaction_count;
     }
 }

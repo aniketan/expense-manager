@@ -71,33 +71,6 @@ class LlmLoggingService
     }
 
     /**
-     * Log a tool call event.
-     */
-    public function logToolCall(string $sessionId, string $toolName, array $arguments = [], ?string $result = null): void
-    {
-        $meta = $this->baseMeta();
-
-        // Database log
-        LlmLog::create([
-            'session_id' => $sessionId,
-            ...$meta,
-            'message_type' => 'tool_call',
-            'content' => [
-                'tool' => $toolName,
-                'arguments' => $arguments,
-                'result' => $result,
-            ],
-            'status' => 'success',
-        ]);
-
-        // File log
-        $this->llmLog()->info("TOOL_CALL [{$sessionId}] {$toolName}", [
-            'arguments' => $arguments,
-            'result' => $result,
-        ]);
-    }
-
-    /**
      * Log an error or exception.
      */
     public function logError(string $sessionId, string $errorStatus, Throwable $exception): void

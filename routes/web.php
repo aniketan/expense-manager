@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AiController;
-use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ChatController;
@@ -10,35 +9,16 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\StatementController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-Route::get('/', function () {
-    $transactionController = new TransactionController;
-
-    // Get dashboard statistics
-    $stats = $transactionController->getDashboardStats();
-
-    // Get recent transactions
-    $recentTransactions = $transactionController->getRecentTransactions(10);
-
-    return Inertia::render('Welcome', [
-        'stats' => $stats,
-        'recentTransactions' => $recentTransactions,
-    ]);
-});
+Route::get('/', [DashboardController::class, 'index'])->name('home');
 
 // Account routes
 Route::resource('accounts', AccountController::class);
 Route::patch('accounts/{account}/toggle-status', [AccountController::class, 'toggleStatus'])->name('accounts.toggle-status');
-Route::get('api/accounts', [AccountController::class, 'getAccounts'])->name('api.accounts');
 
 // Category routes
 Route::resource('categories', CategoryController::class);
 Route::patch('categories/{category}/toggle-status', [CategoryController::class, 'toggleStatus'])->name('categories.toggle-status');
-Route::get('api/categories', [CategoryController::class, 'getCategories'])->name('api.categories');
-Route::get('api/categories/parents', [CategoryController::class, 'getParentCategories'])->name('api.categories.parents');
-Route::get('api/categories/{category}/children', [CategoryController::class, 'getChildCategories'])->name('api.categories.children');
-Route::get('api/categories/with-totals', [CategoryController::class, 'getCategoriesWithTotals'])->name('api.categories.with-totals');
 
 // Transaction routes
 Route::get('transactions/export', [TransactionController::class, 'export'])->name('transactions.export');
@@ -48,21 +28,10 @@ Route::post('transactions/bulk-destroy', [TransactionController::class, 'bulkDes
 // Budget routes
 Route::resource('budgets', BudgetController::class);
 Route::patch('budgets/{budget}/toggle-status', [BudgetController::class, 'toggleStatus'])->name('budgets.toggle-status');
-Route::get('api/budgets/summary', [BudgetController::class, 'getSummary'])->name('api.budgets.summary');
 
 // Dashboard routes
 Route::redirect('/dashboard', '/')->name('dashboard.index');
 Route::get('/dashboard/analytics', [DashboardController::class, 'analytics'])->name('dashboard.analytics');
-
-// API Routes for Statistics (useful for mobile apps)
-Route::prefix('api/stats')->name('api.stats.')->group(function () {
-    Route::get('today', [StatsController::class, 'today'])->name('today');
-    Route::get('weekly', [StatsController::class, 'weekly'])->name('weekly');
-    Route::get('monthly', [StatsController::class, 'monthly'])->name('monthly');
-    Route::get('balance', [StatsController::class, 'balance'])->name('balance');
-    Route::get('dashboard', [StatsController::class, 'dashboard'])->name('dashboard');
-    Route::get('date-range', [StatsController::class, 'dateRange'])->name('date-range');
-});
 
 // Chatbot routes (SSE + history)
 Route::post('/chat/stream', [ChatController::class, 'stream'])->name('chat.stream');
