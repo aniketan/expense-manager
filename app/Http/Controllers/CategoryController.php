@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class CategoryController extends Controller
@@ -15,8 +16,8 @@ class CategoryController extends Controller
      */
     public function index(Request $request)
     {
-        $perPage = $request->get('per_page', 5); // Changed to 5 parent categories per page
-        $page = $request->get('page', 1);
+        $perPage = (int) $request->get('per_page', 5); // 5 parent categories per page
+        $page = max(1, (int) $request->get('page', 1));
 
         // Validate per_page parameter
         if (! in_array($perPage, [5, 10, 15, 20])) {
@@ -129,7 +130,8 @@ class CategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'code' => 'required|string|max:50|unique:categories',
-            'parent_id' => 'nullable|exists:categories,id',
+            // Categories are a two-level tree: a parent must itself be top-level.
+            'parent_id' => ['nullable', Rule::exists('categories', 'id')->whereNull('parent_id')],
             'description' => 'nullable|string|max:1000',
             'icon' => 'nullable|string|max:50',
             'color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
@@ -229,17 +231,26 @@ class CategoryController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'code' => 'required|string|max:50|unique:categories,code,'.$category->id,
-            'parent_id' => 'nullable|exists:categories,id',
+            // Categories are a two-level tree: a parent must itself be top-level.
+            'parent_id' => ['nullable', Rule::exists('categories', 'id')->whereNull('parent_id')],
             'description' => 'nullable|string|max:1000',
             'icon' => 'nullable|string|max:50',
             'color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
             'is_active' => 'sometimes|boolean',
         ]);
 
+        $parentId = $validated['parent_id'] ?? null;
+
         // Prevent setting self as parent
-        if ($validated['parent_id'] == $category->id) {
+        if ($parentId !== null && (int) $parentId === $category->id) {
             return Redirect::back()
                 ->withErrors(['parent_id' => 'A category cannot be its own parent.']);
+        }
+
+        // Moving a parent under another category would push its children to a third level.
+        if ($parentId !== null && $category->hasChildren()) {
+            return Redirect::back()
+                ->withErrors(['parent_id' => 'This category has sub-categories, so it must stay top-level.']);
         }
 
         $category->update($validated);

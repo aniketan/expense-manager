@@ -8,9 +8,18 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - Single-user login ([#79](https://github.com/aniketan/expense-manager/issues/79)). Every route now requires `APP_LOGIN_PASSWORD` from `.env` (plain text or a bcrypt hash from `php artisan auth:hash-password`). Login attempts are limited to 5 per minute, and there is a Log out button in the navbar. With no password set, nobody can log in.
 
+### Fixed
+
+- Categories can no longer be nested more than two levels deep, which hid their transactions from parent budgets and filters ([#76](https://github.com/aniketan/expense-manager/issues/76)). Clearing a category's parent no longer errors.
+- The balance update after a transaction's category changes now uses the new category, not the stale loaded one ([#77](https://github.com/aniketan/expense-manager/issues/77)).
+- An account's current balance is now always opening balance + transactions. Editing the opening balance shifts it by the same amount, and it can no longer be typed over directly, which made balances drift from `accounts:recalculate-balances`.
+- The opening balance may be negative, for example a credit card that already carries dues.
+- Non-numeric `page`/`per_page` query values no longer cause errors on the Categories and Budgets pages.
+
 ### Upgrading
 
 - Add `APP_LOGIN_PASSWORD` to `.env`, then run `php artisan config:clear`.
+- If you previously edited an account's current balance by hand, run `php artisan accounts:recalculate-balances` to bring it back in line with its transactions.
 
 ## [1.0.0] - 2026-09-23
 

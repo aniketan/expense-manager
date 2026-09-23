@@ -16,7 +16,10 @@ class BudgetController extends Controller
      */
     public function index(Request $request)
     {
-        $perPage = $request->get('per_page', 15);
+        $perPage = (int) $request->get('per_page', 15);
+        if (! in_array($perPage, [15, 25, 50, 100], true)) {
+            $perPage = 15;
+        }
 
         $query = Budget::with('category');
 

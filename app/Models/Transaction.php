@@ -138,10 +138,16 @@ class Transaction extends Model
 
     public function getBalanceImpact(): float
     {
+        // After category_id changes, the loaded relation still points at the old category.
+        $category = $this->category;
+        if ((int) $category?->getKey() !== (int) $this->category_id) {
+            $category = Category::find($this->category_id);
+        }
+
         return self::balanceImpact(
             $this->transaction_type,
             $this->amount,
-            $this->category?->code
+            $category?->code
         );
     }
 
