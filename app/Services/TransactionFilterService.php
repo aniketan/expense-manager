@@ -62,13 +62,14 @@ class TransactionFilterService
         if ($request->filled('date_from')) {
             $dateFrom = $request->get('date_from');
             $filters['date_from'] = $dateFrom;
-            $query->where('transaction_date', '>=', $dateFrom);
+            // Dates are stored as "Y-m-d 00:00:00"; comparing the date part keeps both bounds inclusive.
+            $query->whereDate('transaction_date', '>=', $dateFrom);
         }
 
         if ($request->filled('date_to')) {
             $dateTo = $request->get('date_to');
             $filters['date_to'] = $dateTo;
-            $query->where('transaction_date', '<=', $dateTo);
+            $query->whereDate('transaction_date', '<=', $dateTo);
         }
 
         if ($request->filled('payment_method')) {

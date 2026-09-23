@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Budget;
 use App\Models\Category;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
@@ -92,20 +93,7 @@ class BudgetController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        // Check for overlapping budgets for the same category
-        $overlapping = Budget::where('category_id', $validated['category_id'])
-            ->where('is_active', true)
-            ->where(function ($query) use ($validated) {
-                $query->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
-                    ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
-                    ->orWhere(function ($q) use ($validated) {
-                        $q->where('start_date', '<=', $validated['start_date'])
-                            ->where('end_date', '>=', $validated['end_date']);
-                    });
-            })
-            ->exists();
-
-        if ($overlapping) {
+        if ($this->overlapsActiveBudget($validated)) {
             return Redirect::back()
                 ->withErrors(['category_id' => 'A budget already exists for this category in the selected date range.'])
                 ->withInput();
@@ -128,8 +116,8 @@ class BudgetController extends Controller
         $budget->percentage_used = $budget->percentage_used;
         $budget->status = $budget->status;
 
-        // Get transactions for this budget period
-        $transactions = $budget->category->transactions()
+        // Same category set as spent_amount, so the list adds up to the total shown.
+        $transactions = Transaction::whereIn('category_id', $budget->trackedCategoryIds())
             ->whereBetween('transaction_date', [$budget->start_date, $budget->end_date])
             ->where('transaction_type', 'expense')
             ->with('account')
@@ -172,21 +160,7 @@ class BudgetController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        // Check for overlapping budgets (excluding current budget)
-        $overlapping = Budget::where('category_id', $validated['category_id'])
-            ->where('id', '!=', $budget->id)
-            ->where('is_active', true)
-            ->where(function ($query) use ($validated) {
-                $query->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
-                    ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
-                    ->orWhere(function ($q) use ($validated) {
-                        $q->where('start_date', '<=', $validated['start_date'])
-                            ->where('end_date', '>=', $validated['end_date']);
-                    });
-            })
-            ->exists();
-
-        if ($overlapping) {
+        if ($this->overlapsActiveBudget($validated, $budget->id)) {
             return Redirect::back()
                 ->withErrors(['category_id' => 'A budget already exists for this category in the selected date range.'])
                 ->withInput();
@@ -196,6 +170,22 @@ class BudgetController extends Controller
 
         return Redirect::route('budgets.index')
             ->with('success', 'Budget updated successfully.');
+    }
+
+    /**
+     * Two ranges overlap when each starts on or before the other ends. Dates are stored
+     * as "Y-m-d 00:00:00", so compare date parts to keep boundary days inclusive.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function overlapsActiveBudget(array $validated, ?int $ignoreBudgetId = null): bool
+    {
+        return Budget::where('category_id', $validated['category_id'])
+            ->where('is_active', true)
+            ->when($ignoreBudgetId, fn ($query) => $query->where('id', '!=', $ignoreBudgetId))
+            ->whereDate('start_date', '<=', $validated['end_date'])
+            ->whereDate('end_date', '>=', $validated['start_date'])
+            ->exists();
     }
 
     /**

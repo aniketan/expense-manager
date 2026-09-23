@@ -58,24 +58,27 @@ class Budget extends Model
     // Scope for current budgets (within date range)
     public function scopeCurrent($query)
     {
-        $today = now();
+        $today = now()->toDateString();
 
-        return $query->where('start_date', '<=', $today)
-            ->where('end_date', '>=', $today);
+        // Compare date parts so a budget ending today stays current all day.
+        return $query->whereDate('start_date', '<=', $today)
+            ->whereDate('end_date', '>=', $today);
+    }
+
+    /**
+     * The budget's category plus its children: the set spending is measured against.
+     *
+     * @return array<int, int>
+     */
+    public function trackedCategoryIds(): array
+    {
+        return array_merge([$this->category_id], $this->category->children->pluck('id')->all());
     }
 
     // Get spent amount for this budget (includes child categories)
     public function getSpentAmountAttribute()
     {
-        // Get category IDs to include (this category + all children if it's a parent)
-        $categoryIds = [$this->category_id];
-
-        if ($this->category->hasChildren()) {
-            $childIds = $this->category->children->pluck('id')->toArray();
-            $categoryIds = array_merge($categoryIds, $childIds);
-        }
-
-        return Transaction::whereIn('category_id', $categoryIds)
+        return Transaction::whereIn('category_id', $this->trackedCategoryIds())
             ->whereBetween('transaction_date', [$this->start_date, $this->end_date])
             ->where('transaction_type', 'expense')
             ->sum('amount');

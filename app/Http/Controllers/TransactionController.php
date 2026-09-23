@@ -20,7 +20,8 @@ class TransactionController extends Controller
 {
     public function index(Request $request, TransactionFilterService $filterService)
     {
-        $perPage = $request->get('per_page', 15);
+        // Query strings arrive as strings ("25"), so cast before the strict whitelist check.
+        $perPage = (int) $request->get('per_page', 15);
         if (! in_array($perPage, [15, 25, 50, 100], true)) {
             $perPage = 15;
         }
@@ -54,15 +55,20 @@ class TransactionController extends Controller
                 $query->orderBy('amount', 'asc');
                 break;
             case 'category':
-                $query->join('categories', 'transactions.category_id', '=', 'categories.id')
-                    ->orderBy('categories.name', 'asc')
-                    ->select('transactions.*');
+                // A subquery instead of a join: categories also has a `description`
+                // column, which made the search filter ambiguous under a join.
+                $query->orderBy(
+                    Category::select('name')->whereColumn('categories.id', 'transactions.category_id')
+                );
                 break;
             case 'date_desc':
             default:
                 $query->orderBy('transaction_date', 'desc');
                 break;
         }
+
+        // Tie-breaker so rows sharing a date or amount page deterministically.
+        $query->orderBy('id', 'desc');
 
         $transactions = $query->paginate($perPage)->appends($request->query());
 
@@ -75,6 +81,7 @@ class TransactionController extends Controller
             'accounts' => $accounts,
             'success' => session('success'),
             'error' => session('error'),
+            'budget_alerts' => session('budget_alerts'),
             'filters' => $filters,
             'totals' => $totals,
         ]);
@@ -457,11 +464,13 @@ class TransactionController extends Controller
     {
         $alerts = [];
 
-        // Find active budgets for this category that cover the transaction date
-        $budgets = Budget::where('category_id', $categoryId)
+        // Budgets on the parent category count child spending too, so they must alert as well.
+        $categoryIds = array_filter([$categoryId, Category::whereKey($categoryId)->value('parent_id')]);
+
+        $budgets = Budget::whereIn('category_id', $categoryIds)
             ->where('is_active', true)
-            ->where('start_date', '<=', $transactionDate)
-            ->where('end_date', '>=', $transactionDate)
+            ->whereDate('start_date', '<=', $transactionDate)
+            ->whereDate('end_date', '>=', $transactionDate)
             ->get();
 
         foreach ($budgets as $budget) {
