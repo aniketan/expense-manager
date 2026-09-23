@@ -74,6 +74,7 @@ class TransactionController extends Controller
             'categories' => $categories,
             'accounts' => $accounts,
             'success' => session('success'),
+            'error' => session('error'),
             'filters' => $filters,
             'totals' => $totals,
         ]);
@@ -186,24 +187,7 @@ class TransactionController extends Controller
      */
     public function store(Request $request, AccountTransferService $transferService)
     {
-        $validated = $request->validate([
-            'account_id' => 'required|exists:accounts,id',
-            'category_id' => 'nullable|required_unless:transaction_type,transfer|exists:categories,id',
-            'transaction_type' => ['required', Rule::in([Transaction::TYPE_INCOME, Transaction::TYPE_EXPENSE, Transaction::TYPE_TRANSFER])],
-            'amount' => 'required|numeric|gt:0',
-            'tax' => 'nullable|numeric|min:0',
-            'description' => 'nullable|string',
-            'payee_payer' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
-            'transaction_date' => 'required|date',
-            'transaction_time' => 'nullable|date_format:H:i',
-            'status' => ['nullable', Rule::in(Transaction::STATUSES)],
-            'payment_method' => 'nullable|required_unless:transaction_type,transfer|string|max:50',
-            'reference_number' => 'nullable|string|max:100',
-            'tags' => 'nullable|string',
-            'location' => 'nullable|string',
-            'transfer_to_account_id' => 'nullable|required_if:transaction_type,transfer|different:account_id|exists:accounts,id',
-        ]);
+        $validated = $request->validate($this->validationRules($request));
 
         $validated['status'] ??= Transaction::STATUS_CLEARED;
 
@@ -246,6 +230,10 @@ class TransactionController extends Controller
      */
     public function edit(Transaction $transaction, AccountTransferService $transferService)
     {
+        if ($transferService->isUnlinked($transaction)) {
+            return $this->unlinkedTransferRedirect();
+        }
+
         if ($transaction->transaction_type === Transaction::TYPE_TRANSFER) {
             $legs = $transferService->pair($transaction);
             $transaction = $legs['outgoing'];
@@ -264,6 +252,49 @@ class TransactionController extends Controller
             'categories' => $categories,
             'accounts' => $accounts,
         ]);
+    }
+
+    /**
+     * Shared by store and update so the two forms cannot drift apart.
+     *
+     * @return array<string, mixed>
+     */
+    private function validationRules(Request $request): array
+    {
+        return [
+            'account_id' => 'required|exists:accounts,id',
+            'category_id' => [
+                'nullable',
+                'required_unless:transaction_type,transfer',
+                'exists:categories,id',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    if ($request->input('transaction_type') !== Transaction::TYPE_TRANSFER
+                        && Category::isTransferCategoryId($value)) {
+                        $fail('Transfer categories are reserved for account transfers. Choose the Transfer type instead.');
+                    }
+                },
+            ],
+            'transaction_type' => ['required', Rule::in([Transaction::TYPE_INCOME, Transaction::TYPE_EXPENSE, Transaction::TYPE_TRANSFER])],
+            'amount' => 'required|numeric|gt:0',
+            'tax' => 'nullable|numeric|min:0',
+            'description' => 'nullable|string',
+            'payee_payer' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+            'transaction_date' => 'required|date',
+            'transaction_time' => 'nullable|date_format:H:i',
+            'status' => ['nullable', Rule::in(Transaction::STATUSES)],
+            'payment_method' => 'nullable|required_unless:transaction_type,transfer|string|max:50',
+            'reference_number' => 'nullable|string|max:100',
+            'tags' => 'nullable|string',
+            'location' => 'nullable|string',
+            'transfer_to_account_id' => 'nullable|required_if:transaction_type,transfer|different:account_id|exists:accounts,id',
+        ];
+    }
+
+    private function unlinkedTransferRedirect()
+    {
+        return Redirect::route('transactions.index')
+            ->with('error', 'This transfer has no linked counterpart (created before linked transfers existed) and cannot be edited. Delete it and record the transfer again.');
     }
 
     private function timeInputValue($value): ?string
@@ -294,24 +325,11 @@ class TransactionController extends Controller
      */
     public function update(Request $request, Transaction $transaction, AccountTransferService $transferService)
     {
-        $validated = $request->validate([
-            'account_id' => 'required|exists:accounts,id',
-            'category_id' => 'nullable|required_unless:transaction_type,transfer|exists:categories,id',
-            'transaction_type' => ['required', Rule::in([Transaction::TYPE_INCOME, Transaction::TYPE_EXPENSE, Transaction::TYPE_TRANSFER])],
-            'amount' => 'required|numeric|gt:0',
-            'tax' => 'nullable|numeric|min:0',
-            'description' => 'nullable|string',
-            'payee_payer' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
-            'transaction_date' => 'required|date',
-            'transaction_time' => 'nullable|date_format:H:i',
-            'status' => ['nullable', Rule::in(Transaction::STATUSES)],
-            'payment_method' => 'nullable|required_unless:transaction_type,transfer|string|max:50',
-            'reference_number' => 'nullable|string|max:100',
-            'tags' => 'nullable|string',
-            'location' => 'nullable|string',
-            'transfer_to_account_id' => 'nullable|required_if:transaction_type,transfer|different:account_id|exists:accounts,id',
-        ]);
+        if ($transferService->isUnlinked($transaction)) {
+            return $this->unlinkedTransferRedirect();
+        }
+
+        $validated = $request->validate($this->validationRules($request));
 
         $validated['status'] ??= Transaction::STATUS_CLEARED;
 
@@ -371,12 +389,15 @@ class TransactionController extends Controller
         $processedGroups = [];
         foreach ($transactions as $transaction) {
             if ($transaction->transaction_type === Transaction::TYPE_TRANSFER) {
-                if (isset($processedGroups[$transaction->transfer_group_id])) {
+                $groupId = $transaction->transfer_group_id;
+                if ($groupId && isset($processedGroups[$groupId])) {
                     continue;
                 }
 
                 $transferService->delete($transaction);
-                $processedGroups[$transaction->transfer_group_id] = true;
+                if ($groupId) {
+                    $processedGroups[$groupId] = true;
+                }
             } else {
                 $transaction->delete();
             }

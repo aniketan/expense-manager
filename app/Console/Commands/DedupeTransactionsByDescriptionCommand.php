@@ -64,7 +64,9 @@ class DedupeTransactionsByDescriptionCommand extends Command
     {
         $trimExpr = $this->trimmedDescriptionExpression();
 
+        // Transfer legs are paired across accounts; deleting one would strand the other.
         return DB::table('transactions')
+            ->where('transaction_type', '!=', Transaction::TYPE_TRANSFER)
             ->whereNotNull('description')
             ->whereRaw("{$trimExpr} != ".$this->emptySqlLiteral())
             ->selectRaw("account_id, transaction_date, transaction_type, amount, {$trimExpr} as desc_key, COUNT(*) as row_count")

@@ -19,6 +19,7 @@ class AccountController extends Controller
         return Inertia::render('Accounts/Index', [
             'accounts' => $accounts,
             'success' => session('success'),
+            'error' => session('error'),
         ]);
     }
 
@@ -112,6 +113,13 @@ class AccountController extends Controller
      */
     public function destroy(Account $account)
     {
+        // Database cascades bypass Transaction model events, which would strand the
+        // other leg of any transfer and leave the counterpart account balance wrong.
+        if ($account->transactions()->exists()) {
+            return Redirect::route('accounts.index')
+                ->with('error', 'Cannot delete account. Reassign or delete its transactions first, or deactivate the account instead.');
+        }
+
         try {
             $account->delete();
 
