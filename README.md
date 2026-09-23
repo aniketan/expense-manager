@@ -23,6 +23,14 @@ Expense Manager is a single-user personal finance app built with Laravel, Inerti
 - Use AI-assisted categorization and chat-first money workflows as active product lanes.
 - Sync data from a private external SQLite database with `php artisan expense:sync`.
 
+## Run with Docker (no PHP needed)
+
+1. Add a login password to `.env` next to `compose.yml`: `APP_LOGIN_PASSWORD=your-password`
+2. Run `docker compose up -d --build`
+3. Open http://localhost:8080 and log in
+
+Data lives in the `expense-data` Docker volume and survives rebuilds. `docker compose down -v` erases it. Set `APP_PORT` to change the port. The AI chat talks to Ollama on your machine at `host.docker.internal:11434`.
+
 ## Local Setup
 
 > **Set a login password.** Every page requires `APP_LOGIN_PASSWORD` from `.env`. Until it is set, nobody can log in. Run `php artisan auth:hash-password` to get a hashed value to paste in instead of plain text. Serve the app over HTTPS if it is reachable beyond your own machine.

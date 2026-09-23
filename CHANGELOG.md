@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Docker runtime: `Dockerfile` + `compose.yml` (PHP 8.4 + Apache, SQLite on a named volume, automatic migrations and first-run seeding). `docker compose up -d --build` runs the app on http://localhost:8080 without PHP installed. CI now builds and boots the image.
 - Single-user login ([#79](https://github.com/aniketan/expense-manager/issues/79)). Every route now requires `APP_LOGIN_PASSWORD` from `.env` (plain text or a bcrypt hash from `php artisan auth:hash-password`). Login attempts are limited to 5 per minute, and there is a Log out button in the navbar. With no password set, nobody can log in.
 
 ### Fixed
