@@ -9,8 +9,7 @@ Expense Manager is a single-user personal finance app built with Laravel, Inerti
 - Inertia Laravel 3
 - React 19
 - Vite 7
-- Tailwind CSS 4
-- Bootstrap 5
+- Bootstrap 5 and Font Awesome 6 (bundled)
 - SQLite by default for local development and CI
 - Prism PHP for AI-assisted chat and categorization workflows
 
@@ -26,9 +25,12 @@ Expense Manager is a single-user personal finance app built with Laravel, Inerti
 
 ## Local Setup
 
+> **Local use only.** There is no login: anyone who can reach the server can read and change your data. Run it on your own machine (see issue #79 before hosting it anywhere).
+
+
 ```bash
 composer install
-npm install
+npm ci
 cp .env.example .env
 php artisan key:generate
 touch database/database.sqlite
@@ -96,4 +98,4 @@ You can also set `EXTERNAL_DB_PATH` in your local `.env`. Do not commit local `.
 
 ## Project Status
 
-Expense Manager is in active development. The current priority is the core money-entry workflow: chat-based capture, trustworthy categorization, statement import cleanup, and balance auditability. Broader dashboard and portfolio polish are intentionally secondary until that core workflow is reliable.
+Expense Manager is in active development. `v1.0.0` is the first stable baseline; see [CHANGELOG.md](CHANGELOG.md). The current priority is the core money-entry workflow: chat-based capture, trustworthy categorization, statement import cleanup, and balance auditability. Broader dashboard and portfolio polish are intentionally secondary until that core workflow is reliable.
