@@ -25,7 +25,7 @@ Expense Manager is a single-user personal finance app built with Laravel, Inerti
 
 ## Local Setup
 
-> **Local use only.** There is no login: anyone who can reach the server can read and change your data. Run it on your own machine (see issue #79 before hosting it anywhere).
+> **Set a login password.** Every page requires `APP_LOGIN_PASSWORD` from `.env`. Until it is set, nobody can log in. Run `php artisan auth:hash-password` to get a hashed value to paste in instead of plain text. Serve the app over HTTPS if it is reachable beyond your own machine.
 
 
 ```bash
@@ -33,6 +33,7 @@ composer install
 npm ci
 cp .env.example .env
 php artisan key:generate
+php artisan auth:hash-password   # paste the printed APP_LOGIN_PASSWORD line into .env
 touch database/database.sqlite
 php artisan migrate --seed
 npm run build

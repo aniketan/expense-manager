@@ -33,6 +33,9 @@ export default function Layout({ children }) {
                         <Link className="nav-link" href="/accounts">
                             <i className="fas fa-university me-1"></i>Accounts
                         </Link>
+                        <Link className="nav-link btn btn-link" href="/logout" method="post" as="button">
+                            <i className="fas fa-sign-out-alt me-1"></i>Log out
+                        </Link>
                     </div>
                 </div>
             </nav>

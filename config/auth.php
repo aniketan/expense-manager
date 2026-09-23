@@ -114,4 +114,17 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Single-User Login
+    |--------------------------------------------------------------------------
+    |
+    | This app has one user and no users table. Every web route requires this
+    | password. It may be plain text or a bcrypt hash (see auth:hash-password).
+    | When it is empty nobody can log in, so the app fails closed.
+    |
+    */
+
+    'login_password' => env('APP_LOGIN_PASSWORD'),
+
 ];
