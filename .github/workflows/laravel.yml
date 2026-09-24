@@ -95,6 +95,14 @@ jobs:
         curl -fsS http://localhost:8080/up >/dev/null
         test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/transactions)" = "302"
 
+    - name: Refuse to overwrite a bind-mounted .env
+      run: |
+        mkdir -p /tmp/mounted && echo "SENTINEL=keep-me" > /tmp/mounted/.env
+        if docker run --rm -v /tmp/mounted/.env:/var/www/html/.env expense-manager:ci; then
+          echo "Entrypoint started despite a bind-mounted .env" && exit 1
+        fi
+        test "$(cat /tmp/mounted/.env)" = "SENTINEL=keep-me"
+
     - name: Show container logs on failure
       if: failure()
       run: docker logs em

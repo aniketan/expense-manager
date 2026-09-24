@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
+    sanitizeText,
     validateAmount,
     validateDate,
     validateCode,
@@ -9,6 +10,20 @@ import {
     getErrorEntries,
     validateTransactionForm,
 } from '../utils/inputValidation';
+
+describe('sanitizeText', () => {
+    it('strips control characters but keeps tabs and line breaks', () => {
+        // NUL is replaced with U+FFFD by the HTML entity-decoding step, so it isn't used here.
+        expect(sanitizeText('a\u0001b\u0007c\u001Fd\u007Fe')).toBe('abcde');
+        expect(sanitizeText('line1\nline2\tend')).toBe('line1\nline2\tend');
+    });
+
+    it('removes HTML tags and scripts, decodes entities, trims, and caps length', () => {
+        expect(sanitizeText('<b>Hi</b><script>alert(1)</script> &amp; bye ')).toBe('Hi & bye');
+        expect(sanitizeText('abcdef', 3)).toBe('abc');
+        expect(sanitizeText(null)).toBe('');
+    });
+});
 
 const isoDate = (date) => date.toISOString().slice(0, 10);
 

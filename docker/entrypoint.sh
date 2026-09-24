@@ -3,6 +3,15 @@
 # Everything that must survive restarts (database, app key) lives in /data.
 set -e
 
+# This image writes its own .env. If the project folder (or its .env) is bind-mounted
+# from the host, doing so would overwrite the developer's real .env, so refuse instead.
+if grep -qsE ' /var/www/html(/\.env)? ' /proc/mounts; then
+    echo "ERROR: /var/www/html or its .env is bind-mounted from the host." >&2
+    echo "This image generates its own .env and would overwrite yours. Start the app with" >&2
+    echo "'docker compose up -d --build' without mounting the project folder." >&2
+    exit 1
+fi
+
 cd /var/www/html
 DATA_DIR=/data
 DB="$DATA_DIR/database.sqlite"

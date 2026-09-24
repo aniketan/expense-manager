@@ -10,7 +10,13 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- The frontend bundle is split into `app`, `react`, and `bootstrap` chunks, so no chunk exceeds Vite's 500 kB warning (the `app` chunk dropped from 506 kB to 212 kB).
 - Category and budget pages now compute their totals in a bounded number of SQL queries instead of one (or more) query per category or per budget, with no change to any displayed number ([#64](https://github.com/aniketan/expense-manager/issues/64)).
+
+### Fixed
+
+- The Docker entrypoint now refuses to start when the project folder or its `.env` is bind-mounted, instead of overwriting your local `.env`.
+- `sanitizeText` keeps its original control-character filter; it is now covered by frontend tests.
 
 ## [1.2.0] - 2026-09-24
 
