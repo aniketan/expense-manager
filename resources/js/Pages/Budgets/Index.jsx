@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 import Pagination from '../../Components/Pagination';

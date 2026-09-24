@@ -1,4 +1,3 @@
-import React from 'react';
 import { Head, useForm } from '@inertiajs/react';
 
 export default function Login({ passwordConfigured }) {

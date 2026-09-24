@@ -23,7 +23,12 @@ export const sanitizeText = (input, maxLength = null) => {
     sanitized = textarea.value;
 
     // Remove control characters except newlines and tabs
-    sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    sanitized = Array.from(sanitized)
+        .filter((character) => {
+            const code = character.charCodeAt(0);
+            return (code >= 0x20 && code !== 0x7F) || character === '\n' || character === '\t';
+        })
+        .join('');
 
     sanitized = sanitized.trim();
 

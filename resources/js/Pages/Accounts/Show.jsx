@@ -1,4 +1,3 @@
-import React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 

@@ -1,5 +1,4 @@
 import './secure-context-polyfill';
-import React from 'react';
 import { createInertiaApp } from '@inertiajs/react'
 import { createRoot } from 'react-dom/client'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
