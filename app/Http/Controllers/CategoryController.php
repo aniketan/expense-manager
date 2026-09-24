@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
-use App\Models\Transaction;
+use App\Reporting\CategoryTotals;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Validation\Rule;
@@ -29,31 +29,22 @@ class CategoryController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Load transaction counts separately for efficiency
-        $categoriesWithTransactionTotals = $allCategories->map(function ($category) {
-            // Calculate totals
+        // Load transaction counts separately for efficiency: one grouped
+        // query for every category, then roll child totals into parents in PHP.
+        $totals = app(CategoryTotals::class);
+        $ownTotals = $totals->totalsForCategoryIds($allCategories->pluck('id')->all());
+        $categoryTotals = $totals->rollUpChildren($ownTotals, $allCategories);
+
+        $categoriesWithTransactionTotals = $allCategories->map(function ($category) use ($categoryTotals) {
+            $total = $categoryTotals[$category->id] ?? ['total' => 0.0, 'count' => 0];
+
+            $category->total_amount = $total['total'];
+            $category->transactions_count = $total['count'];
+
+            // Also set the _with_children properties for API compatibility
             if ($category->isParent()) {
-                // For parent categories, get sum of all children + parent
-                $childrenIds = $category->children->pluck('id')->toArray();
-                $allIds = array_merge($childrenIds, [$category->id]);
-
-                // Set the main total properties (sum of all subcategories)
-                $totalAmount = Transaction::whereIn('category_id', $allIds)->sum('amount');
-                $transactionCount = Transaction::whereIn('category_id', $allIds)->count();
-
-                $category->total_amount = $totalAmount;
-                $category->transactions_count = $transactionCount;
-
-                // Also set the _with_children properties for API compatibility
-                $category->total_amount_with_children = $totalAmount;
-                $category->transaction_count_with_children = $transactionCount;
-            } else {
-                // For children, just get their individual totals
-                $totalAmount = Transaction::where('category_id', $category->id)->sum('amount');
-                $transactionCount = Transaction::where('category_id', $category->id)->count();
-
-                $category->total_amount = $totalAmount;
-                $category->transactions_count = $transactionCount;
+                $category->total_amount_with_children = $total['total'];
+                $category->transaction_count_with_children = $total['count'];
             }
 
             return $category;
@@ -164,33 +155,37 @@ class CategoryController extends Controller
             ->limit(10)
             ->get();
 
-        // Calculate statistics
-        if ($category->parent_id === null) {
-            // For parent categories, include children's transactions
-            $childrenIds = $category->children->pluck('id')->toArray();
-            $allIds = array_merge($childrenIds, [$category->id]);
+        // Calculate statistics: one grouped query for the category (plus its
+        // children when it is a parent), no per-child queries.
+        $totals = app(CategoryTotals::class);
 
-            $totalAmount = Transaction::whereIn('category_id', $allIds)->sum('amount');
-            $transactionCount = Transaction::whereIn('category_id', $allIds)->count();
+        if ($category->parent_id === null) {
+            $ownTotals = $totals->totalsForCategoryIds(
+                $category->children->pluck('id')->push($category->id)->all()
+            );
+            $rolledUp = $totals->rollUpChildren($ownTotals, collect([$category]));
+
+            $totalAmount = $rolledUp[$category->id]['total'];
+            $transactionCount = $rolledUp[$category->id]['count'];
 
             // Get breakdown by child
-            $childrenStats = $category->children->map(function ($child) {
-                $childAmount = Transaction::where('category_id', $child->id)->sum('amount');
-                $childCount = Transaction::where('category_id', $child->id)->count();
+            $childrenStats = $category->children->map(function ($child) use ($ownTotals) {
+                $childTotal = $ownTotals[$child->id] ?? ['total' => 0.0, 'count' => 0];
 
                 return [
                     'id' => $child->id,
                     'name' => $child->name,
                     'icon' => $child->icon,
                     'color' => $child->color,
-                    'total_amount' => $childAmount,
-                    'transaction_count' => $childCount,
+                    'total_amount' => $childTotal['total'],
+                    'transaction_count' => $childTotal['count'],
                 ];
             });
         } else {
-            // For child categories
-            $totalAmount = Transaction::where('category_id', $category->id)->sum('amount');
-            $transactionCount = Transaction::where('category_id', $category->id)->count();
+            $own = $totals->totalsForCategoryIds([$category->id]);
+
+            $totalAmount = $own[$category->id]['total'] ?? 0.0;
+            $transactionCount = $own[$category->id]['count'] ?? 0;
             $childrenStats = collect([]);
         }
 
