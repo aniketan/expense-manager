@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
-export default function Form({ budget, categories, periodTypes, isEdit = false }) {
+export default function Form({ budget, categories, isEdit = false }) {
     const { data, setData, post, put, processing, errors } = useForm({
         category_id: budget?.category_id || '',
         name: budget?.name || '',

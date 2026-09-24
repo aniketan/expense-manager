@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 

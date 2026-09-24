@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 import { validateCode, validateName, validateIFSC, sanitizeText, handleAmountInput } from '../../utils/inputValidation';

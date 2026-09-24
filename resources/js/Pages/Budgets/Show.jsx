@@ -1,4 +1,3 @@
-import React from 'react';
 import { Head, Link } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
@@ -151,7 +150,7 @@ export default function Show({ budget, transactions }) {
                                 {budget.percentage_used >= 100 && (
                                     <div className="alert alert-danger mt-3 mb-0">
                                         <i className="fas fa-exclamation-triangle me-2"></i>
-                                        Budget exceeded! You've spent ₹{(parseFloat(budget.spent_amount) - parseFloat(budget.amount)).toLocaleString()} over budget.
+                                        Budget exceeded! You&apos;ve spent ₹{(parseFloat(budget.spent_amount) - parseFloat(budget.amount)).toLocaleString()} over budget.
                                     </div>
                                 )}
                                 {budget.percentage_used >= 80 && budget.percentage_used < 100 && (

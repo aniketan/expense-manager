@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 import {
@@ -8,7 +8,7 @@ import {
     sanitizeText
 } from '../../utils/inputValidation';
 
-export default function Create({ categoryTypes, parentCategories }) {
+export default function Create({ parentCategories }) {
     const [validationErrors, setValidationErrors] = useState({});
 
     const { data, setData, post, processing, errors } = useForm({
@@ -317,7 +317,7 @@ export default function Create({ categoryTypes, parentCategories }) {
                                             </label>
                                         </div>
                                         <div className="form-text">
-                                            Inactive categories won't appear in transaction forms
+                                            Inactive categories won&apos;t appear in transaction forms
                                         </div>
                                     </div>
                                 </div>

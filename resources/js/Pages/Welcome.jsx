@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import BootstrapLayout from '../Layouts/BootstrapLayout';
 
@@ -404,7 +404,7 @@ export default function Welcome({ stats, recentTransactions }) {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {recentTransactions.map((transaction, index) => (
+                                                {recentTransactions.map((transaction) => (
                                                     <tr key={transaction.id}>
                                                         <td>
                                                             {new Date(transaction.transaction_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}

@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import { Head } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 import {
