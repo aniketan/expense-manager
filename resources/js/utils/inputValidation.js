@@ -79,14 +79,16 @@ export const validateDate = (dateString, allowFuture = false, maxPastYears = 10,
         return { isValid: false, value: null, error: 'Invalid date format' };
     }
 
-    const inputDate = new Date(dateString);
+    // Parse as a local calendar date: new Date('YYYY-MM-DD') is UTC midnight, which
+    // is a future moment for "today" east of UTC (before 05:30 in India).
+    const [year, month, day] = dateString.split('-').map(Number);
+    const inputDate = new Date(year, month - 1, day);
 
     if (isNaN(inputDate.getTime())) {
         return { isValid: false, value: null, error: 'Invalid date' };
     }
 
-    // Check for impossible dates
-    const [year, month, day] = dateString.split('-').map(Number);
+    // Check for impossible dates (e.g. 2026-02-30 rolls over to March)
     if (inputDate.getFullYear() !== year ||
         inputDate.getMonth() !== month - 1 ||
         inputDate.getDate() !== day) {
@@ -408,10 +410,18 @@ export const validateTransactionForm = (data, {
 /**
  * Get max date (today)
  */
-export const getMaxDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+/**
+ * YYYY-MM-DD in the user's local time zone. toISOString() is UTC, which puts
+ * dates a day early east of UTC (e.g. local midnight in India is 18:30 UTC the
+ * previous day), so date inputs must never use it.
+ */
+export const toLocalDateString = (date = new Date()) => {
+    const pad = (n) => String(n).padStart(2, '0');
+
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 };
+
+export const getMaxDate = () => toLocalDateString(new Date());
 
 /**
  * Get min date (years back)
@@ -419,10 +429,11 @@ export const getMaxDate = () => {
 export const getMinDate = (yearsBack = 10) => {
     const date = new Date();
     date.setFullYear(date.getFullYear() - yearsBack);
-    return date.toISOString().split('T')[0];
+    return toLocalDateString(date);
 };
 
 export default {
+    toLocalDateString,
     sanitizeText,
     validateAmount,
     validateDate,

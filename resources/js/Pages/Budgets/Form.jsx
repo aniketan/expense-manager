@@ -1,5 +1,6 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
+import { toLocalDateString } from '../../utils/inputValidation';
 
 export default function Form({ budget, categories, isEdit = false }) {
     const { data, setData, post, put, processing, errors } = useForm({
@@ -7,7 +8,7 @@ export default function Form({ budget, categories, isEdit = false }) {
         name: budget?.name || '',
         amount: budget?.amount || '',
         period_type: budget?.period_type || 'monthly',
-        start_date: budget?.start_date || new Date().toISOString().split('T')[0],
+        start_date: budget?.start_date || toLocalDateString(),
         end_date: budget?.end_date || '',
         is_active: budget?.is_active ?? true,
         notes: budget?.notes || '',
@@ -45,8 +46,8 @@ export default function Form({ budget, categories, isEdit = false }) {
         setData({
             ...data,
             period_type: periodType,
-            start_date: startDate.toISOString().split('T')[0],
-            end_date: endDate.toISOString().split('T')[0],
+            start_date: toLocalDateString(startDate),
+            end_date: toLocalDateString(endDate),
         });
     };
 
