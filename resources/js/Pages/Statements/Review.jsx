@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 
@@ -193,7 +193,7 @@ export default function Review({
     const ai = account_info ?? {};
 
     const page = usePage();
-    const inertiaErrors = page.props.errors ?? {};
+    const inertiaErrors = useMemo(() => page.props.errors ?? {}, [page.props.errors]);
     const flash = page.props.flash ?? {};
 
     const showVal = (v) => (v != null && String(v).trim() !== '' ? String(v) : '—');
@@ -202,9 +202,18 @@ export default function Review({
     const balanceInfo = summary.balance ?? {};
     const showBalanceCol = transactions.some((t) => t.balance_after != null && t.balance_after !== '');
 
-    const isImportableRow = (t) => t.reconcile_status === 'missing_in_db' || t.reconcile_status === 'unscoped';
-    const isNeedsDetailRow = (t) => t.reconcile_status === 'matched_needs_enrichment' && t.existing_transaction_id;
-    const defaultSelected = (t) => isImportableRow(t) || isNeedsDetailRow(t);
+    const isImportableRow = useCallback(
+        (t) => t.reconcile_status === 'missing_in_db' || t.reconcile_status === 'unscoped',
+        [],
+    );
+    const isNeedsDetailRow = useCallback(
+        (t) => t.reconcile_status === 'matched_needs_enrichment' && t.existing_transaction_id,
+        [],
+    );
+    const defaultSelected = useCallback(
+        (t) => isImportableRow(t) || isNeedsDetailRow(t),
+        [isImportableRow, isNeedsDetailRow],
+    );
 
     const [rows, setRows] = useState(
         transactions.map((t, i) => {
@@ -228,6 +237,8 @@ export default function Review({
     const [bundleLinking, setBundleLinking] = useState(false);
 
     useEffect(() => {
+        // Resync editable row state when Inertia re-renders this page with new statement/account props.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setRows(
             transactions.map((t, i) => {
                 const cat = categoryDefaultsFromLedger(t);
@@ -243,13 +254,15 @@ export default function Review({
                 };
             }),
         );
-    }, [transactions, suggestedAccount?.id]);
+    }, [transactions, suggestedAccount?.id, defaultSelected]);
 
     const monthKeys = useMemo(() => sortedMonthKeys(rows), [rows]);
 
     const [activeMonth, setActiveMonth] = useState(() => storedActiveMonth(sortedMonthKeys(transactions)));
 
     useEffect(() => {
+        // Clamp the selected month tab to the months that exist for the current rows.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setActiveMonth((prev) => {
             const keys = sortedMonthKeys(rows);
             const stored = storedActiveMonth(keys);

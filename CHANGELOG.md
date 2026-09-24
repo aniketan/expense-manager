@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- Frontend linting (`npm run lint`, ESLint 9 flat config) and a frontend test suite (`npm test`, Vitest + React Testing Library); both now run in CI on every pull request ([#67](https://github.com/aniketan/expense-manager/issues/67)).
+
 ### Changed
 
 - Category and budget pages now compute their totals in a bounded number of SQL queries instead of one (or more) query per category or per budget, with no change to any displayed number ([#64](https://github.com/aniketan/expense-manager/issues/64)).

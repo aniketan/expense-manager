@@ -1,10 +1,9 @@
-import React from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import Footer from '../Components/Footer';
 import ChatWidget from '../Components/ChatBot/ChatWidget';
 
 export default function Layout({ children }) {
-    const { url } = usePage();
+    usePage();
 
     return (
         <div className="d-flex flex-column min-vh-100">

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const SESSION_KEY = 'chatbot_session_id';
 
@@ -35,7 +35,7 @@ function parseSseChunk(rawChunk) {
     if (dataText) {
         try {
             payload = JSON.parse(dataText);
-        } catch (_err) {
+        } catch {
             payload = {};
         }
     }
@@ -111,7 +111,7 @@ export default function ChatWidget() {
                 return;
             }
             setClearChatError(data.message || 'Could not clear chat. Try again.');
-        } catch (_err) {
+        } catch {
             setClearChatError('Could not clear chat. Check your connection.');
         }
     };

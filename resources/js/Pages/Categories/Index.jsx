@@ -31,10 +31,6 @@ export default function Index({ categories = {}, success, error }) {
         })}`;
     };
 
-    const getCategoryType = (category) => {
-        return category.parent_id ? 'Subcategory' : 'Main Category';
-    };
-
     // Since data is already grouped and flattened from backend, we can display it directly
     // But we need to recreate the grouping for proper display
     const groupCategories = (categories) => {

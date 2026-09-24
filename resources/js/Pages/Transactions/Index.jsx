@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 import Pagination from '../../Components/Pagination';
@@ -15,24 +15,18 @@ export default function Index({ transactions = {}, categories = [], accounts = [
         || transaction.category?.code === 'TRANSFER_INCOMING';
 
     // Function to get color class based on amount value
-    const getAmountColorClass = (amount, transactionType) => {
-        const value = parseFloat(amount || 0);
+    const getAmountColorClass = (amount) => {
+        const value = Math.abs(parseFloat(amount || 0));
 
-        // Base color for income vs expense
-        const baseColor = transactionType === 'income' ? 'text-success' : 'text-danger';
-
-        // Amount-based color coding (based on absolute value)
-        const absValue = Math.abs(value);
-
-        if (absValue < 100) {
+        if (value < 100) {
             return 'text-info'; // ₹1-99 - Blue
-        } else if (absValue < 500) {
+        } else if (value < 500) {
             return 'text-warning'; // ₹100-499 - Yellow
-        } else if (absValue < 1000) {
+        } else if (value < 1000) {
             return 'text-orange'; // ₹500-999 - Orange (need custom CSS)
-        } else if (absValue < 2000) {
+        } else if (value < 2000) {
             return 'text-danger'; // ₹1K-1.9K - Red
-        } else if (absValue < 5000) {
+        } else if (value < 5000) {
             return 'text-dark'; // ₹2K-4.9K - Dark
         } else {
             return 'text-secondary'; // ₹5K+ - Gray
@@ -43,9 +37,9 @@ export default function Index({ transactions = {}, categories = [], accounts = [
     const parentCategories = categories.filter(cat => cat.parent_id === null);
 
     // Function to get subcategories for a parent category
-    const getSubcategories = (parentCategoryId) => {
+    const getSubcategories = useCallback((parentCategoryId) => {
         return categories.filter(cat => cat.parent_id === parseInt(parentCategoryId));
-    };
+    }, [categories]);
 
     // Handle category change and update subcategories
     const handleCategoryChange = (e) => {
@@ -70,18 +64,23 @@ export default function Index({ transactions = {}, categories = [], accounts = [
     useEffect(() => {
         if (selectedCategory && categories.length > 0) {
             const subs = getSubcategories(selectedCategory);
+            // Sync local select state with the currently selected category; no derived-state alternative
+            // keeps the dropdown consistent when the page instance is preserved across filter submits.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSubcategories(subs);
         }
-    }, [selectedCategory, categories]);
+    }, [selectedCategory, categories, getSubcategories]);
 
     // Initialize category and subcategories from filters on mount
     useEffect(() => {
         if (filters.category && categories.length > 0) {
+            // Follow the filters prop (a new object on every preserved visit) without remounting the page.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedCategory(filters.category);
             const subs = getSubcategories(filters.category);
             setSubcategories(subs);
         }
-    }, [filters.category, categories]);
+    }, [filters.category, categories, getSubcategories]);
 
     // Extract data from paginated response
     const transactionData = transactions.data || [];
@@ -566,7 +565,7 @@ export default function Index({ transactions = {}, categories = [], accounts = [
                                                     </td>
                                                     <td>{transaction.account?.name || 'N/A'}</td>
                                                     <td>
-                                                        <span className={`fw-bold ${getAmountColorClass(transaction.amount, transaction.transaction_type)}`}>
+                                                        <span className={`fw-bold ${getAmountColorClass(transaction.amount)}`}>
                                                             {isIncoming(transaction) ? '+' : '-'}₹{parseFloat(transaction.amount || 0).toFixed(2)}
                                                         </span>
                                                     </td>

@@ -1,29 +1,26 @@
-import React from 'react';
 import { Link } from '@inertiajs/react';
 
 /**
  * Bootstrap Pagination Component
- * 
+ *
  * @param {Object} paginationData - Pagination data object with current_page, last_page, per_page, total, from, to
- * @param {string} baseUrl - Base URL for pagination links (optional, defaults to current URL)
  * @param {boolean} showPerPageSelector - Whether to show the per-page selector dropdown (default: true)
  * @param {boolean} preserveScroll - Whether to preserve scroll position on navigation (default: true)
  * @param {boolean} preserveState - Whether to preserve form state on navigation (default: true)
  * @param {Function} onPerPageChange - Callback function for per-page selection change
- * 
+ *
  * @example
- * <Pagination 
+ * <Pagination
  *   paginationData={paginationInfo}
  *   onPerPageChange={(e) => handlePerPageChange(e.target.value)}
  * />
  */
-export default function Pagination({ 
-    paginationData, 
-    baseUrl = '', 
-    showPerPageSelector = true, 
-    preserveScroll = true, 
+export default function Pagination({
+    paginationData,
+    showPerPageSelector = true,
+    preserveScroll = true,
     preserveState = true,
-    onPerPageChange = null 
+    onPerPageChange = null
 }) {
     if (!paginationData || paginationData.last_page <= 1) {
         return null;

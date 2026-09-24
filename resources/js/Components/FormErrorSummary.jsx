@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function FormErrorSummary({ errorEntries, errorLabels }) {
     if (!errorEntries || errorEntries.length === 0) {
         return null;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
 import FormErrorSummary from '../../Components/FormErrorSummary';
@@ -84,18 +84,18 @@ export default function Edit({ transaction, categories, accounts }) {
     });
 
     // Function to get subcategories for a parent category
-    const getSubcategories = (parentCategoryId) => {
+    const getSubcategories = useCallback((parentCategoryId) => {
         return categories.filter(cat => cat.parent_id === parentCategoryId);
-    };
+    }, [categories]);
 
     // Function to find parent category by subcategory ID
-    const findParentCategoryBySubcategoryId = (subcategoryId) => {
+    const findParentCategoryBySubcategoryId = useCallback((subcategoryId) => {
         const subcategory = categories.find(cat => cat.id === parseInt(subcategoryId));
         if (subcategory && subcategory.parent_id) {
             return categories.find(cat => cat.id === subcategory.parent_id);
         }
         return null;
-    };
+    }, [categories]);
 
     // Initialize category and subcategories on component mount
     useEffect(() => {
@@ -104,6 +104,9 @@ export default function Edit({ transaction, categories, accounts }) {
             const parentCategory = findParentCategoryBySubcategoryId(categoryId);
 
             if (parentCategory) {
+                // Seed the dropdown state from the loaded transaction once; the values come from props,
+                // so this is a mount-time sync, not a reaction to state.
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setSelectedCategory(parentCategory.id);
                 const subs = getSubcategories(parentCategory.id);
                 setSubcategories(subs);
@@ -116,7 +119,7 @@ export default function Edit({ transaction, categories, accounts }) {
                 }
             }
         }
-    }, [transaction.category_id, categories]);
+    }, [transaction.category_id, categories, findParentCategoryBySubcategoryId, getSubcategories]);
 
     const handleCategoryChange = (e) => {
         const parentCategoryId = parseInt(e.target.value);

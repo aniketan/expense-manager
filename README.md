@@ -79,11 +79,13 @@ Use `npm run build` any time you change files under `resources/js` or related as
 Use these commands before opening or merging a PR when practical:
 
 ```bash
+npm run lint
+npm test
 npm run build
 composer test
 ```
 
-GitHub Actions also runs the frontend build, migrations, and PHP test suite on pull requests to `main`.
+GitHub Actions also runs the frontend lint and test suites, the frontend build, migrations, and the PHP test suite on pull requests to `main`.
 
 ## Expense Sync
 
