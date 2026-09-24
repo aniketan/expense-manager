@@ -2,7 +2,9 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.0] - 2026-09-24
+
+Adds a login, a Docker runtime, and more balance and category fixes. Verified by manual testing of v1.1.0-rc.2.
 
 ### Added
 
@@ -70,4 +72,5 @@ Lists and reports ([#74](https://github.com/aniketan/expense-manager/pull/74)):
 - There is no authentication, so the app is meant for local use only ([#79](https://github.com/aniketan/expense-manager/issues/79)).
 - The roadmap for the next releases is tracked in issues #61–#67 and #76–#79.
 
+[1.1.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.1.0
 [1.0.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.0.0
