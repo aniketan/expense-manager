@@ -22,13 +22,9 @@ export const sanitizeText = (input, maxLength = null) => {
     textarea.innerHTML = sanitized;
     sanitized = textarea.value;
 
-    // Remove control characters except newlines and tabs
-    sanitized = Array.from(sanitized)
-        .filter((character) => {
-            const code = character.charCodeAt(0);
-            return (code >= 0x20 && code !== 0x7F) || character === '\n' || character === '\t';
-        })
-        .join('');
+    // Remove control characters except tab, newline, and carriage return.
+    // eslint-disable-next-line no-control-regex -- matching control characters is the point of this regex
+    sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
 
     sanitized = sanitized.trim();
 
