@@ -2,8 +2,9 @@
 
 namespace App\AI\Tools;
 
+use App\Actions\Transactions\CreateTransaction;
+use App\Actions\Transactions\ResolveCategory;
 use App\Models\Account;
-use App\Models\Category;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Prism\Prism\Tool;
@@ -51,7 +52,7 @@ class CreateTransactionTool extends Tool
                 ]);
             }
 
-            // Transfers need two linked legs, which only AccountTransferService creates.
+            // Transfers need two linked accounts, which this tool cannot express.
             if (! in_array($transaction_type, [Transaction::TYPE_INCOME, Transaction::TYPE_EXPENSE], true)) {
                 return json_encode([
                     'success' => false,
@@ -59,7 +60,7 @@ class CreateTransactionTool extends Tool
                 ]);
             }
 
-            $category = self::resolveCategory($transaction_type, $category_hint);
+            $category = app(ResolveCategory::class)->forType($transaction_type, $category_hint);
 
             if (! $category) {
                 return json_encode([
@@ -68,8 +69,7 @@ class CreateTransactionTool extends Tool
                 ]);
             }
 
-            // Create transaction
-            $transaction = Transaction::create([
+            $transaction = app(CreateTransaction::class)->handle([
                 'account_id' => $account->id,
                 'category_id' => $category->id,
                 'transaction_type' => $transaction_type,
@@ -94,27 +94,5 @@ class CreateTransactionTool extends Tool
                 'error' => 'Failed to create transaction: '.$e->getMessage(),
             ]);
         }
-    }
-
-    /**
-     * Match the hint against categories valid for the type, then fall back to "Other", then any valid leaf.
-     */
-    public static function resolveCategory(string $transactionType, ?string $hint): ?Category
-    {
-        $hint = trim((string) $hint);
-
-        if ($hint !== '') {
-            $match = Category::assignableFor($transactionType)
-                ->where('name', 'like', "%{$hint}%")
-                ->orderBy('id')
-                ->first();
-
-            if ($match) {
-                return $match;
-            }
-        }
-
-        return Category::assignableFor($transactionType)->where('name', 'Other')->orderBy('id')->first()
-            ?? Category::assignableFor($transactionType)->orderBy('id')->first();
     }
 }

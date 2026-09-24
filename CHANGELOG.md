@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Every way of changing a transaction (web form, statement import and enrichment, AI chat tools, MCP, sync and dedupe commands) now goes through shared actions in `app/Actions/Transactions`, so they all apply the same rules ([#61](https://github.com/aniketan/expense-manager/issues/61)).
+- The category must fit the type everywhere. Income needs a category under Income; expenses can't use Income or Account Transfer categories. The web form previously accepted any category. Older rows stay editable as long as their category and type aren't changed.
+
+### Fixed
+
+- A statement enrichment that changed a transfer's date moved only one leg. Both legs now move together.
+- `expense:sync --fresh` deleted synced rows without loading their category, so a row filed under Transfer Incoming was reversed with the wrong sign.
+
 ## [1.1.0] - 2026-09-24
 
 Adds a login, a Docker runtime, and more balance and category fixes. Verified by manual testing of v1.1.0-rc.2.

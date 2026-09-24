@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Transactions\CreateTransaction;
+use App\Actions\Transactions\DeleteTransaction;
+use App\Actions\Transactions\UpdateTransaction;
 use App\Models\Account;
 use App\Models\Budget;
 use App\Models\Category;
@@ -192,21 +195,16 @@ class TransactionController extends Controller
      * - Expense transactions: Subtract from account balance
      * - Transfer transactions: Creates two entries (outgoing + incoming)
      */
-    public function store(Request $request, AccountTransferService $transferService)
+    public function store(Request $request, CreateTransaction $createTransaction)
     {
-        $validated = $request->validate($this->validationRules($request));
+        $validated = $request->validate($this->validationRules());
 
-        $validated['status'] ??= Transaction::STATUS_CLEARED;
+        $createTransaction->handle($validated);
 
         if ($validated['transaction_type'] === Transaction::TYPE_TRANSFER) {
-            $transferService->create($validated);
-
             return Redirect::route('transactions.index')
                 ->with('success', 'Account transfer completed successfully.');
         }
-
-        unset($validated['transfer_to_account_id']);
-        Transaction::create($validated);
 
         if ($validated['transaction_type'] === Transaction::TYPE_EXPENSE && isset($validated['category_id'])) {
             $budgetAlerts = $this->checkBudgetAlerts($validated['category_id'], $validated['transaction_date']);
@@ -266,21 +264,13 @@ class TransactionController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function validationRules(Request $request): array
+    private function validationRules(): array
     {
+        // Input format only; domain rules (category/type compatibility, transfer pairing)
+        // live in the shared transaction actions.
         return [
             'account_id' => 'required|exists:accounts,id',
-            'category_id' => [
-                'nullable',
-                'required_unless:transaction_type,transfer',
-                'exists:categories,id',
-                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
-                    if ($request->input('transaction_type') !== Transaction::TYPE_TRANSFER
-                        && Category::isTransferCategoryId($value)) {
-                        $fail('Transfer categories are reserved for account transfers. Choose the Transfer type instead.');
-                    }
-                },
-            ],
+            'category_id' => 'nullable|required_unless:transaction_type,transfer|exists:categories,id',
             'transaction_type' => ['required', Rule::in([Transaction::TYPE_INCOME, Transaction::TYPE_EXPENSE, Transaction::TYPE_TRANSFER])],
             'amount' => 'required|numeric|gt:0',
             'tax' => 'nullable|numeric|min:0',
@@ -330,29 +320,15 @@ class TransactionController extends Controller
      * - If account changes: Old account is reverted, new account is updated
      * - If amount/type changes: Balance is recalculated accordingly
      */
-    public function update(Request $request, Transaction $transaction, AccountTransferService $transferService)
+    public function update(Request $request, Transaction $transaction, AccountTransferService $transferService, UpdateTransaction $updateTransaction)
     {
         if ($transferService->isUnlinked($transaction)) {
             return $this->unlinkedTransferRedirect();
         }
 
-        $validated = $request->validate($this->validationRules($request));
+        $validated = $request->validate($this->validationRules());
 
-        $validated['status'] ??= Transaction::STATUS_CLEARED;
-
-        $isExistingTransfer = $transaction->transaction_type === Transaction::TYPE_TRANSFER;
-        if ($isExistingTransfer !== ($validated['transaction_type'] === Transaction::TYPE_TRANSFER)) {
-            throw ValidationException::withMessages([
-                'transaction_type' => 'Converting between transfers and regular transactions is not supported.',
-            ]);
-        }
-
-        if ($isExistingTransfer) {
-            $transferService->update($transaction, $validated);
-        } else {
-            unset($validated['transfer_to_account_id']);
-            $transaction->update($validated);
-        }
+        $updateTransaction->handle($transaction, $validated);
 
         return Redirect::route('transactions.index')
             ->with('success', 'Transaction updated successfully.');
@@ -364,13 +340,9 @@ class TransactionController extends Controller
      * Note: Account balance is automatically reverted via Transaction model events
      * - The transaction's impact on the account balance is reversed
      */
-    public function destroy(Transaction $transaction, AccountTransferService $transferService)
+    public function destroy(Transaction $transaction, DeleteTransaction $deleteTransaction)
     {
-        if ($transaction->transaction_type === Transaction::TYPE_TRANSFER) {
-            $transferService->delete($transaction);
-        } else {
-            $transaction->delete();
-        }
+        $deleteTransaction->handle($transaction);
 
         return Redirect::route('transactions.index')
             ->with('success', 'Transaction deleted successfully.');
@@ -382,7 +354,7 @@ class TransactionController extends Controller
      * Note: Account balances are automatically reverted via Transaction model events
      * - Each transaction is deleted individually to trigger the model's deleted event
      */
-    public function bulkDestroy(Request $request, AccountTransferService $transferService)
+    public function bulkDestroy(Request $request, DeleteTransaction $deleteTransaction)
     {
         $validated = $request->validate([
             'ids' => 'required|array',
@@ -401,13 +373,12 @@ class TransactionController extends Controller
                     continue;
                 }
 
-                $transferService->delete($transaction);
                 if ($groupId) {
                     $processedGroups[$groupId] = true;
                 }
-            } else {
-                $transaction->delete();
             }
+
+            $deleteTransaction->handle($transaction);
             $count++;
         }
 

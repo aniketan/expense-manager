@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\Transactions\DeleteTransaction;
 use App\Models\Transaction;
 use App\Services\ExpenseSyncService;
 use Exception;
@@ -113,7 +114,8 @@ class SyncExpenseData extends Command
         return Transaction::query()
             ->where('reference_number', 'like', 'EXT_%')
             ->orderBy('id')
-            ->get(['id', 'account_id', 'transaction_date', 'transaction_type', 'amount', 'reference_number', 'description']);
+            // category_id and transfer_group_id are needed to reverse each row's balance impact correctly.
+            ->get(['id', 'account_id', 'category_id', 'transfer_group_id', 'transaction_date', 'transaction_type', 'amount', 'reference_number', 'description']);
     }
 
     private function displayFreshPreview($transactions): void
@@ -148,7 +150,7 @@ class SyncExpenseData extends Command
     {
         $deleted = 0;
         foreach ($transactions as $transaction) {
-            if ($transaction->delete()) {
+            if (app(DeleteTransaction::class)->handle($transaction) > 0) {
                 $deleted++;
             }
         }

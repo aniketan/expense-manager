@@ -94,6 +94,21 @@ class Category extends Model
         return in_array($this->code, Transaction::TRANSFER_CATEGORY_CODES, true);
     }
 
+    /** Instance twin of scopeIncomeRoot(). */
+    public function isIncomeRoot(): bool
+    {
+        return $this->parent_id === null
+            && (strtolower((string) $this->code) === 'income' || strtolower((string) $this->name) === 'income');
+    }
+
+    /** The Account Transfer root excluded by scopeExpenseParent(). */
+    public function isTransferRoot(): bool
+    {
+        return $this->parent_id === null
+            && (in_array(strtolower((string) $this->code), ['accounttr', 'account_transfer'], true)
+                || strtolower((string) $this->name) === 'account transfer');
+    }
+
     public static function isTransferCategoryId(mixed $categoryId): bool
     {
         return $categoryId !== null
