@@ -35,7 +35,7 @@ jobs:
         cache: npm
 
     - name: Prepare environment
-      run: cp .env.example .env
+      run: cp .env.example .env && echo "LARAVEL_BYPASS_ENV_CHECK=1" >> .env
 
     - name: Install PHP dependencies
       run: composer install --no-ansi --no-interaction --no-progress --prefer-dist
