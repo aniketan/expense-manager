@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Actions\Transactions\DeleteTransaction;
 use App\Models\Transaction;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -50,7 +51,7 @@ class DedupeTransactionsByDescriptionCommand extends Command
                 ->orderBy('id')
                 ->get();
             foreach ($transactions as $transaction) {
-                if ($transaction->delete()) {
+                if (app(DeleteTransaction::class)->handle($transaction) > 0) {
                     $deleted++;
                 }
             }

@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Transactions\CreateTransaction;
+use App\Actions\Transactions\TransactionRuleViolation;
+use App\Actions\Transactions\UpdateTransaction;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\StatementLedgerBundle;
@@ -89,7 +92,7 @@ class StatementController extends Controller
         return redirect()->route('statements.review');
     }
 
-    public function importTransactions(Request $request, StatementReconciliationService $reconciliation): RedirectResponse
+    public function importTransactions(Request $request, StatementReconciliationService $reconciliation, CreateTransaction $createTransaction): RedirectResponse
     {
         $validated = $request->validate([
             'rows' => 'required|array|min:1',
@@ -121,9 +124,6 @@ class StatementController extends Controller
             if (! $category) {
                 return $failRedirect()->withErrors(['rows' => 'Invalid category for one or more rows.'])->withInput();
             }
-            if ($category->isTransferCategory()) {
-                return $failRedirect()->withErrors(['rows' => 'Transfer categories are reserved for account transfers. Choose an income or expense category.'])->withInput();
-            }
             if ($row['type'] === 'income') {
                 if (! $this->categoryIsAssignableIncomeCategory($category)) {
                     return $failRedirect()->withErrors(['rows' => 'Income transactions must use an income subcategory.'])->withInput();
@@ -143,21 +143,26 @@ class StatementController extends Controller
             return $failRedirect()->withErrors($importDuplicateMessages)->withInput();
         }
 
-        DB::transaction(function () use ($validated, &$count): void {
-            foreach ($validated['rows'] as $row) {
-                Transaction::create([
-                    'account_id' => $row['account_id'],
-                    'category_id' => $row['category_id'],
-                    'transaction_type' => $row['type'],
-                    'amount' => $row['amount'],
-                    'description' => $row['description'],
-                    'transaction_date' => $row['date'],
-                    'payment_method' => 'Bank Transfer',
-                    'reference_number' => $row['reference'] ?? null,
-                ]);
-                $count++;
-            }
-        });
+        try {
+            DB::transaction(function () use ($validated, &$count, $createTransaction): void {
+                foreach ($validated['rows'] as $row) {
+                    $createTransaction->handle([
+                        'account_id' => $row['account_id'],
+                        'category_id' => $row['category_id'],
+                        'transaction_type' => $row['type'],
+                        'amount' => $row['amount'],
+                        'description' => $row['description'],
+                        'transaction_date' => $row['date'],
+                        'payment_method' => 'Bank Transfer',
+                        'reference_number' => $row['reference'] ?? null,
+                    ]);
+                    $count++;
+                }
+            });
+        } catch (TransactionRuleViolation $violation) {
+            // The whole batch rolled back; nothing was imported.
+            return $failRedirect()->withErrors(['rows' => $violation->getMessage()])->withInput();
+        }
 
         $snapshot = $request->session()->get(self::REVIEW_SESSION_KEY);
         if (is_array($snapshot) && isset($snapshot['parsedData']['transactions']) && is_array($snapshot['parsedData']['transactions'])) {
@@ -267,7 +272,7 @@ class StatementController extends Controller
             ->with('success', 'Split statement rows linked to the ledger transaction. Upload the same statement again to see bundle matches.');
     }
 
-    public function enrichTransactions(Request $request, StatementReconciliationService $reconciliation): RedirectResponse
+    public function enrichTransactions(Request $request, StatementReconciliationService $reconciliation, UpdateTransaction $updateTransaction): RedirectResponse
     {
         $validated = $request->validate([
             'updates' => 'required|array|min:1',
@@ -277,20 +282,29 @@ class StatementController extends Controller
             'updates.*.transaction_date' => 'nullable|date',
         ]);
 
-        DB::transaction(function () use ($validated): void {
-            foreach ($validated['updates'] as $u) {
-                $txn = Transaction::query()->findOrFail((int) $u['transaction_id']);
-                $reference = array_key_exists('reference', $u) ? $u['reference'] : $txn->reference_number;
-                $payload = [
-                    'description' => $u['description'],
-                    'reference_number' => $reference,
-                ];
-                if (array_key_exists('transaction_date', $u) && $u['transaction_date'] !== null && $u['transaction_date'] !== '') {
-                    $payload['transaction_date'] = $u['transaction_date'];
+        try {
+            DB::transaction(function () use ($validated, $updateTransaction): void {
+                foreach ($validated['updates'] as $u) {
+                    $txn = Transaction::query()->findOrFail((int) $u['transaction_id']);
+                    $reference = array_key_exists('reference', $u) ? $u['reference'] : $txn->reference_number;
+                    $payload = [
+                        'description' => $u['description'],
+                        'reference_number' => $reference,
+                    ];
+                    if (array_key_exists('transaction_date', $u) && $u['transaction_date'] !== null && $u['transaction_date'] !== '') {
+                        $payload['transaction_date'] = $u['transaction_date'];
+                    }
+                    // Through the shared action so a transfer's date moves on both legs.
+                    $updateTransaction->handle($txn, $payload);
                 }
-                $txn->update($payload);
-            }
-        });
+            });
+        } catch (TransactionRuleViolation $violation) {
+            $failRedirect = $request->session()->has(self::REVIEW_SESSION_KEY)
+                ? redirect()->route('statements.review')
+                : redirect()->route('statements.upload');
+
+            return $failRedirect->withErrors(['updates' => $violation->getMessage()])->withInput();
+        }
 
         $n = count($validated['updates']);
 

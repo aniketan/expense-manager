@@ -2,7 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\AI\Tools\CreateTransactionTool;
+use App\Actions\Transactions\CreateTransaction;
+use App\Actions\Transactions\ResolveCategory;
 use App\Models\Account;
 use App\Models\Transaction;
 use Illuminate\Console\Command;
@@ -240,13 +241,13 @@ class McpServerCommand extends Command
             throw new \RuntimeException('No active account found.');
         }
 
-        $category = CreateTransactionTool::resolveCategory($input['type'], $input['category'] ?? null);
+        $category = app(ResolveCategory::class)->forType($input['type'], $input['category'] ?? null);
 
         if (! $category) {
             throw new \RuntimeException("No {$input['type']} category found.");
         }
 
-        $t = Transaction::create([
+        $t = app(CreateTransaction::class)->handle([
             'account_id' => $account->id,
             'category_id' => $category->id,
             'transaction_type' => $input['type'],
