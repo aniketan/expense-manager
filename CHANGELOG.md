@@ -10,6 +10,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- Dates in forms used UTC instead of your local date. In time zones east of UTC (e.g. India):
+  - the budget **Monthly/Yearly** presets set ranges one day early (for example 31 Aug to 29 Sep instead of 1 to 30 Sep);
+  - between midnight and 05:30, a new transaction defaulted to yesterday, the date picker's maximum was yesterday, and today's date was rejected as a future date when no time was set.
+  All dates now use the local calendar day. Budgets created with the Monthly/Yearly preset before this fix may have off-by-one start/end dates; check and correct them.
 - Editing a transfer no longer blanks its payee.
 - The shared transaction form validates the time field in both Create and Edit modes.
 - In Edit mode an existing transfer cannot switch transaction type, and an income/expense row can switch between income and expense but not to Transfer (the backend rejects those conversions).

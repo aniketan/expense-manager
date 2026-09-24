@@ -11,6 +11,7 @@ import {
     handleAmountInput,
     getMaxDate,
     getMinDate,
+    toLocalDateString,
     TRANSACTION_ERROR_ORDER,
     clearValidationFieldError,
     clearValidationFieldErrors,
@@ -49,7 +50,7 @@ export default function Form({ transaction = null, categories, accounts, isEdit 
     const { data, setData, post, put, processing, errors } = useForm({
         transaction_date: isEdit
             ? toDateInputValue(transaction?.transaction_date)
-            : new Date().toISOString().split('T')[0],
+            : toLocalDateString(),
         transaction_time: isEdit
             ? toTimeInputValue(transaction?.transaction_time)
             : new Date().toTimeString().slice(0, 5),
