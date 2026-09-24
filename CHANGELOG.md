@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Transactions, Accounts, and Categories now share one `Form.jsx` per resource instead of separate Create/Edit copies, following the existing Budgets pattern; `Create.jsx`/`Edit.jsx` are thin wrappers ([#62](https://github.com/aniketan/expense-manager/issues/62)).
+
+### Fixed
+
+- Editing a transfer no longer blanks its payee.
+- The shared transaction form validates the time field in both Create and Edit modes.
+- In Edit mode an existing transfer cannot switch transaction type, and an income/expense row can switch between income and expense but not to Transfer (the backend rejects those conversions).
+
 ## [1.3.0] - 2026-09-24
 
 Faster category and budget pages, frontend linting and tests in CI, and a guard that stops the Docker image from overwriting a local `.env`.
