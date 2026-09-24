@@ -46,6 +46,10 @@ class BudgetController extends Controller
             ->paginate($perPage)
             ->appends($request->query());
 
+        // Compute spent for every budget on the page in a bounded set of
+        // queries; the transform below then reads the preloaded values.
+        Budget::preloadSpentFor($budgets->getCollection());
+
         // Add computed attributes to each budget
         $budgets->getCollection()->transform(function ($budget) {
             $budget->spent_amount = $budget->spent_amount;
@@ -114,6 +118,9 @@ class BudgetController extends Controller
     public function show(Budget $budget)
     {
         $budget->load('category');
+
+        Budget::preloadSpentFor(collect([$budget]));
+
         $budget->spent_amount = $budget->spent_amount;
         $budget->remaining_amount = $budget->remaining_amount;
         $budget->percentage_used = $budget->percentage_used;

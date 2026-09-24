@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Category and budget pages now compute their totals in a bounded number of SQL queries instead of one (or more) query per category or per budget, with no change to any displayed number ([#64](https://github.com/aniketan/expense-manager/issues/64)).
+
 ## [1.2.0] - 2026-09-24
 
 Every way of changing or reporting on transactions now shares one implementation, so the web app, AI chat, and MCP apply the same rules and show the same totals.
