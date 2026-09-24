@@ -9,8 +9,10 @@ use App\Models\Account;
 use App\Models\Budget;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Reporting\FinancialSummary;
+use App\Reporting\TransactionFilters;
+use App\Reporting\TransactionQuery;
 use App\Services\AccountTransferService;
-use App\Services\TransactionFilterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Validation\Rule;
@@ -21,7 +23,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TransactionController extends Controller
 {
-    public function index(Request $request, TransactionFilterService $filterService)
+    public function index(Request $request, FinancialSummary $summary)
     {
         // Query strings arrive as strings ("25"), so cast before the strict whitelist check.
         $perPage = (int) $request->get('per_page', 15);
@@ -29,19 +31,15 @@ class TransactionController extends Controller
             $perPage = 15;
         }
 
-        $query = TransactionFilterService::baseQuery();
-        $filters = $filterService->applyToQuery($request, $query);
+        $transactionFilters = TransactionFilters::fromRequest($request);
+        $query = TransactionQuery::for($transactionFilters);
+        $filters = $transactionFilters->ui;
 
-        $filteredQuery = clone $query;
-
-        $totalIncome = $filteredQuery->where('transaction_type', Transaction::TYPE_INCOME)->sum('amount');
-        $totalExpenses = (clone $query)->where('transaction_type', Transaction::TYPE_EXPENSE)->sum('amount');
-        $netBalance = $totalIncome - $totalExpenses;
-
+        $sums = $summary->totals($transactionFilters);
         $totals = [
-            'total_income' => $totalIncome,
-            'total_expenses' => $totalExpenses,
-            'net_balance' => $netBalance,
+            'total_income' => $sums['income'],
+            'total_expenses' => $sums['expense'],
+            'net_balance' => $sums['net'],
         ];
 
         $sortBy = $request->get('sort_by', 'date_desc');
@@ -93,7 +91,7 @@ class TransactionController extends Controller
     /**
      * Export filtered transactions as CSV (statement order: date ascending, then id).
      */
-    public function export(Request $request, TransactionFilterService $filterService): StreamedResponse
+    public function export(Request $request): StreamedResponse
     {
         if ($request->filled('date_from') && $request->filled('date_to')) {
             if ($request->query('date_from') > $request->query('date_to')) {
@@ -103,8 +101,7 @@ class TransactionController extends Controller
             }
         }
 
-        $query = TransactionFilterService::baseQuery();
-        $filterService->applyToQuery($request, $query);
+        $query = TransactionQuery::for(TransactionFilters::fromRequest($request));
         $query->orderBy('transaction_date', 'asc')->orderBy('id', 'asc');
 
         $filename = 'transactions_export_'.now()->format('Y-m-d_His').'.csv';
