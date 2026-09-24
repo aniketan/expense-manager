@@ -141,11 +141,12 @@ class Budget extends Model
 
         // One query covering every budget's range: expenses in the tracked
         // categories between the earliest start and the latest end, then summed
-        // per budget in PHP. Dates are stored as 'Y-m-d 00:00:00', so string
-        // comparisons below keep boundary days inclusive.
+        // per budget in PHP. Only the date part is compared: SQLite stores
+        // 'Y-m-d 00:00:00' while MySQL/Postgres DATE columns return 'Y-m-d', and
+        // comparing full strings would drop each budget's first day on the latter.
         $allTrackedIds = array_values(array_unique(array_merge(...array_values($trackedByBudget))));
-        $minStart = $budgets->min(fn (Budget $budget) => $budget->start_date);
-        $maxEnd = $budgets->max(fn (Budget $budget) => $budget->end_date);
+        $minStart = $budgets->min(fn (Budget $budget) => $budget->start_date)->toDateString();
+        $maxEnd = $budgets->max(fn (Budget $budget) => $budget->end_date)->toDateString();
 
         $rowsByCategory = [];
         foreach (Transaction::query()
@@ -153,14 +154,15 @@ class Budget extends Model
             ->select(['category_id', 'transaction_date', 'amount'])
             ->where('transaction_type', Transaction::TYPE_EXPENSE)
             ->whereIn('category_id', $allTrackedIds)
-            ->whereBetween('transaction_date', [$minStart, $maxEnd])
+            ->whereDate('transaction_date', '>=', $minStart)
+            ->whereDate('transaction_date', '<=', $maxEnd)
             ->get() as $row) {
-            $rowsByCategory[(int) $row->category_id][] = [(string) $row->transaction_date, (float) $row->amount];
+            $rowsByCategory[(int) $row->category_id][] = [substr((string) $row->transaction_date, 0, 10), (float) $row->amount];
         }
 
         foreach ($budgets as $budget) {
-            $start = $budget->start_date->format('Y-m-d 00:00:00');
-            $end = $budget->end_date->format('Y-m-d 00:00:00');
+            $start = $budget->start_date->toDateString();
+            $end = $budget->end_date->toDateString();
             $spent = 0.0;
 
             foreach ($trackedByBudget[$budget->getKey()] as $categoryId) {

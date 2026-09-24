@@ -142,6 +142,30 @@ class AggregateQueryCountTest extends TestCase
         $this->assertSame('danger', $exceeded['status']);
     }
 
+    public function test_budget_listing_counts_boundary_days_stored_as_plain_dates(): void
+    {
+        // MySQL/Postgres DATE columns return 'Y-m-d' (no time part); SQLite rows written
+        // through Eloquent carry ' 00:00:00'. Both formats must count on boundary days.
+        $budget = $this->budget(self::FOOD, 500, '2026-09-01', '2026-09-30');
+        $this->transaction(40, '2026-09-15', self::GROCERIES);
+        foreach (['2026-09-01', '2026-09-30'] as $boundaryDay) {
+            DB::table('transactions')->insert([
+                'account_id' => $this->account->id,
+                'category_id' => self::GROCERIES,
+                'transaction_type' => Transaction::TYPE_EXPENSE,
+                'amount' => 100,
+                'transaction_date' => $boundaryDay,
+                'status' => Transaction::STATUS_CLEARED,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $spent = $this->budgetRow($this->get(route('budgets.index')), $budget->id);
+
+        $this->assertSame(240.0, $spent['spent_amount']);
+    }
+
     public function test_budget_show_returns_the_same_aggregates_as_the_listing(): void
     {
         $budget = $this->budget(self::FOOD, 500, '2026-09-01', '2026-09-30');
