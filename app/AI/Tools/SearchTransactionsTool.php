@@ -5,11 +5,17 @@ namespace App\AI\Tools;
 use App\Models\Account;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Reporting\FinancialSummary;
+use App\Reporting\TransactionFilters;
+use App\Reporting\TransactionQuery;
 use Carbon\Carbon;
 use Prism\Prism\Tool;
 
 class SearchTransactionsTool extends Tool
 {
+    /** The values the app stores (see the transaction form). */
+    public const PAYMENT_METHODS = ['UPI', 'Bank Transfer', 'Credit Card', 'Debit Card', 'Cash', 'Cheque', 'Other'];
+
     public function __construct()
     {
         $this
@@ -23,12 +29,12 @@ class SearchTransactionsTool extends Tool
             )
             ->withEnumParameter(
                 'type',
-                'Filter by transaction type',
+                'Filter by transaction type ("both" = income and expense)',
                 ['expense', 'income', 'both']
             )
             ->withStringParameter(
                 'category_ids',
-                'Comma-separated category IDs obtained from list_categories (e.g. "5,12,18"). Leave empty to search all categories.',
+                'Comma-separated category IDs obtained from list_categories (e.g. "5,12,18"). A parent category also matches its subcategories. Leave empty to search all categories.',
                 false
             )
             ->withStringParameter(
@@ -43,7 +49,7 @@ class SearchTransactionsTool extends Tool
             )
             ->withStringParameter(
                 'description_search',
-                'Keyword to search inside transaction description/notes (case-insensitive partial match).',
+                'Keyword to search inside transaction description, notes, payee, reference, or category name (case-insensitive partial match).',
                 false
             )
             ->withStringParameter(
@@ -54,7 +60,7 @@ class SearchTransactionsTool extends Tool
             ->withEnumParameter(
                 'payment_method',
                 'Filter by payment method. Omit to include all.',
-                ['UPI', 'cash', 'card', 'netbanking', 'other'],
+                self::PAYMENT_METHODS,
                 false
             )
             ->withStringParameter(
@@ -89,75 +95,34 @@ class SearchTransactionsTool extends Tool
         ?string $sort_by = null,
     ): string {
         try {
-            $query = Transaction::with(['category.parent', 'account']);
+            $filters = TransactionFilters::all()->ofType($type);
 
-            // Transaction type filter
-            if ($type !== 'both') {
-                $query->where('transaction_type', $type);
-            }
-
-            // Category filter via comma-separated IDs
             $matchedCategories = [];
             if (! empty($category_ids)) {
-                $ids = array_filter(array_map('intval', explode(',', $category_ids)));
-                if (! empty($ids)) {
-                    $query->whereIn('category_id', $ids);
-                    $matchedCategories = Category::whereIn('id', $ids)
-                        ->pluck('name')
-                        ->values()
-                        ->all();
+                $ids = array_values(array_filter(array_map('intval', explode(',', $category_ids))));
+                if ($ids !== []) {
+                    $filters = $filters->inCategories($ids);
+                    $matchedCategories = Category::whereIn('id', $ids)->pluck('name')->values()->all();
                 }
             }
 
-            // Date range filters
-            if (! empty($from_date)) {
-                try {
-                    $query->whereDate('transaction_date', '>=', Carbon::parse($from_date)->toDateString());
-                } catch (\Throwable) {
-                    // ignore unparseable date
-                }
-            }
-            if (! empty($to_date)) {
-                try {
-                    $query->whereDate('transaction_date', '<=', Carbon::parse($to_date)->toDateString());
-                } catch (\Throwable) {
-                    // ignore unparseable date
-                }
-            }
+            $filters = $filters->with([
+                'dateFrom' => $this->parseDate($from_date),
+                'dateTo' => $this->parseDate($to_date),
+                'search' => $description_search ?: null,
+                'paymentMethod' => $payment_method ?: null,
+                'tags' => $tags ?: null,
+            ]);
 
-            // Description keyword search
-            if (! empty($description_search)) {
-                $query->where(function ($subQuery) use ($description_search) {
-                    $subQuery->where('description', 'like', '%'.$description_search.'%')
-                        ->orWhere('notes', 'like', '%'.$description_search.'%')
-                        ->orWhere('payee_payer', 'like', '%'.$description_search.'%');
-                });
-            }
-
-            // Account name filter
             if (! empty($account_name)) {
-                $accountIds = Account::where('name', 'like', '%'.$account_name.'%')
-                    ->pluck('id');
-                $query->whereIn('account_id', $accountIds);
+                $filters = $filters->with([
+                    'accountIds' => Account::where('name', 'like', '%'.$account_name.'%')->pluck('id')->all(),
+                ]);
             }
 
-            // Payment method filter
-            if (! empty($payment_method)) {
-                $query->where('payment_method', $payment_method);
-            }
+            $totals = app(FinancialSummary::class)->totals($filters);
 
-            // Tags keyword search
-            if (! empty($tags)) {
-                $query->where('tags', 'like', '%'.$tags.'%');
-            }
-
-            // Aggregates (on filtered base query before limit/sort)
-            $total = (clone $query)->sum('amount');
-            $count = (clone $query)->count();
-            $income = $type === 'both' ? (clone $query)->where('transaction_type', 'income')->sum('amount') : null;
-            $expense = $type === 'both' ? (clone $query)->where('transaction_type', 'expense')->sum('amount') : null;
-
-            // Sort
+            $query = TransactionQuery::for($filters);
             $sort = $sort_by ?? 'newest';
             match ($sort) {
                 'oldest' => $query->orderBy('transaction_date')->orderBy('id'),
@@ -166,11 +131,8 @@ class SearchTransactionsTool extends Tool
                 default => $query->orderByDesc('transaction_date')->orderByDesc('id'),
             };
 
-            // Limit rows returned
             $limit = $list_limit !== null ? max(1, min(50, (int) round($list_limit))) : 10;
-            $rows = $query->limit($limit)->get();
-
-            $transactions = $rows->map(fn (Transaction $t) => [
+            $transactions = $query->limit($limit)->get()->map(fn (Transaction $t) => [
                 'id' => $t->id,
                 'date' => $t->transaction_date->format('Y-m-d'),
                 'description' => $t->description,
@@ -182,6 +144,12 @@ class SearchTransactionsTool extends Tool
                 'payment_method' => $t->payment_method,
                 'tags' => $t->tags,
             ])->values()->all();
+
+            $total = match ($type) {
+                'income' => $totals['income'],
+                'expense' => $totals['expense'],
+                default => $totals['net'],
+            };
 
             return json_encode([
                 'success' => true,
@@ -197,14 +165,12 @@ class SearchTransactionsTool extends Tool
                     'tags' => $tags,
                     'sort_by' => $sort,
                 ]),
-                'total' => number_format((float) $total, 2),
-                'count' => $count,
-                'income_total' => $income !== null ? number_format((float) $income, 2) : null,
-                'expense_total' => $expense !== null ? number_format((float) $expense, 2) : null,
-                'net' => ($income !== null && $expense !== null)
-                                        ? number_format((float) $income - (float) $expense, 2)
-                                        : null,
-                'showing' => count($transactions).' of '.$count,
+                'total' => number_format($total, 2),
+                'count' => $totals['count'],
+                'income_total' => $type === 'both' ? number_format($totals['income'], 2) : null,
+                'expense_total' => $type === 'both' ? number_format($totals['expense'], 2) : null,
+                'net' => $type === 'both' ? number_format($totals['net'], 2) : null,
+                'showing' => count($transactions).' of '.$totals['count'],
                 'transactions' => $transactions,
             ]);
 
@@ -213,6 +179,19 @@ class SearchTransactionsTool extends Tool
                 'success' => false,
                 'error' => 'Search failed: '.$e->getMessage(),
             ]);
+        }
+    }
+
+    private function parseDate(?string $value): ?string
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->toDateString();
+        } catch (\Throwable) {
+            return null; // ignore unparseable dates, as before
         }
     }
 }

@@ -6,6 +6,9 @@ use App\Actions\Transactions\CreateTransaction;
 use App\Actions\Transactions\ResolveCategory;
 use App\Models\Account;
 use App\Models\Transaction;
+use App\Reporting\FinancialSummary;
+use App\Reporting\TransactionFilters;
+use App\Reporting\TransactionQuery;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -191,32 +194,28 @@ class McpServerCommand extends Command
     private function listTransactions(array $input): array
     {
         $limit = min((int) ($input['limit'] ?? 20), 100);
-        $type = $input['type'] ?? 'all';
-        $period = $input['period'] ?? 'all';
-
-        $query = Transaction::query()->with(['category', 'account'])->latest('transaction_date');
-
-        if ($type !== 'all') {
-            $query->where('transaction_type', $type);
-        }
-
-        match ($period) {
-            'today' => $query->whereDate('transaction_date', today()),
-            'week' => $query->where('transaction_date', '>=', now()->startOfWeek()),
-            'month' => $query->whereMonth('transaction_date', now()->month)
-                ->whereYear('transaction_date', now()->year),
-            default => null,
+        // MCP period names predate the shared ones ("week" = this_week, "month" = this_month).
+        $period = match ($input['period'] ?? 'all') {
+            'week' => 'this_week',
+            'month' => 'this_month',
+            default => $input['period'] ?? 'all',
         };
+        $filters = TransactionFilters::all()->forPeriod($period)->ofType($input['type'] ?? 'all');
 
-        return $query->limit($limit)->get()->map(fn (Transaction $t) => [
-            'id' => $t->id,
-            'date' => $t->transaction_date->format('Y-m-d'),
-            'description' => $t->description,
-            'amount' => (float) $t->amount,
-            'type' => $t->transaction_type,
-            'category' => $t->category?->name,
-            'account' => $t->account?->name,
-        ])->all();
+        return TransactionQuery::for($filters)
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(fn (Transaction $t) => [
+                'id' => $t->id,
+                'date' => $t->transaction_date->format('Y-m-d'),
+                'description' => $t->description,
+                'amount' => (float) $t->amount,
+                'type' => $t->transaction_type,
+                'category' => $t->category?->name,
+                'account' => $t->account?->name,
+            ])->all();
     }
 
     /**
@@ -278,26 +277,15 @@ class McpServerCommand extends Command
      */
     private function spendingSummary(array $input): array
     {
-        $period = $input['period'] ?? 'this_month';
-        $query = Transaction::query()->where('transaction_type', 'expense');
+        $filters = TransactionFilters::all()
+            ->forPeriod($input['period'] ?? 'this_month')
+            ->ofType(Transaction::TYPE_EXPENSE);
 
-        match ($period) {
-            'this_month' => $query->whereMonth('transaction_date', now()->month)
-                ->whereYear('transaction_date', now()->year),
-            'last_month' => $query->whereMonth('transaction_date', now()->subMonth()->month)
-                ->whereYear('transaction_date', now()->subMonth()->year),
-            default => null,
-        };
-
-        return $query->with('category')
-            ->selectRaw('category_id, SUM(amount) as total, COUNT(*) as count')
-            ->groupBy('category_id')
-            ->orderByDesc('total')
-            ->get()
-            ->map(fn ($r) => [
-                'category' => $r->category?->name ?? 'Uncategorized',
-                'total' => (float) $r->total,
-                'count' => (int) $r->count,
+        return app(FinancialSummary::class)->topCategories($filters, 100)
+            ->map(fn (array $row) => [
+                'category' => $row['category'],
+                'total' => $row['total'],
+                'count' => $row['count'],
             ])
             ->all();
     }

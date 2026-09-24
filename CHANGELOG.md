@@ -7,11 +7,16 @@ All notable changes to this project are documented here. The format follows [Kee
 ### Changed
 
 - Every way of changing a transaction (web form, statement import and enrichment, AI chat tools, MCP, sync and dedupe commands) now goes through shared actions in `app/Actions/Transactions`, so they all apply the same rules ([#61](https://github.com/aniketan/expense-manager/issues/61)).
+- Transaction filtering and income/expense totals are defined once (`app/Reporting`: `TransactionFilters`, `TransactionQuery`, `FinancialSummary`) and used by the transaction list, CSV export, home page, analytics, AI tools, and MCP ([#63](https://github.com/aniketan/expense-manager/issues/63)). Filtering by a parent category now also includes rows filed directly on the parent.
 - The category must fit the type everywhere. Income needs a category under Income; expenses can't use Income or Account Transfer categories. The web form previously accepted any category. Older rows stay editable as long as their category and type aren't changed.
 
 ### Fixed
 
 - A statement enrichment that changed a transfer's date moved only one leg. Both legs now move together.
+- "Last month" in the AI tools and MCP reported the current month when run on the 29th–31st, and the analytics trend chart repeated or skipped a month on those days.
+- The AI and MCP "both"/"all" totals counted transfers, so the total mixed income, spending, and transfers into one number.
+- The AI search's category filter ignored subcategories, and its payment-method options (`cash`, `card`, `netbanking`) never matched stored values (`Cash`, `Credit Card`, `Bank Transfer`).
+- MCP "this week" had no end date, so it included future-dated rows.
 - `expense:sync --fresh` deleted synced rows without loading their category, so a row filed under Transfer Incoming was reversed with the wrong sign.
 
 ## [1.1.0] - 2026-09-24

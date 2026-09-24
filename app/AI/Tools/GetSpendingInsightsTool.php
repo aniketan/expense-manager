@@ -4,7 +4,9 @@ namespace App\AI\Tools;
 
 use App\Models\Budget;
 use App\Models\Transaction;
-use Carbon\Carbon;
+use App\Reporting\FinancialSummary;
+use App\Reporting\TransactionFilters;
+use App\Reporting\TransactionQuery;
 use Prism\Prism\Tool;
 
 class GetSpendingInsightsTool extends Tool
@@ -66,52 +68,30 @@ class GetSpendingInsightsTool extends Tool
 
     private function applyPeriod($query, string $period)
     {
-        match ($period) {
-            'today' => $query->whereDate('transaction_date', Carbon::today()),
-            'this_week' => $query->whereBetween('transaction_date', [
-                Carbon::now()->startOfWeek(),
-                Carbon::now()->endOfWeek(),
-            ]),
-            'this_month' => $query->whereYear('transaction_date', Carbon::now()->year)
-                ->whereMonth('transaction_date', Carbon::now()->month),
-            'last_month' => $query->whereYear('transaction_date', Carbon::now()->subMonth()->year)
-                ->whereMonth('transaction_date', Carbon::now()->subMonth()->month),
-            default => null, // 'all' — no filter
-        };
-
-        return $query;
+        return TransactionQuery::apply($query, TransactionFilters::all()->forPeriod($period));
     }
 
     private function spendingSummary(string $period): string
     {
-        $base = $this->applyPeriod(Transaction::query(), $period);
+        $filters = TransactionFilters::all()->forPeriod($period);
+        $summary = app(FinancialSummary::class);
+        $totals = $summary->totals($filters);
+        $savings = $totals['income'] > 0 ? round(($totals['net'] / $totals['income']) * 100, 1) : 0;
 
-        $income = (clone $base)->where('transaction_type', 'income')->sum('amount');
-        $expense = (clone $base)->where('transaction_type', 'expense')->sum('amount');
-        $net = $income - $expense;
-        $savings = $income > 0 ? round(($net / $income) * 100, 1) : 0;
-
-        $topCategories = (clone $base)
-            ->where('transaction_type', 'expense')
-            ->with('category')
-            ->selectRaw('category_id, SUM(amount) as total, COUNT(*) as cnt')
-            ->groupBy('category_id')
-            ->orderByDesc('total')
-            ->limit(5)
-            ->get()
-            ->map(fn ($r) => [
-                'category' => $r->category?->name ?? 'Uncategorized',
-                'total' => round((float) $r->total, 2),
-                'count' => (int) $r->cnt,
+        $topCategories = $summary->topCategories($filters->ofType(Transaction::TYPE_EXPENSE), 5)
+            ->map(fn (array $row) => [
+                'category' => $row['category'],
+                'total' => $row['total'],
+                'count' => $row['count'],
             ])->values()->all();
 
         return json_encode([
             'success' => true,
             'query_type' => 'spending_summary',
             'period' => $period,
-            'income' => round((float) $income, 2),
-            'expense' => round((float) $expense, 2),
-            'net' => round((float) $net, 2),
+            'income' => $totals['income'],
+            'expense' => $totals['expense'],
+            'net' => $totals['net'],
             'savings_rate' => $savings.'%',
             'top_categories' => $topCategories,
         ]);
@@ -174,7 +154,7 @@ class GetSpendingInsightsTool extends Tool
         );
 
         $rows = (clone $base)
-            ->selectRaw('COALESCE(payment_method, "Unknown") as method, SUM(amount) as total, COUNT(*) as cnt')
+            ->selectRaw('COALESCE(payment_method, ?) as method, SUM(amount) as total, COUNT(*) as cnt', ['Unknown'])
             ->groupBy('method')
             ->orderByDesc('total')
             ->get();
