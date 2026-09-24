@@ -2,7 +2,14 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.3.0] - 2026-09-24
+
+Faster category and budget pages, frontend linting and tests in CI, and a guard that stops the Docker image from overwriting a local `.env`.
+
+### Upgrading
+
+- No migrations or config changes. Pull, then rebuild: `docker compose up -d --build` (or `composer install && npm ci && npm run build`).
+- Don't run the Docker image with the project folder or `.env` bind-mounted; it now refuses to start that way. Use `docker compose up` as documented.
 
 ### Added
 
@@ -112,6 +119,7 @@ Lists and reports ([#74](https://github.com/aniketan/expense-manager/pull/74)):
 - There is no authentication, so the app is meant for local use only ([#79](https://github.com/aniketan/expense-manager/issues/79)).
 - The roadmap for the next releases is tracked in issues #61–#67 and #76–#79.
 
+[1.3.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.3.0
 [1.2.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.2.0
 [1.1.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.1.0
 [1.0.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.0.0
