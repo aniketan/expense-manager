@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Services\LlmLoggingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Prism\Prism\Enums\FinishReason;
 use Prism\Prism\Facades\Prism;
@@ -481,5 +482,23 @@ class AiCategorizeTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('category_id', $loans->id)
             ->assertJsonPath('subcategory_id', $creditCard->id);
+    }
+
+    public function test_categorize_logs_and_returns_503_when_llm_call_fails(): void
+    {
+        Category::factory()->parent()->create(['name' => 'Food', 'code' => 'FD8', 'is_active' => true]);
+
+        Prism::shouldReceive('text')->andThrow(new \RuntimeException('provider down'));
+
+        $this->mock(LlmLoggingService::class, function ($mock): void {
+            $mock->shouldIgnoreMissing();
+            $mock->shouldReceive('logError')
+                ->once()
+                ->withArgs(fn ($sessionId, $status, $e) => $status === 'prism_failed' && $e->getMessage() === 'provider down');
+        });
+
+        $this->postJson('/ai/categorize', ['description' => 'ANYTHING', 'type' => 'expense'])
+            ->assertStatus(503)
+            ->assertJsonPath('error', 'AI categorization failed: provider down');
     }
 }

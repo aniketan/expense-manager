@@ -50,113 +50,121 @@ class AiCategorizationService
         $userPrompt = $this->buildCategorizePrompt($description, $type);
         $logger->logMessages($sessionId, [], "Tool-enabled categorize: type={$type}");
 
-        $start = microtime(true);
-        $response = Prism::text()
-            ->using($provider, $model)
-            ->withSystemPrompt('You are a financial categorization expert. You MUST call the list_categories tool with type='.$type.' first, read tree_structure names and ids, then output valid JSON only (no markdown) with matched category_id and subcategory_id from that tree.')
-            ->withPrompt($userPrompt)
-            ->withTools([new ListCategoriesTool])
-            ->withMaxSteps(max(2, $categorizeMaxSteps))
-            ->withMaxTokens($maxTokens)
-            ->asText();
+        try {
+            $start = microtime(true);
+            $response = Prism::text()
+                ->using($provider, $model)
+                ->withSystemPrompt('You are a financial categorization expert. You MUST call the list_categories tool with type='.$type.' first, read tree_structure names and ids, then output valid JSON only (no markdown) with matched category_id and subcategory_id from that tree.')
+                ->withPrompt($userPrompt)
+                ->withTools([new ListCategoriesTool])
+                ->withMaxSteps(max(2, $categorizeMaxSteps))
+                ->withMaxTokens($maxTokens)
+                ->asText();
 
-        $finalText = $response->text;
+            $finalText = $response->text;
 
-        $duration = round((microtime(true) - $start) * 1000);
-        $logger->logResponse($sessionId, $duration, ['raw_text_length' => strlen($finalText)]);
+            $duration = round((microtime(true) - $start) * 1000);
+            $logger->logResponse($sessionId, $duration, ['raw_text_length' => strlen($finalText)]);
 
-        $logger->logMessages($sessionId, [], 'Raw LLM response: '.substr($finalText, 0, 1000));
+            $logger->logMessages($sessionId, [], 'Raw LLM response: '.substr($finalText, 0, 1000));
 
-        $data = $this->decodeJsonResponse($finalText);
+            $data = $this->decodeJsonResponse($finalText);
 
-        $logger->logMessages($sessionId, [], 'Parsed data: '.json_encode($data));
+            $logger->logMessages($sessionId, [], 'Parsed data: '.json_encode($data));
 
-        $normalized = null;
-        $matchedDescriptionToTree = false;
+            $normalized = null;
+            $matchedDescriptionToTree = false;
 
-        $modelProposedIds = is_array($data) && (isset($data['category_id']) || isset($data['subcategory_id']));
+            $modelProposedIds = is_array($data) && (isset($data['category_id']) || isset($data['subcategory_id']));
 
-        if ($modelProposedIds) {
-            $normalized = $this->treeResolver->normalizeToTreeIds(
-                isset($data['category_id']) ? (int) $data['category_id'] : null,
-                isset($data['subcategory_id']) ? (int) $data['subcategory_id'] : null,
-                $type,
-            );
-        } elseif ($type === 'expense') {
-            $tree = $this->treeResolver->expenseTreeFromToolResults($response->toolResults);
-            if (! $tree) {
-                $fromToolJson = json_decode((new ListCategoriesTool)->execute('expense'), true);
-                $tree = is_array($fromToolJson) ? ($fromToolJson['tree_structure'] ?? null) : null;
-            }
-            if (is_array($tree)) {
-                $fromHeuristic = $this->categoryMatcher->resolveExpenseCategoryFromDescription($description, $tree);
-                if ($fromHeuristic) {
-                    $normalized = $fromHeuristic;
-                    $matchedDescriptionToTree = true;
-                    $logger->logMessages($sessionId, [], 'Description-to-tree heuristic: '.json_encode($normalized));
+            if ($modelProposedIds) {
+                $normalized = $this->treeResolver->normalizeToTreeIds(
+                    isset($data['category_id']) ? (int) $data['category_id'] : null,
+                    isset($data['subcategory_id']) ? (int) $data['subcategory_id'] : null,
+                    $type,
+                );
+            } elseif ($type === 'expense') {
+                $tree = $this->treeResolver->expenseTreeFromToolResults($response->toolResults);
+                if (! $tree) {
+                    $fromToolJson = json_decode((new ListCategoriesTool)->execute('expense'), true);
+                    $tree = is_array($fromToolJson) ? ($fromToolJson['tree_structure'] ?? null) : null;
+                }
+                if (is_array($tree)) {
+                    $fromHeuristic = $this->categoryMatcher->resolveExpenseCategoryFromDescription($description, $tree);
+                    if ($fromHeuristic) {
+                        $normalized = $fromHeuristic;
+                        $matchedDescriptionToTree = true;
+                        $logger->logMessages($sessionId, [], 'Description-to-tree heuristic: '.json_encode($normalized));
+                    }
                 }
             }
-        }
 
-        if (! $normalized) {
-            $normalized = $this->treeResolver->normalizeToTreeIds(null, null, $type);
-        }
+            if (! $normalized) {
+                $normalized = $this->treeResolver->normalizeToTreeIds(null, null, $type);
+            }
 
-        if ($type === 'expense') {
-            $normalized = $this->categoryMatcher->refineExpenseSiblingByDescription($description, $normalized);
-        }
+            if ($type === 'expense') {
+                $normalized = $this->categoryMatcher->refineExpenseSiblingByDescription($description, $normalized);
+            }
 
-        $logger->logMessages($sessionId, [], 'Normalized: '.json_encode($normalized));
+            $logger->logMessages($sessionId, [], 'Normalized: '.json_encode($normalized));
 
-        if (! $normalized) {
-            $logger->logError($sessionId, 'normalize_failed', new \Exception('Invalid category IDs'));
+            if (! $normalized) {
+                $logger->logError($sessionId, 'normalize_failed', new \Exception('Invalid category IDs'));
 
-            throw new AiCategorizationException('AI returned invalid category ids');
-        }
+                throw new AiCategorizationException('AI returned invalid category ids');
+            }
 
-        $isFallback = (bool) ($normalized['fallback'] ?? false);
+            $isFallback = (bool) ($normalized['fallback'] ?? false);
 
-        if ($matchedDescriptionToTree) {
-            $successPayload = [
-                'category_id' => $normalized['category_id'],
-                'subcategory_id' => $normalized['subcategory_id'],
-                'confidence' => 'medium',
-                'reason' => 'Matched transaction wording to configured categories because the model output was missing or invalid.',
-                'fallback' => false,
-            ];
-        } elseif (is_array($data)) {
-            if ($isFallback) {
+            if ($matchedDescriptionToTree) {
                 $successPayload = [
                     'category_id' => $normalized['category_id'],
                     'subcategory_id' => $normalized['subcategory_id'],
-                    'confidence' => 'low',
-                    'reason' => self::FALLBACK_REASON,
-                    'fallback' => true,
+                    'confidence' => 'medium',
+                    'reason' => 'Matched transaction wording to configured categories because the model output was missing or invalid.',
+                    'fallback' => false,
                 ];
+            } elseif (is_array($data)) {
+                if ($isFallback) {
+                    $successPayload = [
+                        'category_id' => $normalized['category_id'],
+                        'subcategory_id' => $normalized['subcategory_id'],
+                        'confidence' => 'low',
+                        'reason' => self::FALLBACK_REASON,
+                        'fallback' => true,
+                    ];
+                } else {
+                    $successPayload = [
+                        'category_id' => $normalized['category_id'],
+                        'subcategory_id' => $normalized['subcategory_id'],
+                        'confidence' => in_array($data['confidence'] ?? '', ['high', 'medium', 'low'], true)
+                            ? $data['confidence']
+                            : 'low',
+                        'reason' => is_string($data['reason'] ?? null) ? $data['reason'] : 'Semantic categorization with fallback normalization',
+                        'fallback' => false,
+                    ];
+                }
             } else {
                 $successPayload = [
                     'category_id' => $normalized['category_id'],
                     'subcategory_id' => $normalized['subcategory_id'],
-                    'confidence' => in_array($data['confidence'] ?? '', ['high', 'medium', 'low'], true)
-                        ? $data['confidence']
-                        : 'low',
-                    'reason' => is_string($data['reason'] ?? null) ? $data['reason'] : 'Semantic categorization with fallback normalization',
-                    'fallback' => false,
+                    'confidence' => 'low',
+                    'reason' => $isFallback ? self::FALLBACK_REASON : 'Semantic categorization with fallback normalization',
+                    'fallback' => $isFallback,
                 ];
             }
-        } else {
-            $successPayload = [
-                'category_id' => $normalized['category_id'],
-                'subcategory_id' => $normalized['subcategory_id'],
-                'confidence' => 'low',
-                'reason' => $isFallback ? self::FALLBACK_REASON : 'Semantic categorization with fallback normalization',
-                'fallback' => $isFallback,
-            ];
+
+            $logger->logMessages($sessionId, [], 'SUCCESS: '.json_encode($successPayload));
+
+            return $successPayload;
+        } catch (AiCategorizationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            $logger->logError($sessionId, 'prism_failed', $e);
+
+            throw $e;
         }
-
-        $logger->logMessages($sessionId, [], 'SUCCESS: '.json_encode($successPayload));
-
-        return $successPayload;
     }
 
     private function buildCategorizePrompt(string $description, string $type): string
