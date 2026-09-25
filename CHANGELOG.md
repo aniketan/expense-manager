@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Statement reconciliation and AI categorization are split into focused classes (`app/Services/StatementReconciliation/*`, `app/Services/AiCategorization/*`); `StatementReconciliationService::analyze()` keeps its exact signature and return shape, and `AiController::categorize()` is now a thin HTTP layer ([#65](https://github.com/aniketan/expense-manager/issues/65)).
+
+### Fixed
+
+- AI categorization no longer hides a best guess: when the final category comes from the default-leaf fallback, the response now flags `fallback: true` with `confidence: low`, and the statement Review page leaves such a row's selection untouched for manual review instead of auto-filling it ([#65](https://github.com/aniketan/expense-manager/issues/65)).
+
 ## [1.4.0] - 2026-09-25
 
 Shared Create/Edit forms for transactions, accounts, and categories — and a batch of date fixes so forms use your local calendar day instead of UTC.

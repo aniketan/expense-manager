@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Services\LlmLoggingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Prism\Prism\Enums\FinishReason;
 use Prism\Prism\Facades\Prism;
@@ -57,7 +58,94 @@ class AiCategorizeTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('category_id', $parent->id)
             ->assertJsonPath('subcategory_id', $child->id)
-            ->assertJsonPath('confidence', 'high');
+            ->assertJsonPath('confidence', 'high')
+            ->assertJsonPath('fallback', false);
+    }
+
+    public function test_categorize_fallback_is_false_for_heuristic_match(): void
+    {
+        $loans = Category::factory()->parent()->create([
+            'name' => 'Loans',
+            'code' => 'LN9',
+            'is_active' => true,
+        ]);
+        $creditCard = Category::factory()->create([
+            'parent_id' => $loans->id,
+            'name' => 'Credit Card',
+            'code' => 'CC_PAY9',
+            'is_active' => true,
+        ]);
+
+        Prism::fake([
+            new TextResponse(
+                steps: collect([]),
+                text: '',
+                finishReason: FinishReason::Stop,
+                toolCalls: [],
+                toolResults: [],
+                usage: new Usage(0, 0),
+                meta: new Meta('fake', 'fake'),
+                messages: collect([]),
+            ),
+        ]);
+
+        $response = $this->postJson('/ai/categorize', [
+            'description' => 'DEMO CREDIT CARD PAYMENT/XXXXXXXXXXXX0000',
+            'type' => 'expense',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('category_id', $loans->id)
+            ->assertJsonPath('subcategory_id', $creditCard->id)
+            ->assertJsonPath('confidence', 'medium')
+            ->assertJsonPath('fallback', false);
+    }
+
+    public function test_categorize_forces_low_confidence_fallback_when_model_returns_garbage_with_high_confidence(): void
+    {
+        $food = Category::factory()->parent()->create([
+            'name' => 'Food',
+            'code' => 'FD9',
+            'is_active' => true,
+        ]);
+        $groceries = Category::factory()->create([
+            'parent_id' => $food->id,
+            'name' => 'Groceries',
+            'is_active' => true,
+        ]);
+
+        Prism::fake([
+            new TextResponse(
+                steps: collect([]),
+                text: json_encode([
+                    'category_id' => 999999,
+                    'subcategory_id' => 888888,
+                    'confidence' => 'high',
+                    'reason' => 'Confident but invented ids',
+                ]),
+                finishReason: FinishReason::Stop,
+                toolCalls: [],
+                toolResults: [],
+                usage: new Usage(0, 0),
+                meta: new Meta('fake', 'fake'),
+                messages: collect([]),
+            ),
+        ]);
+
+        $response = $this->postJson('/ai/categorize', [
+            'description' => 'RANDOM XYZ ABC',
+            'type' => 'expense',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('category_id', $food->id)
+            ->assertJsonPath('subcategory_id', $groceries->id)
+            ->assertJsonPath('fallback', true)
+            ->assertJsonPath('confidence', 'low');
+        $this->assertStringContainsString(
+            'could not determine',
+            strtolower((string) $response->json('reason'))
+        );
     }
 
     public function test_categorize_income_returns_income_subtree_ids(): void
@@ -204,7 +292,9 @@ class AiCategorizeTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('category_id', $food->id)
-            ->assertJsonPath('subcategory_id', $groceries->id);
+            ->assertJsonPath('subcategory_id', $groceries->id)
+            ->assertJsonPath('fallback', true)
+            ->assertJsonPath('confidence', 'low');
     }
 
     public function test_categorize_expense_falls_back_when_ai_returns_income_child(): void
@@ -256,7 +346,9 @@ class AiCategorizeTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('category_id', $food->id)
-            ->assertJsonPath('subcategory_id', $groceries->id);
+            ->assertJsonPath('subcategory_id', $groceries->id)
+            ->assertJsonPath('fallback', true)
+            ->assertJsonPath('confidence', 'low');
     }
 
     public function test_categorize_expense_maps_credit_card_payment_when_model_returns_no_json(): void
@@ -390,5 +482,23 @@ class AiCategorizeTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('category_id', $loans->id)
             ->assertJsonPath('subcategory_id', $creditCard->id);
+    }
+
+    public function test_categorize_logs_and_returns_503_when_llm_call_fails(): void
+    {
+        Category::factory()->parent()->create(['name' => 'Food', 'code' => 'FD8', 'is_active' => true]);
+
+        Prism::shouldReceive('text')->andThrow(new \RuntimeException('provider down'));
+
+        $this->mock(LlmLoggingService::class, function ($mock): void {
+            $mock->shouldIgnoreMissing();
+            $mock->shouldReceive('logError')
+                ->once()
+                ->withArgs(fn ($sessionId, $status, $e) => $status === 'prism_failed' && $e->getMessage() === 'provider down');
+        });
+
+        $this->postJson('/ai/categorize', ['description' => 'ANYTHING', 'type' => 'expense'])
+            ->assertStatus(503)
+            ->assertJsonPath('error', 'AI categorization failed: provider down');
     }
 }
