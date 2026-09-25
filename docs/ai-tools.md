@@ -10,6 +10,7 @@ The public `main` branch includes the app foundation and Prism PHP dependency, b
 
 - Parse natural-language expense entries into structured transaction drafts.
 - Suggest category and subcategory mappings with confidence and fallback behavior.
+- Low-confidence classification should produce a review state, not a hidden best guess. The `/ai/categorize` response carries a boolean `fallback` flag: when `true`, the suggested IDs are a default (not a model or wording match), `confidence` is forced to `low`, and review UI must not auto-fill the row's category.
 - Flag transactions that need more detail instead of guessing silently.
 - Support controlled actions such as creating transactions or running sync only when the user intent is clear.
 - Keep real financial data out of public fixtures, docs, and issue examples.

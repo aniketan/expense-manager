@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import BootstrapLayout from '../../Layouts/BootstrapLayout';
+import { applyAiCategorizationToRow } from './applyAiCategorization';
 
 function childList(category) {
     return category.active_children ?? category.activeChildren ?? category.children ?? [];
@@ -341,30 +342,7 @@ export default function Review({
                 throw new Error(data.error || 'Categorization failed');
             }
             setRows((prev) =>
-                prev.map((r) => {
-                    if (r._id !== row._id) {
-                        return r;
-                    }
-                    const base = {
-                        ...r,
-                        aiLoading: false,
-                        aiDone: true,
-                        aiConfidence: data.confidence,
-                        aiReason: data.reason,
-                    };
-                    if (r.type === 'income') {
-                        return {
-                            ...base,
-                            category_id: '',
-                            subcategory_id: data.subcategory_id != null ? String(data.subcategory_id) : '',
-                        };
-                    }
-                    return {
-                        ...base,
-                        category_id: data.category_id != null ? String(data.category_id) : '',
-                        subcategory_id: data.subcategory_id != null ? String(data.subcategory_id) : '',
-                    };
-                }),
+                prev.map((r) => (r._id !== row._id ? r : applyAiCategorizationToRow(r, data))),
             );
         } catch {
             updateRow(row._id, 'aiLoading', false);
