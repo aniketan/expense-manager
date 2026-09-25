@@ -2,7 +2,14 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.5.0] - 2026-09-25
+
+Statement reconciliation and AI categorization are now built from focused classes, and a low-confidence AI guess can no longer masquerade as a confident answer.
+
+### Upgrading
+
+- No migrations or config changes. Pull, then rebuild: `docker compose up -d --build` (or `composer install && npm ci && npm run build`).
+- The AI categorize endpoint's JSON response gains a boolean `fallback` key; existing keys are unchanged.
 
 ### Changed
 
@@ -152,6 +159,7 @@ Lists and reports ([#74](https://github.com/aniketan/expense-manager/pull/74)):
 - There is no authentication, so the app is meant for local use only ([#79](https://github.com/aniketan/expense-manager/issues/79)).
 - The roadmap for the next releases is tracked in issues #61–#67 and #76–#79.
 
+[1.5.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.5.0
 [1.4.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.4.0
 [1.3.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.3.0
 [1.2.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.2.0
