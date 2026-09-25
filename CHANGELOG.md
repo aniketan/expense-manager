@@ -2,7 +2,14 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.4.0] - 2026-09-25
+
+Shared Create/Edit forms for transactions, accounts, and categories — and a batch of date fixes so forms use your local calendar day instead of UTC.
+
+### Upgrading
+
+- No migrations or config changes. Pull, then rebuild: `docker compose up -d --build` (or `composer install && npm ci && npm run build`).
+- Budgets created with the **Monthly/Yearly** preset before this release may have off-by-one start/end dates (the UTC bug); check and correct them.
 
 ### Changed
 
@@ -135,6 +142,7 @@ Lists and reports ([#74](https://github.com/aniketan/expense-manager/pull/74)):
 - There is no authentication, so the app is meant for local use only ([#79](https://github.com/aniketan/expense-manager/issues/79)).
 - The roadmap for the next releases is tracked in issues #61–#67 and #76–#79.
 
+[1.4.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.4.0
 [1.3.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.3.0
 [1.2.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.2.0
 [1.1.0]: https://github.com/aniketan/expense-manager/releases/tag/v1.1.0
